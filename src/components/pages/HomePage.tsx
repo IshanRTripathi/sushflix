@@ -24,7 +24,7 @@ export function HomePage() {
                 Become a Creator
               </Link>
               <Link
-                to="/categories"
+                to="/explore"
                 className="bg-indigo-500 text-white px-8 py-3 rounded-lg font-semibold hover:bg-indigo-400 transition-colors"
               >
                 Explore Content
@@ -38,7 +38,7 @@ export function HomePage() {
       <section className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl font-bold text-gray-900">Why Choose CreatorHub?</h2>
+            <h2 className="text-3xl font-bold text-gray-900">Why Choose Sushflix?</h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="text-center p-6">

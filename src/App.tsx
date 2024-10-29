@@ -10,6 +10,7 @@ import { ContentCategories } from './components/content/ContentCategories';
 import { ContentDetail } from './components/content/ContentDetail';
 import { CreatorProfile } from './components/creator/CreatorProfile';
 import { ContentUploadForm } from './components/content/ContentUploadForm';
+import { ExplorePage } from './components/content/ExplorePage';
 import { SubscriptionPlans } from './components/subscription/SubscriptionPlans';
 
 function App() {
@@ -28,6 +29,7 @@ function App() {
               <Route path="/creator/:username" element={<CreatorProfile />} />
               <Route path="/upload" element={<ContentUploadForm />} />
               <Route path="/subscribe" element={<SubscriptionPlans />} />
+              <Route path="/explore" element={<ExplorePage />} />
             </Routes>
           </main>
           <Footer />

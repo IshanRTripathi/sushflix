@@ -1,87 +1,128 @@
-import React from 'react';
-import { Play, Lock, Heart } from 'lucide-react';
-import { useAuth } from '../auth/AuthContext';
+import React, { useState } from 'react';
+
+interface Comment {
+    username: string;
+    text: string;
+}
 
 interface ContentCardProps {
-  id: string;
-  thumbnail: string;
-  title: string;
-  creatorName: string;
-  isExclusive: boolean;
-  likes: number;
-  duration?: string;
-  isSubscribed: boolean;
-  onSubscribe: () => void;
-  onClick: () => void;
+    id: string;
+    thumbnail: string;
+    creatorProfilePic: string;
+    creatorName: string;
+    timestamp: string; // Time in "X minutes/hours/days ago" format
+    caption: string;
+    isSubscribed: boolean;
+    onSubscribe: () => void;
+    onClick: () => void;
+    initialLikes: number;
+    onComment: () => void;
+    initialLiked: boolean;
+    comments: Comment[];
 }
 
-export function ContentCard({
-  thumbnail,
-  title,
-  creatorName,
-  isExclusive,
-  likes,
-  duration,
-  isSubscribed,
-  onSubscribe,
-  onClick
-}: ContentCardProps) {
-  const { isAuthenticated } = useAuth();
+export const ContentCard: React.FC<ContentCardProps> = ({
+                                                            id,
+                                                            thumbnail,
+                                                            creatorProfilePic,
+                                                            creatorName,
+                                                            timestamp,
+                                                            caption,
+                                                            isSubscribed,
+                                                            onSubscribe,
+                                                            onClick,
+                                                            initialLikes,
+                                                            onComment,
+                                                            initialLiked,
+                                                            comments: initialComments
+                                                        }) => {
+    const [likes, setLikes] = useState(initialLikes);
+    const [isLiked, setIsLiked] = useState(initialLiked);
+    const [comments, setComments] = useState<Comment[]>(initialComments);
+    const [newComment, setNewComment] = useState<string>('');
 
-  return (
-    <div className="group relative bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow duration-300">
-      <div 
-        className="relative aspect-video cursor-pointer"
-        onClick={onClick}
-      >
-        <img
-          src={thumbnail}
-          alt={title}
-          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-        />
-        {duration && (
-          <div className="absolute bottom-2 right-2 bg-black bg-opacity-75 text-white text-sm px-2 py-1 rounded">
-            {duration}
-          </div>
-        )}
-        {isExclusive && !isSubscribed && (
-          <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-            <Lock className="w-8 h-8 text-white" />
-          </div>
-        )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-      </div>
+    const handleLike = () => {
+        if (isLiked) {
+            setLikes(prevLikes => prevLikes - 1);
+        } else {
+            setLikes(prevLikes => prevLikes + 1);
+        }
+        setIsLiked(!isLiked);
+    };
 
-      <div className="p-4">
-        <div className="flex justify-between items-start mb-2">
-          <h3 className="font-semibold text-gray-900 line-clamp-2">{title}</h3>
-          <button 
-            className="flex items-center text-gray-500 hover:text-red-500 transition-colors"
-            aria-label="Like content"
-          >
-            <Heart className="w-5 h-5" />
-            <span className="ml-1 text-sm">{likes}</span>
-          </button>
+    const handleAddComment = () => {
+        if (newComment.trim()) {
+            setComments([...comments, { username: 'current_user', text: newComment }]);
+            setNewComment('');
+            onComment(); // Notify parent about the new comment
+        }
+    };
+
+    return (
+        <div className="border border-gray-300 rounded-lg shadow-md p-4 bg-white mb-4 min-w-full sm:min-w-[500px]">
+            <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center">
+                    <img
+                        src={creatorProfilePic}
+                        alt={`${creatorName}'s profile`}
+                        className="w-10 h-10 rounded-full mr-3"
+                    />
+                    <div>
+                        <div className="font-bold">{creatorName}</div>
+                        <div className="text-sm text-gray-500">{timestamp}</div>
+                    </div>
+                </div>
+                <div className="flex items-center">
+                    <button
+                        onClick={onSubscribe}
+                        className={`text-sm font-semibold ${isSubscribed ? 'text-gray-400' : 'text-blue-500'}`}
+                    >
+                        {isSubscribed ? 'Following' : 'Follow'}
+                    </button>
+                    <button className="ml-2 text-gray-500">⋮</button>
+                </div>
+            </div>
+            <div className="mb-4 text-gray-800">{caption}</div>
+            <img
+                src={thumbnail}
+                alt="Post"
+                className="w-full rounded-lg cursor-pointer"
+                onClick={onClick}
+            />
+            <div className="flex justify-between items-center mt-4">
+                <div className="flex items-center">
+                    <button onClick={handleLike} className="flex items-center mr-4">
+                        <span className="mr-1">👍</span> {likes}
+                    </button>
+                    <span className="flex items-center">
+            <span className="mr-1">💬</span> {comments.length}
+          </span>
+                </div>
+            </div>
+            <div className="mt-4">
+                {comments.length > 0 && (
+                    <div className="mb-4">
+                        {comments.map((comment, index) => (
+                            <div key={index} className="flex items-start mb-2">
+                                <div className="font-bold mr-2">{comment.username}</div>
+                                <div>{comment.text}</div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+                <div className="flex items-center">
+                    <input
+                        type="text"
+                        placeholder="Add a comment..."
+                        value={newComment}
+                        onChange={(e) => setNewComment(e.target.value)}
+                        className="flex-1 border rounded-lg p-2 mr-2"
+                    />
+                    <button onClick={handleAddComment} className="bg-blue-500 text-white rounded-lg px-3 py-1">
+                        Post
+                    </button>
+                </div>
+            </div>
         </div>
-
-        <div className="flex items-center justify-between">
-          <a 
-            href={`/creator/${creatorName}`}
-            className="text-sm text-gray-600 hover:text-indigo-600 transition-colors"
-          >
-            {creatorName}
-          </a>
-          
-          {isExclusive && !isSubscribed && (
-            <button
-              onClick={isAuthenticated ? onSubscribe : () => window.location.href = '/login'}
-              className="text-sm bg-indigo-600 text-white px-3 py-1 rounded-full hover:bg-indigo-700 transition-colors"
-            >
-              Subscribe
-            </button>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
+    );
+};

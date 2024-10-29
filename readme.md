@@ -229,3 +229,35 @@ Remember to:
 - Review security logs
 - Test backup restoration procedures
 - Monitor API performance and errors
+
+
+main.tsx:
+The entry point file for the React application. It typically renders the root component (often <App />) into the DOM.
+App.tsx:
+This file likely contains the main application component that serves as a container for other components. It could include routing logic and the overall structure of the app.
+
+components:
+subscription\SubscriptionPlans.tsx:
+Likely contains a React component that manages and displays different subscription plans available to users.
+pages\HomePage.tsx:
+Likely contains a React component representing the home page of the application. This may include an overview of available content and navigation to other parts of the app.
+layout\Navigation.tsx:
+Likely contains a React component for navigation, such as a menu or header, allowing users to navigate through different sections of the application.
+
+Auth Directory
+AuthContext.tsx:
+Contains authentication context and logic for managing user authentication state and authentication-related functions in the application
+
+Creator Directory
+CreatorProfile.tsx:
+Displays the profile of a content creator, showcasing information such as name, bio, and a list of content created by the user.
+
+Content Directory
+ContentCard.tsx:
+Displays a card for content including details like title, description, and possibly an image or thumbnail.
+ContentCategories.tsx:
+Displays and manages content categories, allowing users to filter or browse different categories.
+ContentDetail.tsx:
+Shows detailed information about a specific piece of content, probably including title, description, creator details, and other metadata.
+ContentUploadForm.tsx:
+Provides a form interface for users to upload new content, including details like title, description, and file upload capabilities.

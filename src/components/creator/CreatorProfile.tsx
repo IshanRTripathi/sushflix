@@ -175,13 +175,16 @@ export function CreatorProfile() {
           }`}>
             {contents.map((content) => (
               <ContentCard
-                key={content.id}
-                {...content}
-                creatorName={creator.name}
-                isSubscribed={isSubscribed}
-                onSubscribe={() => {}}
-                onClick={() => {}}
-              />
+                  creatorProfilePic={''} timestamp={''} caption={''} initialLikes={0} onComment={function (): void {
+                throw new Error('Function not implemented.');
+              }} initialLiked={false} comments={[]} key={content.id}
+                  {...content}
+                  creatorName={creator.name}
+                  isSubscribed={isSubscribed}
+                  onSubscribe={() => {
+                  }}
+                  onClick={() => {
+                  }}              />
             ))}
           </div>
         </div>

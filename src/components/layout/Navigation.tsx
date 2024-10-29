@@ -18,11 +18,11 @@ export function Navigation() {
         <div className="flex justify-between h-16">
           <div className="flex">
             <Link to="/" className="flex-shrink-0 flex items-center">
-              <span className="text-xl font-bold text-indigo-600">CreatorHub</span>
+              <span className="text-xl font-bold text-indigo-600">Sushflix</span>
             </Link>
             <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
               <Link
-                to="/categories"
+                to="/explore"
                 className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-900"
               >
                 Explore
@@ -100,7 +100,7 @@ export function Navigation() {
         <div className="sm:hidden">
           <div className="pt-2 pb-3 space-y-1">
             <Link
-              to="/categories"
+              to="/explore"
               className="block pl-3 pr-4 py-2 text-base font-medium text-gray-700 hover:bg-gray-50"
               onClick={() => setIsMenuOpen(false)}
             >
