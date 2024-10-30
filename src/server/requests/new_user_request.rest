@@ -1,0 +1,22 @@
+   ### Register a New User
+   POST http://localhost:5000/api/auth/register
+    Content-Type: application/json
+
+   {
+     "username": "testuser",
+     "email": "testuser@example.com",
+     "password": "password123"
+   }
+
+#   ### Log In with the New User
+#   POST http://127.0.0.1:5000/api/auth/login
+#   Content-Type: application/json
+#
+#   {
+#     "email": "testuser@example.com",
+#     "password": "password123"
+#   }
+#
+#   ### Access a Protected Route
+#   GET http://127.0.0.1:5000/api/protected-route
+#   Authorization: Bearer your.jwt.token

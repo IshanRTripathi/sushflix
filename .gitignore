@@ -46,3 +46,4 @@ yarn.lock
 # Windows system files
 Thumbs.db
 /dist
+/node_modules/
