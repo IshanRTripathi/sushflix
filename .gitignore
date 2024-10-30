@@ -1,5 +1,6 @@
 # Node modules
 node_modules/
+/.vite
 
 
 # Logs
@@ -44,3 +45,4 @@ yarn.lock
 
 # Windows system files
 Thumbs.db
+/dist

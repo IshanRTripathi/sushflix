@@ -261,3 +261,130 @@ ContentDetail.tsx:
 Shows detailed information about a specific piece of content, probably including title, description, creator details, and other metadata.
 ContentUploadForm.tsx:
 Provides a form interface for users to upload new content, including details like title, description, and file upload capabilities.
+
+
+
+
+Firstly, go through each file I modified manually and get an understanding of what new features I added.
+
+1. Generate code for a content upload form that allows creators to upload images or videos, set titles, descriptions, and choose visibility settings. Handle file uploads and sending data to the backend using the Fetch API.
+
+2. Generate code for a creator profile page that displays the creator's profile picture, name, bio, subscription options, and a list of their content. Handle authentication and subscription status for displaying exclusive content.
+
+3. Remove the existing subscription logic, we dont provide subscription to users like we sell apps, this subscription model is specific to each creator, means the creator will have their subscription prices listed.
+
+4. the creator can provide 3 level of subscription, level0 which is free for all followers, but level1 will cost $1.99, level2 $4.99 and level3 $9.99 as they will be called subscribers
+
+5. Each user will have a certain subscription plan of a creator. it could be level1,2,3 and by default level0 if they're following the creator
+
+6. When the subscribe button is clicked, the card view will be shown  of different creators who provide subscription based content.
+
+
+
+
+Total Users: Number of unique users who have interacted with your product.
+New vs. Returning Users: Ratio of first-time users to those who return, indicating user retention.
+Active Users: Daily or monthly active users to gauge ongoing engagement.
+Sessions: Total number of sessions initiated by users, reflecting overall activity.
+Average Session Duration: Average time users spend during a session, indicating content engagement.
+Bounce Rate: Percentage of users who leave after viewing only one page, helping identify content relevance.
+Conversion Rate: Percentage of users completing desired actions (e.g., subscriptions, purchases).
+Goal Completions: Number of specific goals achieved, such as sign-ups or downloads.
+User Feedback/Rating: Aggregate user ratings or feedback scores to assess satisfaction.
+Revenue Metrics: Total revenue generated from subscriptions or other monetization strategies.
+
+
+1. For time being, allow creator signin for username - creator and password- creator
+   For user signin, username -user and password - user
+
+2. the creator should be able to see the number of followers they have, number of subscribers, total revenue generated, all the posts they have posted
+
+3. when I click on like and comment button, there should be validations, including one that the person is logged in. The like feature works fine, but the comment functionality is not yet complete. when i comment on a post, it should be visible. Same goes for the follow button on the card, if i click on follow, the follow should change to following.
+
+4. once done, give a comprehensive list of features that still need to be implemented as part of mvp. 
+
+
+
+
+
+I've implemented the requested features. Here's a comprehensive list of remaining MVP features to implement:
+
+Authentication & Authorization
+
+Email verification
+Password reset
+OAuth integration (Google, Facebook)
+Role-based access control
+Content Management
+
+Content deletion
+Content editing
+Content scheduling
+Draft saving
+Bulk upload
+Content categories/tags
+Creator Features
+
+Analytics dashboard
+Revenue reports
+Subscriber management
+Custom subscription tiers
+Payout system
+Content performance metrics
+User Features
+
+User profile customization
+Saved content library
+Watch history
+Notification preferences
+Content sharing
+Playlist creation
+Social Features
+
+Direct messaging
+Comment replies
+Comment moderation
+Content reporting
+User blocking
+Share to social media
+Payment System
+
+Stripe integration
+Multiple payment methods
+Subscription management
+Refund handling
+Payment history
+Invoicing
+Search & Discovery
+
+Advanced search filters
+Content recommendations
+Trending content
+Similar content suggestions
+Category browsing
+Technical Infrastructure
+
+CDN integration
+Video transcoding
+Image optimization
+Caching system
+API rate limiting
+Error tracking
+Mobile Experience
+
+Responsive design optimization
+Progressive web app
+Offline support
+Touch gestures
+Mobile notifications
+Security
+
+Content protection
+DRM implementation
+GDPR compliance
+Data encryption
+Security headers
+XSS protection
+The development server is running with the updated features. You can now test the authentication with the provided credentials and the enhanced social interactions.
+
+

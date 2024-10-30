@@ -6,37 +6,33 @@ import { Footer } from './components/layout/Footer';
 import { HomePage } from './components/pages/HomePage';
 import { LoginForm } from './components/auth/LoginForm';
 import { SignupForm } from './components/auth/SignupForm';
-import { ContentCategories } from './components/content/ContentCategories';
+import { ExplorePage } from './components/content/ExplorePage';
 import { ContentDetail } from './components/content/ContentDetail';
 import { CreatorProfile } from './components/creator/CreatorProfile';
-import { ContentUploadForm } from './components/content/ContentUploadForm';
-import { ExplorePage } from './components/content/ExplorePage';
-import { SubscriptionPlans } from './components/subscription/SubscriptionPlans';
+import { ContentUpload } from './components/content/ContentUpload';
 
 function App() {
-  return (
-    <AuthProvider>
-      <Router>
-        <div className="min-h-screen flex flex-col">
-          <Navigation />
-          <main className="flex-grow">
-            <Routes>
-              <Route path="/" element={<HomePage />} />
-              <Route path="/login" element={<LoginForm />} />
-              <Route path="/signup" element={<SignupForm />} />
-              <Route path="/categories" element={<ContentCategories />} />
-              <Route path="/content/:id" element={<ContentDetail />} />
-              <Route path="/creator/:username" element={<CreatorProfile />} />
-              <Route path="/upload" element={<ContentUploadForm />} />
-              <Route path="/subscribe" element={<SubscriptionPlans />} />
-              <Route path="/explore" element={<ExplorePage />} />
-            </Routes>
-          </main>
-          <Footer />
-        </div>
-      </Router>
-    </AuthProvider>
-  );
+    return (
+        <AuthProvider>
+            <Router>
+                <div className="min-h-screen flex flex-col">
+                    <Navigation />
+                    <main className="flex-grow">
+                        <Routes>
+                            <Route path="/" element={<HomePage />} />
+                            <Route path="/login" element={<LoginForm />} />
+                            <Route path="/signup" element={<SignupForm />} />
+                            <Route path="/explore" element={<ExplorePage />} />
+                            <Route path="/content/:id" element={<ContentDetail />} />
+                            <Route path="/creator/:username" element={<CreatorProfile />} />
+                            <Route path="/upload" element={<ContentUpload />} />
+                        </Routes>
+                    </main>
+                    <Footer />
+                </div>
+            </Router>
+        </AuthProvider>
+    );
 }
 
 export default App;
