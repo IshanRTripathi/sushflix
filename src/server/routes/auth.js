@@ -3,17 +3,20 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const logger = require('../config/logger');  // Updated import path
 require('dotenv').config();
 
 const router = express.Router();
 
 router.post('/register', async (req, res) => {
     const { username, email, password } = req.body;
-    console.log(req.body + " received !");
+    logger.info(`Received registration request for email: ${email}`);
+
     try {
         // Check if the user already exists
         const userExists = await User.findOne({ email });
         if (userExists) {
+            logger.warn(`Attempt to register with existing email: ${email}`);
             return res.status(400).json({ message: 'User already exists' });
         }
 
@@ -29,25 +32,30 @@ router.post('/register', async (req, res) => {
         });
 
         await newUser.save();
+        logger.info(`User registered successfully: ${email}`);
         res.status(201).json({ message: 'User registered successfully' });
     } catch (err) {
+        logger.error(`Error in registration for email: ${email} - ${err.message}`);
         res.status(500).json({ message: 'Server error', error: err.message });
     }
 });
 
 router.post('/login', async (req, res) => {
     const { email, password } = req.body;
+    logger.info(`Received login request for email: ${email}`);
 
     try {
         // Check if the user exists
         const user = await User.findOne({ email });
         if (!user) {
+            logger.warn(`Login attempt with invalid email: ${email}`);
             return res.status(400).json({ message: 'Invalid credentials' });
         }
 
         // Validate password
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
+            logger.warn(`Login attempt with invalid password for email: ${email}`);
             return res.status(400).json({ message: 'Invalid credentials' });
         }
 
@@ -56,8 +64,10 @@ router.post('/login', async (req, res) => {
             expiresIn: '1h',
         });
 
+        logger.info(`User logged in successfully: ${email}`);
         res.status(200).json({ token, expiresIn: '1h' });
     } catch (err) {
+        logger.error(`Error in login for email: ${email} - ${err.message}`);
         res.status(500).json({ message: 'Server error', error: err.message });
     }
 });
