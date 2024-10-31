@@ -20,7 +20,5 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": [
-    "tsconfig.app"
-  ]
+  "include": ["src"]
 }
