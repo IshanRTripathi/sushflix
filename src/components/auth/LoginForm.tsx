@@ -53,7 +53,7 @@ export function LoginForm() {
       });
 
       const data = await response.json();
-
+      console.log("Login response data:", data);
       if (!response.ok) {
         throw new Error(data.message || 'Login failed');
       }
@@ -89,7 +89,7 @@ export function LoginForm() {
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <label htmlFor="username" className="block text-sm font-medium text-gray-700">
-                username
+                Username
               </label>
               <input
                   type="text"

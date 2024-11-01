@@ -26,8 +26,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
 
-  // Load user and token from localStorage on component mount
-  useEffect(() => {
+  // Initial state setup function
+  const initializeAuthState = () => {
     console.log("AuthProvider useEffect triggered");
 
     const storedToken = localStorage.getItem('token');
@@ -55,8 +55,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     // Log final state for debugging
-    console.log("AuthProvider useEffect, user: ", user, ", token: ", token);
-  }, []);
+    console.log("AuthProvider useEffect final state, user: ", user, ", token: ", token);
+  };
+
+  // Use useEffect to run only once after mount
+  useEffect(() => {
+    initializeAuthState();
+  }, []); // Empty dependency array to run only once
 
   // login function
   const login = async (username: string, password: string) => {
@@ -86,18 +91,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password, email })
     });
-    try {
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.message || 'Signup failed');
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message || 'Signup failed');
 
-      console.log("Signup response data:", data);
+    console.log("Signup response data:", data);
 
-      // Automatically log in the user
-      await login(username, password);
-    } catch (error) {
-      console.error("Signup failed: ", error);
-      throw error;
-    }
+    // Automatically log in the user
+    await login(username, password);
   };
 
   // Logout function
