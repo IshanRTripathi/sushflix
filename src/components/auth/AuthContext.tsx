@@ -43,9 +43,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const storedToken = localStorage.getItem('token');
     const storedUser = localStorage.getItem('user');
 
-    if (storedToken && storedUser) {
+    if (storedToken) {
       setToken(storedToken);
-      setUser(JSON.parse(storedUser));
+    }
+
+    if (storedUser) {
+      try {
+        const parsedUser = JSON.parse(storedUser);
+        setUser(parsedUser);
+      } catch (error) {
+        console.error("Error parsing user from localStorage", error);
+      }
     }
   }, []);
 
@@ -53,6 +61,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Mock authentication
     if ((username === 'creator' && password === 'creator') ||
         (username === 'user' && password === 'user')) {
+      console.log('Login for default credentials: ', username, ', ', password);
       const mockUser = MOCK_USERS[username as keyof typeof MOCK_USERS];
       const mockToken = `mock-token-${Date.now()}`;
 

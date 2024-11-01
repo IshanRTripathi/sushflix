@@ -4,6 +4,69 @@ const auth = require('../middlewares/auth');
 const logger = require('../config/logger');
 const router = express.Router();
 
+
+// Connecting GridFS for file retrieval
+const Grid = require('gridfs-stream');
+const mongoose = require("mongoose");
+const upload = require("../middlewares/upload");
+let gfs;
+
+mongoose.connection.once('open', () => {
+  gfs = Grid(mongoose.connection.db, mongoose.mongo);
+  gfs.collection('uploads');
+});
+
+
+// Upload content with an image
+router.post('/upload', upload.single('file'), async (req, res) => {
+  try {
+    const { title, description, mediaType, creator, isExclusive, requiredLevel } = req.body;
+    const mediaUrl = `/files/${req.file.filename}`;
+    const thumbnailUrl = mediaUrl; // Assuming the same file is used for thumbnail
+
+    const newContent = new Content({
+      title,
+      description,
+      mediaType,
+      mediaUrl,
+      thumbnailUrl,
+      creator,
+      isExclusive,
+      requiredLevel,
+    });
+
+    await newContent.save();
+    res.status(201).json(newContent);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to upload content' });
+  }
+});
+
+// Fetch content
+router.get('/', async (req, res) => {
+  try {
+    const contents = await Content.find().populate('creator');
+    res.status(200).json(contents);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch contents' });
+  }
+});
+
+// Fetch file from GridFS
+router.get('/files/:filename', (req, res) => {
+  gfs.files.findOne({ filename: req.params.filename }, (err, file) => {
+    if (!file || file.length === 0) {
+      return res.status(404).json({ err: 'No file exists' });
+    }
+    if (file.contentType.includes('image') || file.contentType.includes('video')) {
+      const readStream = gfs.createReadStream(file.filename);
+      readStream.pipe(res);
+    } else {
+      res.status(400).json({ err: 'Not an image or video' });
+    }
+  });
+});
+
 // Create content
 router.post('/', auth(['creator']), async (req, res) => {
   try {

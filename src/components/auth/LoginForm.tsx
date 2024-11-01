@@ -2,19 +2,19 @@ import React, { useState } from 'react';
 import { AlertCircle } from 'lucide-react';
 
 interface FormData {
-  email: string;
+  username: string;
   password: string;
 }
 
 interface FormErrors {
-  email?: string;
+  username?: string;
   password?: string;
   general?: string;
 }
 
 export function LoginForm() {
   const [formData, setFormData] = useState<FormData>({
-    email: '',
+    username: '',
     password: ''
   });
   const [errors, setErrors] = useState<FormErrors>({});
@@ -23,10 +23,10 @@ export function LoginForm() {
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {};
 
-    if (!formData.email) {
-      newErrors.email = 'Email is required';
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Invalid email format';
+    if (!formData.username) {
+      newErrors.username = 'username is required';
+    } else if (formData.username.length < 3) {
+      newErrors.username = 'Username should be >= 3 characters';
     }
 
     if (!formData.password) {
@@ -88,20 +88,20 @@ export function LoginForm() {
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                Email
+              <label htmlFor="username" className="block text-sm font-medium text-gray-700">
+                username
               </label>
               <input
-                  type="email"
-                  id="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({...formData, email: e.target.value})}
+                  type="text"
+                  id="username"
+                  value={formData.username}
+                  onChange={(e) => setFormData({...formData, username: e.target.value})}
                   className={`mt-1 block w-full rounded-md shadow-sm ${
-                      errors.email ? 'border-red-300' : 'border-gray-300'
+                      errors.username ? 'border-red-300' : 'border-gray-300'
                   } focus:border-indigo-500 focus:ring-indigo-500`}
               />
-              {errors.email && (
-                  <p className="mt-1 text-sm text-red-600">{errors.email}</p>
+              {errors.username && (
+                  <p className="mt-1 text-sm text-red-600">{errors.username}</p>
               )}
             </div>
 

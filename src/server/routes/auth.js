@@ -3,12 +3,18 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
-const logger = require('../config/logger');  // Updated import path
+const logger = require('../config/logger');
+const upload = require('../middlewares/upload');
 require('dotenv').config();
 
 const router = express.Router();
 
-router.post('/register', async (req, res) => {
+router.post('/upload', upload.single('file'), (req, res) => {
+    if (req.file === undefined) return res.status(400).json({ msg: 'No file uploaded' });
+    res.status(200).json({ file: req.file });
+});
+
+router.post('/signup', async (req, res) => {
     const { username, email, password } = req.body;
     logger.info(`Received registration request for email: ${email}`);
 
@@ -29,6 +35,7 @@ router.post('/register', async (req, res) => {
             username,
             email,
             password: hashedPassword,
+            isCreator: false,
         });
 
         await newUser.save();
@@ -41,33 +48,33 @@ router.post('/register', async (req, res) => {
 });
 
 router.post('/login', async (req, res) => {
-    const { email, password } = req.body;
-    logger.info(`Received login request for email: ${email}`);
+    const { username, password } = req.body;
+    logger.info(`Received login request for username: ${username}`);
 
     try {
         // Check if the user exists
-        const user = await User.findOne({ email });
+        const user = await User.findOne({ username });
         if (!user) {
-            logger.warn(`Login attempt with invalid email: ${email}`);
+            logger.warn(`Login attempt with invalid username: ${username}`);
             return res.status(400).json({ message: 'Invalid credentials' });
         }
 
         // Validate password
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
-            logger.warn(`Login attempt with invalid password for email: ${email}`);
+            logger.warn(`Login attempt with invalid password for username: ${username}`);
             return res.status(400).json({ message: 'Invalid credentials' });
         }
 
         // Create JWT token
         const token = jwt.sign({ userId: user._id, roles: user.roles }, process.env.JWT_SECRET, {
-            expiresIn: '1h',
+            expiresIn: '10h',
         });
 
-        logger.info(`User logged in successfully: ${email}`);
+        logger.info(`User logged in successfully: ${username}`);
         res.status(200).json({ token, expiresIn: '1h' });
     } catch (err) {
-        logger.error(`Error in login for email: ${email} - ${err.message}`);
+        logger.error(`Error in login for username: ${username} - ${err.message}`);
         res.status(500).json({ message: 'Server error', error: err.message });
     }
 });
