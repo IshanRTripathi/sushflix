@@ -28,18 +28,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Initial state setup function
   const initializeAuthState = () => {
-    console.log("AuthProvider useEffect triggered");
+    console.log("========== AuthProvider initialization started ==========");
 
     const storedToken = localStorage.getItem('token');
     const storedUser = localStorage.getItem('user');
 
-    console.log("Stored Token:", storedToken);
-    console.log("Stored User:", storedUser);
+    console.log("Stored Token:", storedToken, " Type:", typeof storedToken);
+    console.log("Stored User:", storedUser, " Type:", typeof storedUser);
 
     if (storedToken && storedToken !== 'undefined') {
-      setToken(storedToken);
+      try {
+        setToken(storedToken);
+      } catch (error) {
+        console.error("Error setting stored token", error);
+        localStorage.removeItem('token'); // Clear invalid token
+      }
     } else {
-      console.log("No valid token found in localStorage");
+      console.log("No valid token found in localStorage or token is 'undefined'");
+      localStorage.removeItem('token'); // Clear invalid token
     }
 
     if (storedUser && storedUser !== 'undefined') {
@@ -48,14 +54,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.log("Parsed User:", parsedUser);
         setUser(parsedUser);
       } catch (error) {
-        console.error("Error parsing user from localStorage", error);
+        console.error("Error parsing user from localStorage. Stored User:", storedUser, " Error:", error);
+        localStorage.removeItem('user'); // Clear invalid user data
       }
     } else {
-      console.log("No valid user found in localStorage");
+      console.log("No valid user found in localStorage or user is 'undefined'");
+      localStorage.removeItem('user'); // Clear invalid user data
     }
 
     // Log final state for debugging
-    console.log("AuthProvider useEffect final state, user: ", user, ", token: ", token);
+    console.log("========== AuthProvider initialization final state ==========");
+    console.log("User:", user);
+    console.log("Token:", token);
   };
 
   // Use useEffect to run only once after mount
