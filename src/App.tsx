@@ -16,7 +16,7 @@ function App() {
         <AuthProvider>
             <Router>
                 <div className="min-h-screen flex flex-col">
-                    <Navigation />
+                    <Navigation /> {/* Navigation component */}
                     <main className="flex-grow">
                         <Routes>
                             <Route path="/" element={<HomePage />} />

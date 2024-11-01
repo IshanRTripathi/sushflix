@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
+import { useAuth } from './AuthContext'; // Import the useAuth hook
 import { AlertCircle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 interface FormData {
   email: string;
@@ -22,6 +24,8 @@ export function SignupForm() {
   });
   const [errors, setErrors] = useState<FormErrors>({});
   const [isLoading, setIsLoading] = useState(false);
+  const { signupAndLogin } = useAuth(); // Use the useAuth hook
+  const navigate = useNavigate();
 
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {};
@@ -50,28 +54,14 @@ export function SignupForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     if (!validateForm()) return;
-
     setIsLoading(true);
+
     try {
-      const response = await fetch('http://localhost:5000/api/auth/signup', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Signup failed');
-      }
-
-      // Handle successful signup
-      localStorage.setItem('token', data.token);
-      window.location.href = '/dashboard';
+      await signupAndLogin(formData.username, formData.password, formData.email);
+      // Redirect user based on the `isCreator` flag
+      const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+      navigate(storedUser.isCreator ? '/creator/dashboard' : '/discover');
     } catch (error) {
       setErrors({
         general: error instanceof Error ? error.message : 'An error occurred during signup'
@@ -88,7 +78,7 @@ export function SignupForm() {
 
           {errors.general && (
               <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md flex items-center gap-2">
-                <AlertCircle className="w-5 h-5 text-red-500"/>
+                <AlertCircle className="w-5 h-5 text-red-500" />
                 <span className="text-red-700">{errors.general}</span>
               </div>
           )}
@@ -102,7 +92,7 @@ export function SignupForm() {
                   type="email"
                   id="email"
                   value={formData.email}
-                  onChange={(e) => setFormData({...formData, email: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   className={`mt-1 block w-full rounded-md shadow-sm ${
                       errors.email ? 'border-red-300' : 'border-gray-300'
                   } focus:border-indigo-500 focus:ring-indigo-500`}
@@ -120,7 +110,7 @@ export function SignupForm() {
                   type="text"
                   id="username"
                   value={formData.username}
-                  onChange={(e) => setFormData({...formData, username: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                   className={`mt-1 block w-full rounded-md shadow-sm ${
                       errors.username ? 'border-red-300' : 'border-gray-300'
                   } focus:border-indigo-500 focus:ring-indigo-500`}
@@ -138,7 +128,7 @@ export function SignupForm() {
                   type="password"
                   id="password"
                   value={formData.password}
-                  onChange={(e) => setFormData({...formData, password: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   className={`mt-1 block w-full rounded-md shadow-sm ${
                       errors.password ? 'border-red-300' : 'border-gray-300'
                   } focus:border-indigo-500 focus:ring-indigo-500`}
