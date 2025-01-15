@@ -16,7 +16,7 @@
    - Set environment variables:
      ```
      VITE_API_URL=your_backend_url
-     ```
+     ``` 
 
 ### Backend Deployment (AWS)
 
