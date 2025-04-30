@@ -11,13 +11,21 @@ router.post('/', auth(), async (req, res) => {
       subscriber: req.user.userId,
       ...req.body,
       endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days from now
-    });
-    await subscription.save();
+    });    
+      await subscription.save();
     
     logger.info(`Subscription created: ${subscription._id}`);
     res.status(201).json(subscription);
   } catch (err) {
-    logger.error(`Subscription creation error: ${err.message}`);
+      logger.error(`Subscription creation error: ${err.message}`);
+    if (err.name === 'ValidationError' || err.name === 'CastError') {
+        return res.status(400).json({ message: err.message });
+    }
+    if(err.code === 11000){
+        return res.status(409).json({message: "Subscription already exists"})
+    }
+    return res.status(500).json({ message: "Server Error" });
+
     res.status(400).json({ message: err.message });
   }
 });
@@ -33,6 +41,9 @@ router.get('/my', auth(), async (req, res) => {
     res.json(subscriptions);
   } catch (err) {
     logger.error(`Subscription fetch error: ${err.message}`);
+    if (err.name === 'ValidationError' || err.name === 'CastError') {
+        return res.status(400).json({ message: "Validation error" });
+    }
     res.status(500).json({ message: err.message });
   }
 });
@@ -48,6 +59,9 @@ router.get('/subscribers', auth(['creator']), async (req, res) => {
     res.json(subscriptions);
   } catch (err) {
     logger.error(`Subscribers fetch error: ${err.message}`);
+    if (err.name === 'ValidationError' || err.name === 'CastError') {
+        return res.status(400).json({ message: "Validation error" });
+    }
     res.status(500).json({ message: err.message });
   }
 });
@@ -72,6 +86,12 @@ router.patch('/:id/cancel', auth(), async (req, res) => {
     res.json(subscription);
   } catch (err) {
     logger.error(`Subscription cancellation error: ${err.message}`);
+    if (err.name === 'ValidationError' || err.name === 'CastError') {
+        return res.status(400).json({ message: "Validation error" });
+    }
+    if (err.name === 'CastError') {
+        return res.status(404).json({ message: 'Subscription not found' }); 
+    }
     res.status(500).json({ message: err.message });
   }
 });

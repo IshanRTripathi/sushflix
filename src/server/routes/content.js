@@ -18,7 +18,7 @@ mongoose.connection.once('open', () => {
 
 
 // Upload content with an image
-router.post('/upload', upload.single('file'), async (req, res) => {
+router.post('/upload', auth(['creator']), upload.single('file'), async (req, res) => {
   try {
     const { title, description, mediaType, creator, isExclusive, requiredLevel } = req.body;
     const mediaUrl = `/files/${req.file.filename}`;
@@ -38,7 +38,11 @@ router.post('/upload', upload.single('file'), async (req, res) => {
     await newContent.save();
     res.status(201).json(newContent);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to upload content' });
+        logger.error(`Content upload error: ${error.message}`);
+        if (error.code === 11000) {
+            return res.status(409).json({ message: "Content already exists." });
+        }
+        res.status(500).json({ message: 'Failed to upload content' });
   }
 });
 
@@ -47,8 +51,11 @@ router.get('/', async (req, res) => {
   try {
     const contents = await Content.find().populate('creator');
     res.status(200).json(contents);
-  } catch (err) {
-    res.status(500).json({ error: 'Failed to fetch contents' });
+  } catch (error) {
+        logger.error(`Content fetch error: ${error.message}`);
+        res.status(500).json({ message: 'Failed to fetch contents' });
+  
+   
   }
 });
 
@@ -57,7 +64,10 @@ router.get('/files/:filename', (req, res) => {
   gfs.files.findOne({ filename: req.params.filename }, (err, file) => {
     if (!file || file.length === 0) {
       return res.status(404).json({ err: 'No file exists' });
-    }
+        } else if (err) {
+          logger.error(`File retrieval error: ${err.message}`);
+          return res.status(500).json({ message: 'Failed to retrieve file' });
+        }
     if (file.contentType.includes('image') || file.contentType.includes('video')) {
       const readStream = gfs.createReadStream(file.filename);
       readStream.pipe(res);
@@ -77,8 +87,11 @@ router.post('/', auth(['creator']), async (req, res) => {
     await content.save();
     logger.info(`Content created: ${content._id}`);
     res.status(201).json(content);
-  } catch (err) {
-    logger.error(`Content creation error: ${err.message}`);
+  } catch (error) {
+        logger.error(`Content creation error: ${error.message}`);
+        if (error.code === 11000) {
+            return res.status(409).json({ message: "Content already exists." });
+        }
     res.status(400).json({ message: err.message });
   }
 });
@@ -98,8 +111,8 @@ router.get('/', async (req, res) => {
       .sort('-createdAt');
     
     res.json(contents);
-  } catch (err) {
-    logger.error(`Content fetch error: ${err.message}`);
+  } catch (error) {
+        logger.error(`Content fetch error: ${error.message}`);
     res.status(500).json({ message: err.message });
   }
 });
@@ -119,8 +132,8 @@ router.get('/:id', async (req, res) => {
     await content.save();
 
     res.json(content);
-  } catch (err) {
-    logger.error(`Content fetch error: ${err.message}`);
+  } catch (error) {
+        logger.error(`Content fetch error: ${error.message}`);
     res.status(500).json({ message: err.message });
   }
 });
@@ -142,9 +155,12 @@ router.patch('/:id', auth(['creator']), async (req, res) => {
     
     logger.info(`Content updated: ${content._id}`);
     res.json(content);
-  } catch (err) {
-    logger.error(`Content update error: ${err.message}`);
-    res.status(400).json({ message: err.message });
+  } catch (error) {
+        logger.error(`Content update error: ${error.message}`);
+        if (error.code === 11000) {
+            return res.status(409).json({ message: "Content already exists." });
+        }
+        res.status(500).json({ message: 'Failed to update content' });
   }
 });
 
@@ -162,9 +178,9 @@ router.delete('/:id', auth(['creator']), async (req, res) => {
 
     logger.info(`Content deleted: ${req.params.id}`);
     res.json({ message: 'Content deleted' });
-  } catch (err) {
-    logger.error(`Content deletion error: ${err.message}`);
-    res.status(500).json({ message: err.message });
+  } catch (error) {
+        logger.error(`Content deletion error: ${error.message}`);
+        res.status(500).json({ message: 'Failed to delete content' });
   }
 });
 

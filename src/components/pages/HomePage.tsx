@@ -1,96 +1,93 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Play, Upload, Users } from 'lucide-react';
+
 
 export function HomePage() {
   return (
-      <div className="flex flex-col min-h-screen">
-        {/* Hero Section */}
-        <section className="relative bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-20">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center">
-              <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight mb-4">
-                Share Your Content<br />Build Your Community
-              </h1>
-              <p className="text-xl text-indigo-100 mb-8 max-w-2xl mx-auto">
-                Join thousands of creators sharing their passion and earning from their content.
-                Start your journey today.
-              </p>
-              <div className="flex justify-center space-x-4">
-                <Link
-                    to="/signup?type=creator"
-                    className="bg-white text-indigo-600 px-8 py-3 rounded-lg font-semibold hover:bg-indigo-50 transition-colors"
-                >
-                  Become a Creator
-                </Link>
-                <Link
-                    to="/explore"
-                    className="bg-indigo-500 text-white px-8 py-3 rounded-lg font-semibold hover:bg-indigo-400 transition-colors"
-                >
-                  Explore Content
-                </Link>
-              </div>
-            </div>
-          </div>
-        </section>
+    <div className="flex flex-col min-h-screen bg-white">
+      {/* Header */}
+      <header className="bg-white shadow-md py-4 px-6 md:px-12">
+        <div className="flex justify-between items-center">
+          <img src="/images/logo.png" alt="Sushflix Logo" className="h-10 w-auto" />
+          <nav className="space-x-6 flex items-center"> 
+            <a href="#" className="text-gray-600 hover:text-gray-800 text-sm">Platform Guidelines</a>
+            <a href="#" className="text-gray-600 hover:text-gray-800 text-sm">About us</a>
+            <a href="#" className="text-gray-600 hover:text-gray-800 text-sm">FAQ</a>
+            <a href="#" className="text-gray-600 hover:text-gray-800 text-sm">Contact Us</a>
+            <Link to="/login" className="text-gray-600 hover:text-gray-800 text-sm">Login</Link>
+          </nav>
+        </div>
+      </header>
 
-        {/* Features Section */}
-        <section className="py-20 bg-white">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16">
-              <h2 className="text-3xl font-bold text-gray-900">Why Choose Sushflix?</h2>
+      {/* Main Content */}
+      <main className="flex-grow container mx-auto px-6 md:px-12 py-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center ">
+          {/* Left: Text Content */}
+          <div className="text-left ">
+            <div className="flex items-center mb-4 text-left">
+              <img src="/images/community_icons.png" alt="Community Icons" className="h-8 w-auto mr-4" />
+              <span className="text-gray-700 uppercase text-xs font-semibold tracking-widest text-left">TRUSTED BY A DIVERSE COMMUNITY OF CREATORS</span>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              <div className="text-center p-6">
-                <div className="w-16 h-16 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Upload className="w-8 h-8" />
-                </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">Easy Upload</h3>
-                <p className="text-gray-600">
-                  Upload your content in minutes with our simple and intuitive interface.
-                </p>
-              </div>
-              <div className="text-center p-6">
-                <div className="w-16 h-16 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Users className="w-8 h-8" />
-                </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">Growing Community</h3>
-                <p className="text-gray-600">
-                  Connect with your audience and build a loyal following.
-                </p>
-              </div>
-              <div className="text-center p-6">
-                <div className="w-16 h-16 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Play className="w-8 h-8" />
-                </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">Quality Content</h3>
-                <p className="text-gray-600">
-                  Share high-quality content with advanced streaming capabilities.
-                </p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* CTA Section */}
-        <section className="bg-gray-50 py-20">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center">
-              <h2 className="text-3xl font-bold text-gray-900 mb-4">
-                Ready to Start Your Journey?
-              </h2>
-              <p className="text-xl text-gray-600 mb-8">
-                Join our community of creators and start sharing your content today.
-              </p>
-              <Link
-                  to="/signup"
-                  className="bg-indigo-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-indigo-700 transition-colors"
-              >
-                Get Started Now
+            <h1 className="text-5xl md:text-6xl font-bold text-gray-800 mb-6">
+              Get paid to do what you love.
+            </h1>
+            <p className="text-gray-600 text-lg mb-8">
+              Share your content on your own terms, and connect with your fans like never before.
+            </p>
+            <div className="flex space-x-4 ">
+              <Link to="/signup?type=creator" className="bg-[#dc2626] text-white px-6 py-3 rounded-full font-medium hover:bg-[#dc2626] transition">
+                Become a Creator
+              </Link>
+             <Link to="/signup?type=fan" className="bg-[#dc2626] text-white px-6 py-3 rounded-full font-medium hover:bg-[#dc2626] transition">
+                  Sign up as a Fan
               </Link>
             </div>
           </div>
-        </section>
-      </div>
+          {/* Right: Profile Card */}
+          <div className="relative">
+            <img src="/images/yellow_stroke.png" alt="Yellow Stroke" className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[650px] hidden md:block" />
+            <div className="bg-white rounded-2xl shadow-lg p-6 relative z-10">
+              <div className="flex items-center space-x-4 mb-4">
+                <div className="w-16 h-16 rounded-full overflow-hidden">
+                  <img src="/images/profile_pic.png" alt="Profile" className="w-full h-full object-cover" />
+                </div>
+                <div>
+                  <div className="font-semibold text-lg">Prakrithi Poonam</div>
+                  <div className="text-gray-600 text-sm">@krithipoonam</div>
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-4 mb-6 text-center text-sm sm:text-base">
+                <div>
+                  <div className="font-bold">569</div>
+                  <div className="text-gray-600">posts</div>
+                </div>
+                <div>
+                  <div className="font-bold">16.7k</div>
+                  <div className="text-gray-600">followers</div>
+                </div>
+                <div>
+                  <div className="font-bold">41</div>
+                  <div className="text-gray-600">subscribers</div>
+                </div>
+              </div>
+              <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4 ">
+                <button className="bg-[#dc2626] text-white px-4 py-2 rounded-full font-medium hover:bg-[#dc2626] transition w-full">
+                  Watch Video
+                </button>
+                <button className="bg-[#dc2626] text-white px-4 py-2 rounded-full font-medium hover:bg-[#dc2626] transition w-full">
+                  Message
+                </button>
+                <button className="bg-[#dc2626] text-white px-4 py-2 rounded-full font-medium hover:bg-[#dc2626] transition w-full ">
+                  Send Tip 
+                </button>
+              </div>
+               <button className="bg-[#dc2626] text-white px-6 py-3 rounded-full font-medium hover:bg-[#dc2626] transition w-full mt-4">
+                  Subscribe <span className="font-bold">$499</span> per month
+              </button>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
   );
 }

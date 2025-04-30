@@ -22,10 +22,10 @@ router.post('/signup', async (req, res) => {
         // Check if the user already exists
         const userExists = await User.findOne({ email });
         if (userExists) {
-            logger.warn(`Attempt to register with existing email: ${email}`);
-            return res.status(400).json({ message: 'User already exists' });
+          logger.warn(`Attempt to register with existing email: ${email}`);
+          return res.status(409).json({ message: 'User already exists' });
         }
-
+    
         // Hash the password
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
@@ -43,7 +43,12 @@ router.post('/signup', async (req, res) => {
         res.status(201).json({ newUser });
     } catch (err) {
         logger.error(`Error in registration for email: ${email} - ${err.message}`);
-        res.status(500).json({ message: 'Server error', error: err.message });
+        if (err.code === 11000) {
+          return res.status(409).json({ message: 'User already exists' });
+        }
+        else {
+          res.status(500).json({ message: 'Server error', error: err.message });
+        }
     }
 });
 
@@ -56,14 +61,14 @@ router.post('/login', async (req, res) => {
         const user = await User.findOne({ username });
         if (!user) {
             logger.warn(`Login attempt with invalid username: ${username}`);
-            return res.status(400).json({ message: 'Invalid credentials' });
+            return res.status(401).json({ message: 'Invalid credentials' });
         }
 
         // Validate password
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
             logger.warn(`Login attempt with invalid password for username: ${username}`);
-            return res.status(400).json({ message: 'Invalid credentials' });
+            return res.status(401).json({ message: 'Invalid credentials' });
         }
 
         // Create JWT token
