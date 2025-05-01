@@ -70,12 +70,6 @@ export function Navigation() {
                     >
                       Login
                     </Link>
-                    <Link
-                        to="/signup"
-                        className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700"
-                    >
-                      Sign Up
-                    </Link>
                   </div>
               )}
             </div>
@@ -148,13 +142,6 @@ export function Navigation() {
                           onClick={() => setIsMenuOpen(false)}
                       >
                         Login
-                      </Link>
-                      <Link
-                          to="/signup"
-                          className="block pl-3 pr-4 py-2 text-base font-medium text-gray-700 hover:bg-gray-50"
-                          onClick={() => setIsMenuOpen(false)}
-                      >
-                        Sign Up
                       </Link>
                     </div>
                 )}

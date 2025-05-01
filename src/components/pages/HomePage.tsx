@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { Header } from '../layout/Header'; // Import the Header component
 
 interface UserProfile {
   username: string;
@@ -34,18 +35,7 @@ export function HomePage() {
   return (
     <div className="flex flex-col min-h-screen bg-white">
       {/* Header */}
-      <header className="bg-white shadow-md py-4 px-6 md:px-12">
-        <div className="flex justify-between items-center">
-          <img src="/images/logo.png" alt="Sushflix Logo" className="h-10 w-auto" />
-          <nav className="space-x-6 flex items-center"> 
-            <a href="#" className="text-gray-600 hover:text-gray-800 text-sm">Platform Guidelines</a>
-            <a href="#" className="text-gray-600 hover:text-gray-800 text-sm">About us</a>
-            <a href="#" className="text-gray-600 hover:text-gray-800 text-sm">FAQ</a>
-            <a href="#" className="text-gray-600 hover:text-gray-800 text-sm">Contact Us</a>
-            <Link to="/login" className="text-gray-600 hover:text-gray-800 text-sm">Login</Link>
-          </nav>
-        </div>
-      </header>
+      <Header /> {/* Use the Header component */}
 
       {/* Main Content */}
       <main className="flex-grow container mx-auto px-6 md:px-12 py-12">
@@ -120,4 +110,4 @@ export function HomePage() {
       </main>
     </div>
   );
-};
+}

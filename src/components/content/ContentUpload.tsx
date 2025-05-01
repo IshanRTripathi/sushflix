@@ -1,143 +1,26 @@
-import React, { useState, useRef } from 'react';
+import React, { useRef } from 'react';
 import { Upload, X, Image, Film, AlertCircle } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
+import { useContentUploadForm } from '../../hooks/useContentUploadForm';
 
-interface FormData {
-    title: string;
-    description: string;
-    requiredLevel: 0 | 1 | 2 | 3;
-    mediaType: 'image' | 'video';
-    thumbnailFile?: File;
-    mediaFile?: File;
-}
-
-interface FormErrors {
-    title?: string;
-    description?: string;
-    thumbnail?: string;
-    media?: string;
-    general?: string;
-}
-
-const LEVEL_DESCRIPTIONS = {
-    0: 'Available to all followers',
-    1: 'Available to Level 1+ subscribers ($1.99/month)',
-    2: 'Available to Level 2+ subscribers ($4.99/month)',
-    3: 'Available to Level 3 subscribers ($9.99/month)'
-};
 
 export function ContentUpload() {
-    const { token } = useAuth();
-    const [formData, setFormData] = useState<FormData>({
-        title: '',
-        description: '',
-        requiredLevel: 0,
-        mediaType: 'image'
-    });
-    const [errors, setErrors] = useState<FormErrors>({});
-    const [isUploading, setIsUploading] = useState(false);
-    const [uploadProgress, setUploadProgress] = useState(0);
-    const [previewUrls, setPreviewUrls] = useState<{
-        thumbnail?: string;
-        media?: string;
-    }>({});
+    const { 
+        formData, 
+        setFormData, 
+        errors, 
+        isUploading, 
+        uploadProgress, 
+        previewUrls, 
+        setPreviewUrls,
+        handleFileChange, 
+        handleSubmit, 
+        LEVEL_DESCRIPTIONS
+    } = useContentUploadForm();
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const thumbnailInputRef = useRef<HTMLInputElement>(null);
-
-    const validateForm = (): boolean => {
-        const newErrors: FormErrors = {};
-
-        if (!formData.title.trim()) {
-            newErrors.title = 'Title is required';
-        }
-
-        if (!formData.description.trim()) {
-            newErrors.description = 'Description is required';
-        }
-
-        if (!formData.thumbnailFile) {
-            newErrors.thumbnail = 'Thumbnail is required';
-        }
-
-        if (!formData.mediaFile) {
-            newErrors.media = 'Media file is required';
-        }
-
-        setErrors(newErrors);
-        return Object.keys(newErrors).length === 0;
-    };
-
-    const handleFileChange = (
-        event: React.ChangeEvent<HTMLInputElement>,
-        type: 'thumbnail' | 'media'
-    ) => {
-        const file = event.target.files?.[0];
-        if (!file) return;
-
-        // Create preview URL
-        const previewUrl = URL.createObjectURL(file);
-        setPreviewUrls(prev => ({
-            ...prev,
-            [type]: previewUrl
-        }));
-
-        // Update form data
-        setFormData(prev => ({
-            ...prev,
-            [`${type}File`]: file
-        }));
-
-        // Clear any previous errors
-        setErrors(prev => ({
-            ...prev,
-            [type]: undefined
-        }));
-    };
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-
-        if (!validateForm()) return;
-
-        setIsUploading(true);
-        try {
-            const formDataToSend = new FormData();
-            formDataToSend.append('title', formData.title);
-            formDataToSend.append('description', formData.description);
-            formDataToSend.append('requiredLevel', formData.requiredLevel.toString());
-            formDataToSend.append('mediaType', formData.mediaType);
-            if (formData.thumbnailFile) {
-                formDataToSend.append('thumbnail', formData.thumbnailFile);
-            }
-            if (formData.mediaFile) {
-                formDataToSend.append('media', formData.mediaFile);
-            }
-
-            const response = await fetch('/api/content/upload', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                },
-                body: formDataToSend
-            });
-
-            if (!response.ok) {
-                throw new Error('Upload failed');
-            }
-
-            const { contentId } = await response.json();
-            window.location.href = `/content/${contentId}`;
-        } catch (error) {
-            setErrors({
-                general: error instanceof Error ? error.message : 'Failed to upload content'
-            });
-        } finally {
-            setIsUploading(false);
-            setUploadProgress(0);
-        }
-    };
-
+    
     return (
         <div className="max-w-4xl mx-auto p-6">
             <div className="bg-white rounded-lg shadow-lg p-8">
@@ -161,7 +44,7 @@ export function ContentUpload() {
                             id="title"
                             value={formData.title}
                             onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                            className={`mt-1 block w-full rounded-md shadow-sm ${
+                            className={`mt-1 block w-full rounded-md border-gray-300 shadow-sm ${
                                 errors.title ? 'border-red-300' : 'border-gray-300'
                             } focus:border-indigo-500 focus:ring-indigo-500`}
                         />
@@ -180,7 +63,7 @@ export function ContentUpload() {
                             rows={4}
                             value={formData.description}
                             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                            className={`mt-1 block w-full rounded-md shadow-sm ${
+                            className={`mt-1 block w-full rounded-md border-gray-300 shadow-sm ${
                                 errors.description ? 'border-red-300' : 'border-gray-300'
                             } focus:border-indigo-500 focus:ring-indigo-500`}
                         />
@@ -302,7 +185,7 @@ export function ContentUpload() {
                         <div
                             onClick={() => fileInputRef.current?.click()}
                             className={`mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-dashed rounded-md cursor-pointer ${
-                                errors.media ? 'border-red-300' : 'border-gray-300'
+                                errors.media ? 'border-red-300' : 'border-gray-300' 
                             } hover:border-indigo-400`}
                         >
                             {previewUrls.media ? (

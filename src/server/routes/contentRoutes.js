@@ -15,7 +15,7 @@ mongoose.connection.once('open', () => {
 });
 
 // Upload content with an image
-router.post('/upload', upload.single('file'), async (req, res, next) => {
+router.post('/upload', upload.fields([{ name: 'media', maxCount: 1 }, { name: 'thumbnail', maxCount: 1 }]), async (req, res, next) => {
     const { title, description, mediaType, creator, isExclusive, requiredLevel } = req.body;
     const errors = [];
     
@@ -42,14 +42,17 @@ router.post('/upload', upload.single('file'), async (req, res, next) => {
         return res.status(400).json({ errors });
     }
 
-    if (!req.file) {
-      return res.status(400).json({ errors: 'File is required' });
-  }
+    if (!req.files || !req.files['media']) {
+        errors.push('Media file is required');
+    }
+    if (!req.files || !req.files['thumbnail']) {
+        errors.push('Thumbnail file is required');
+    }
     
   try {
-      const mediaUrl = `/files/${req.file.filename}`;
+      const mediaUrl = `/files/${req.files['media'][0].filename}`;
 
-      const newContent = new Content({
+    const newContent = new Content({
           title,
           description,
           mediaType,
