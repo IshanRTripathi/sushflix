@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
-import { useAuth } from './AuthContext'; // Import the useAuth hook
+import { useAuth } from './AuthContext';
 import { AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import type { AxiosError } from 'axios';
+
 
 interface FormData {
   email: string;
@@ -16,137 +19,207 @@ interface FormErrors {
   general?: string;
 }
 
+interface SignupResponse {
+  newUser?: {
+    isCreator: boolean;
+    [key: string]: any;
+  };
+  errors?: Array<{ param: string; msg: string }>;
+  message?: string;
+}
+
 export function SignupForm() {
   const [formData, setFormData] = useState<FormData>({
     email: '',
     username: '',
-    password: ''
+    password: '',
   });
+
+  const [success, setSuccess] = useState<boolean>(false);
   const [errors, setErrors] = useState<FormErrors>({});
-  const [isLoading, setIsLoading] = useState(false);
-  const { signupAndLogin } = useAuth(); // Use the useAuth hook
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const { login } = useAuth();
   const navigate = useNavigate();
 
-  const validateForm = (): boolean => {
+  const validateForm = (): FormErrors => {
     const newErrors: FormErrors = {};
+    const email = formData.email.trim();
+    const username = formData.username.trim();
+    const password = formData.password;
 
-    if (!formData.email) {
+    if (!email) {
       newErrors.email = 'Email is required';
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+    } else if (!/\S+@\S+\.\S+/.test(email)) {
       newErrors.email = 'Invalid email format';
     }
 
-    if (!formData.username) {
+    if (!username) {
       newErrors.username = 'Username is required';
-    } else if (formData.username.length < 3) {
+    } else if (username.length < 3) {
       newErrors.username = 'Username must be at least 3 characters';
     }
 
-    if (!formData.password) {
+    if (!password) {
       newErrors.password = 'Password is required';
-    } else if (formData.password.length < 8) {
+    } else if (password.length < 8) {
       newErrors.password = 'Password must be at least 8 characters';
+    } else if (!/[A-Z]/.test(password)) {
+      newErrors.password = 'Password must contain at least one capital letter';
+    } else if (!/[0-9]/.test(password)) {
+      newErrors.password = 'Password must contain at least one number';
     }
 
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    return newErrors;
   };
+
+  const signup = async (
+    username: string,
+    password: string,
+    email: string
+  ): Promise<SignupResponse> => {
+    try {
+      const response = await axios.post('/auth/signup', {
+        username,
+        password,
+        email,
+        isCreator: false
+      });
+  
+      return response.data as SignupResponse;
+    } catch (e: unknown) {
+      const error = e as AxiosError;
+      if (error.response?.data) {
+        return error.response.data as SignupResponse;
+      } else {
+        return { message: 'No response from server' };
+      }
+    }
+  };
+  
+    
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validateForm()) return;
-    setIsLoading(true);
+    const validationErrors = validateForm();
+    setErrors(validationErrors);
 
+    if (Object.keys(validationErrors).length > 0) {
+      return;
+    }
+
+    setIsLoading(true);
     try {
-      await signupAndLogin(formData.username, formData.password, formData.email);
-      // Redirect user based on the `isCreator` flag
-      const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
-      navigate(storedUser.isCreator ? '/creator/dashboard' : '/discover');
-    } catch (error) {
-      setErrors({
-        general: error instanceof Error ? error.message : 'An error occurred during signup'
-      });
+      const response = await signup(
+        formData.username.trim(),
+        formData.password,
+        formData.email.trim()
+      );
+
+      if (response.errors) {
+        const serverErrors: FormErrors = {};
+        response.errors.forEach((err) => {
+          serverErrors[err.param as keyof FormErrors] = err.msg;
+        });
+        setErrors(serverErrors);
+      } else if (response.message) {
+        if (response.message === 'Email already exists') {
+          setErrors({ email: 'Email already exists' });
+        } else if (response.message === 'Username already exists') {
+          setErrors({ username: 'Username already exists' });
+        } else {
+          setErrors({ general: response.message });
+        }
+      } else if (response.newUser) {
+        localStorage.setItem('user', JSON.stringify(response.newUser));
+        await login(formData.username.trim(), formData.password);
+        setSuccess(true);
+        navigate(response.newUser.isCreator ? '/creator/dashboard' : '/discover');
+      } else {
+        setErrors({ general: 'An unexpected error occurred during signup' });
+      }
+    } catch (error: unknown) {
+      setErrors({ general: error instanceof Error ? error.message : 'An error occurred during signup' });
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="w-full max-w-md p-8 bg-white rounded-lg shadow-lg">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">Create your account</h2>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="w-full max-w-md p-8 bg-white rounded-lg shadow-lg">
+        {success && (
+          <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-md flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+              <path d="m9 11 3 3L22 4" />
+            </svg>
+            <span className="text-green-700">Account created successfully!</span>
+          </div>
+        )}
 
-          {errors.general && (
-              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md flex items-center gap-2">
-                <AlertCircle className="w-5 h-5 text-red-500" />
-                <span className="text-red-700">{errors.general}</span>
-              </div>
-          )}
+        <h2 className="text-2xl font-bold text-gray-900 mb-6">Create your account</h2>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                Email
-              </label>
-              <input
-                  type="email"
-                  id="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className={`mt-1 block w-full rounded-md shadow-sm ${
-                      errors.email ? 'border-red-300' : 'border-gray-300'
-                  } focus:border-indigo-500 focus:ring-indigo-500`}
-              />
-              {errors.email && (
-                  <p className="mt-1 text-sm text-red-600">{errors.email}</p>
-              )}
-            </div>
+        {errors.general && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md flex items-center gap-2">
+            <AlertCircle className="w-5 h-5 text-red-500" />
+            <span className="text-red-700">{errors.general}</span>
+          </div>
+        )}
 
-            <div>
-              <label htmlFor="username" className="block text-sm font-medium text-gray-700">
-                Username
-              </label>
-              <input
-                  type="text"
-                  id="username"
-                  value={formData.username}
-                  onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                  className={`mt-1 block w-full rounded-md shadow-sm ${
-                      errors.username ? 'border-red-300' : 'border-gray-300'
-                  } focus:border-indigo-500 focus:ring-indigo-500`}
-              />
-              {errors.username && (
-                  <p className="mt-1 text-sm text-red-600">{errors.username}</p>
-              )}
-            </div>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div>
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email</label>
+            <input
+              type="email"
+              id="email"
+              value={formData.email}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              className={`mt-1 block w-full rounded-md shadow-sm ${
+                errors.email ? 'border-red-300' : 'border-gray-300'
+              } focus:border-indigo-500 focus:ring-indigo-500`}
+            />
+            {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
+          </div>
 
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                Password
-              </label>
-              <input
-                  type="password"
-                  id="password"
-                  value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className={`mt-1 block w-full rounded-md shadow-sm ${
-                      errors.password ? 'border-red-300' : 'border-gray-300'
-                  } focus:border-indigo-500 focus:ring-indigo-500`}
-              />
-              {errors.password && (
-                  <p className="mt-1 text-sm text-red-600">{errors.password}</p>
-              )}
-            </div>
+          <div>
+            <label htmlFor="username" className="block text-sm font-medium text-gray-700">Username</label>
+            <input
+              type="text"
+              id="username"
+              autoComplete="off"
+              value={formData.username}
+              onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+              className={`mt-1 block w-full rounded-md shadow-sm ${
+                errors.username ? 'border-red-300' : 'border-gray-300'
+              } focus:border-indigo-500 focus:ring-indigo-500`}
+            />
+            {errors.username && <p className="mt-1 text-sm text-red-600">{errors.username}</p>}
+          </div>
 
-            <button
-                type="submit"
-                disabled={isLoading}
-                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
-            >
-              {isLoading ? 'Creating account...' : 'Sign up'}
-            </button>
-          </form>
-        </div>
+          <div>
+            <label htmlFor="password" className="block text-sm font-medium text-gray-700">Password</label>
+            <input
+              type="password"
+              id="password"
+              autoComplete="new-password"
+              value={formData.password}
+              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+              className={`mt-1 block w-full rounded-md shadow-sm ${
+                errors.password ? 'border-red-300' : 'border-gray-300'
+              } focus:border-indigo-500 focus:ring-indigo-500`}
+            />
+            {errors.password && <p className="mt-1 text-sm text-red-600">{errors.password}</p>}
+          </div>
+
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+          >
+            {isLoading ? 'Creating account...' : 'Sign up'}
+          </button>
+        </form>
       </div>
+    </div>
   );
 }

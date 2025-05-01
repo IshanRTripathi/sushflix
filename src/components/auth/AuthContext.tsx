@@ -14,7 +14,6 @@ interface AuthContextType {
   user: User | null;
   token: string | null;
   login: (username: string, password: string) => Promise<void>;
-  signupAndLogin: (username: string, password: string, email: string) => Promise<void>;
   logout: () => void;
   isAuthenticated: boolean;
 }
@@ -75,14 +74,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // login function
   const login = async (username: string, password: string) => {
-    const response = await fetch('/api/auth/login', {
+    const response = await fetch('/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password })
+      body: JSON.stringify({ usernameOrEmail:username, password })
     });
     const data = await response.json();
-    if (!response.ok) throw new Error(data.message || 'Invalid credentials');
-
+      if (!response.ok) {
+          if (data.errors && data.errors.length > 0) {
+              const errorMessage = data.errors[0].msg || 'Invalid credentials';
+              throw new Error(errorMessage);
+          } else {
+              throw new Error(data.message || 'Invalid credentials');
+          }
+      }
     console.log("Login response data:", data);
 
     localStorage.setItem('token', data.token);
@@ -92,22 +97,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(data.user);
 
     console.log("AuthProvider state after login, user: ", data.user, ", token: ", data.token);
-  };
-
-  // signupAndLogin function
-  const signupAndLogin = async (username: string, password: string, email: string) => {
-    const response = await fetch('/api/auth/signup', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password, email })
-    });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.message || 'Signup failed');
-
-    console.log("Signup response data:", data);
-
-    // Automatically log in the user
-    await login(username, password);
   };
 
   // Logout function
@@ -124,7 +113,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         user,
         token,
         login,
-        signupAndLogin,
         logout,
         isAuthenticated: !!token
       }}>

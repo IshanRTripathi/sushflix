@@ -4,12 +4,6 @@ require('dotenv').config();
 
 const auth = (roles = []) => {
   return (req, res, next) => {
-    // Development login bypass
-    if (req.header('Authorization') === 'Basic ZGVtbzpkZW1v') { // "demo:demo" encoded in base64
-        req.user = { username: 'demo' }; 
-        return next();
-    }
-    
     const token = req.header('Authorization')?.replace('Bearer ', '');
 
     if (!token) {

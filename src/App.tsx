@@ -4,14 +4,14 @@ import { AuthProvider } from './components/auth/AuthContext';
 import { Navigation } from './components/layout/Navigation';
 import { Footer } from './components/layout/Footer';
 import { HomePage } from './components/pages/HomePage';
-import { LoginForm } from './components/auth/LoginForm';
 import { SignupForm } from './components/auth/SignupForm';
 import { ExplorePage } from './components/content/ExplorePage';
 import { ContentDetail } from './components/content/ContentDetail';
 import { CreatorProfile } from './components/creator/CreatorProfile';
-import { ContentUpload } from './components/content/ContentUpload';
+import { LoginForm } from './components/auth/LoginForm';
 
 function App() {
+
     return (
         <AuthProvider>
             <Router>
@@ -25,7 +25,6 @@ function App() {
                             <Route path="/explore" element={<ExplorePage />} />
                             <Route path="/content/:id" element={<ContentDetail />} />
                             <Route path="/creator/:username" element={<CreatorProfile />} />
-                            <Route path="/upload" element={<ContentUpload />} />
                         </Routes>
                     </main>
                     <Footer />

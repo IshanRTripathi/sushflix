@@ -15,10 +15,12 @@
     "bcryptjs": "^2.4.3",
     "dotenv": "^16.4.5",
     "express": "^4.21.1",
+    "express-validator": "^7.2.1",
     "gridfs-stream": "^1.1.1",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.7.3",
     "multer": "^1.4.4",
-    "multer-gridfs-storage": "^5.0.2"
+    "multer-gridfs-storage": "^5.0.2",
+    "axios": "^1.9.0"
   }
 }

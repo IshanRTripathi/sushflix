@@ -1,5 +1,6 @@
 require('dotenv').config({ path: '../../.env' });
 
+const path = require('path');
 const express = require('express');
 const cors = require('cors');
 const morgan = require('morgan');
@@ -7,6 +8,7 @@ const connectDB = require('./config/db');
 const logger = require('./config/logger');
 const requestLogger = require('./middlewares/requestLogger');
 const errorHandler = require('./middlewares/errorHandler');
+const devLogin = require('./devLogin');
 
 // Routes
 const authRoutes = require('./routes/auth');
@@ -19,7 +21,9 @@ const app = express();
 
 // Middleware
 app.use(cors());
+app.use(devLogin);
 app.use(express.json());
+
 app.use(requestLogger);
 app.use(morgan('dev'));
 
@@ -38,11 +42,21 @@ app.use((req, res, next) => {
     next();
 });
 
+// Serve static files from the 'dist' directory
+const distPath = path.join(__dirname, '..', '..', 'dist');
+app.use(express.static(distPath));
+
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/content', contentRoutes);
 app.use('/api/subscriptions', subscriptionRoutes);
 app.use('/api', uploadRoutes);
+
+// Handle other routes by serving the 'index.html' file
+app.get('*', (req, res) => {
+    res.sendFile(path.join(distPath, 'index.html'));
+});
+
 
 // Error handling (Consolidated)
 app.use(errorHandler);
