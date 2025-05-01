@@ -1,7 +1,6 @@
 // routes/auth.js
 const express = require('express');
 const { body, validationResult } = require('express-validator');
-const passport = require('passport');
 const bcrypt = require('bcryptjs');
 const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
@@ -18,6 +17,7 @@ require('dotenv').config();
 const router = express.Router();
 
 router.post('/upload', upload.single('file'), (req, res) => {
+    logger.info(`Executing route: POST /upload`);
     if (req.file === undefined) return res.status(400).json({ msg: 'No file uploaded' });
     res.status(200).json({ file: req.file });
 });
@@ -38,6 +38,7 @@ router.post('/signup', [
         .matches(/[0-9]/)
         .withMessage('Password must contain at least one number')
 ], async (req, res) => {
+    logger.info(`Executing route: POST /signup`);
     const errors = validationResult(req);// Add validation to the signup route to make sure that the username, email and password fields are present and have the correct format. The username should have between 3 and 20 characters, email should have an valid format and the password should have at least 8 characters, one capital letter and one number. If the data is not valid send a 400 response with an array of error messages.
     if (!errors.isEmpty()) {
         logger.warn(`Validation errors in registration: ${errors.array()}`);
@@ -89,6 +90,7 @@ router.post('/signup', [
 // Route to create a test user (only in development)
 if (process.env.NODE_ENV === 'development') {
     router.post('/createTestUser', async (req, res) => {
+        logger.info(`Executing route: POST /createTestUser`);
         try {
             // Hash the password
             const salt = await bcrypt.genSalt(10);
@@ -114,7 +116,8 @@ if (process.env.NODE_ENV === 'development') {
 
 
 
-router.get('/me', async (req, res, next) => {    
+router.get('/me', async (req, res, next) => {
+    logger.info(`Executing route: GET /me`);    
     if(req.header('Authorization')){
         auth()(req, res, next);
     }else{        devLogin(req,res,next);    }    try {
@@ -131,18 +134,6 @@ router.get('/me', async (req, res, next) => {
     }
 });
 
-router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
-
-router.get('/google/callback', 
-  passport.authenticate('google', { failureRedirect: '/login' }), 
-  (req, res) => {
-    // Successful authentication, redirect home.
-    const token = jwt.sign({ userId: req.user._id, roles: req.user.roles }, process.env.JWT_SECRET, { expiresIn: '10h' });
-    logger.info(`User logged in successfully: ${req.user}`);
-    res.redirect(`http://localhost:5173?token=${token}`);
-  }
-);
-
 router.post('/login', [
     body('usernameOrEmail').custom(value => {
         if (!value) {
@@ -155,7 +146,9 @@ router.post('/login', [
         .isLength({ min: 8 })
         .withMessage('Password must be at least 8 characters long')
 ], async (req, res) => {
-    const errors = validationResult(req);// Add validation to the login route to make sure that the username and password fields are present and have the correct format. The username should have between 3 and 20 characters, and the password should have at least 8 characters. If the data is not valid send a 400 response with an array of error messages.
+    logger.info(`Executing route: POST /login`);
+    const errors = validationResult(req);// Add validation to the login route to make sure that the username and password fields are present and have the correct format. The username should have between 3 and 20 characters, and the password should have at least 8 characters. If the data is not valid send a 400 response with an array of error messages.    
+    
     if (!errors.isEmpty()) {
         logger.warn(`Validation errors in login: ${errors.array()}`);
         return res.status(400).json({ errors: errors.array() });

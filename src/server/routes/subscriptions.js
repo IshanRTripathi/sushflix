@@ -6,6 +6,7 @@ const router = express.Router();
 
 // Create subscription
 router.post('/', auth(), async (req, res) => {
+  logger.info('POST /api/subscriptions route handler executed');
   try {
     const subscription = new Subscription({
       subscriber: req.user.userId,
@@ -32,6 +33,7 @@ router.post('/', auth(), async (req, res) => {
 
 // Get user's subscriptions
 router.get('/my', auth(), async (req, res) => {
+  logger.info('GET /api/subscriptions/my route handler executed');
   try {
     const subscriptions = await Subscription.find({ 
       subscriber: req.user.userId,
@@ -50,6 +52,7 @@ router.get('/my', auth(), async (req, res) => {
 
 // Get creator's subscribers
 router.get('/subscribers', auth(['creator']), async (req, res) => {
+  logger.info('GET /api/subscriptions/subscribers route handler executed');
   try {
     const subscriptions = await Subscription.find({ 
       creator: req.user.userId,
@@ -68,6 +71,7 @@ router.get('/subscribers', auth(['creator']), async (req, res) => {
 
 // Cancel subscription
 router.patch('/:id/cancel', auth(), async (req, res) => {
+  logger.info('PATCH /api/subscriptions/:id/cancel route handler executed');
   try {
     const subscription = await Subscription.findOne({
       _id: req.params.id,

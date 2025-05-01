@@ -1,9 +1,12 @@
 // middlewares/auth.js
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
+const logger = require('../config/logger');
 
 const auth = (roles = []) => {
   return (req, res, next) => {
+    logger.info('Auth middleware executed');
+
     const token = req.header('Authorization')?.replace('Bearer ', '');
 
     if (!token) {

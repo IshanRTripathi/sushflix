@@ -64,6 +64,7 @@ app.use(errorHandler);
 const PORT = process.env.PORT || 5000;
 
 const startServer = async () => {
+    logger.info('Starting server...');
     try {
         await connectDB();
         app.listen(PORT, () => {

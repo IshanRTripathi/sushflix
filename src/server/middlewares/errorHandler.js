@@ -2,6 +2,7 @@ const logger = require('../config/logger');
 const mongoose = require('mongoose');
 
 const errorHandler = (err, req, res, next) => {
+    logger.info({message: 'Executing errorHandler middleware'});
     // Handle specific errors
     if (err.code === 'LIMIT_FILE_SIZE') {
         return res.status(413).json({ message: 'File size too large' });

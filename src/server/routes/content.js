@@ -19,6 +19,7 @@ mongoose.connection.once('open', () => {
 
 // Upload content with an image
 router.post('/upload', auth(['creator']), upload.single('file'), async (req, res) => {
+  logger.info(`Route /upload POST called`);
   try {
     const { title, description, mediaType, creator, isExclusive, requiredLevel } = req.body;
     const mediaUrl = `/files/${req.file.filename}`;
@@ -48,6 +49,7 @@ router.post('/upload', auth(['creator']), upload.single('file'), async (req, res
 
 // Fetch content
 router.get('/', async (req, res) => {
+  logger.info(`Route / GET called`);
   try {
     const contents = await Content.find().populate('creator');
     res.status(200).json(contents);
@@ -61,6 +63,7 @@ router.get('/', async (req, res) => {
 
 // Fetch file from GridFS
 router.get('/files/:filename', (req, res) => {
+  logger.info(`Route /files/:filename GET called`);
   gfs.files.findOne({ filename: req.params.filename }, (err, file) => {
     if (!file || file.length === 0) {
       return res.status(404).json({ err: 'No file exists' });
@@ -79,6 +82,7 @@ router.get('/files/:filename', (req, res) => {
 
 // Create content
 router.post('/', auth(['creator']), async (req, res) => {
+  logger.info(`Route / POST called`);
   try {
     const content = new Content({
       ...req.body,
@@ -98,6 +102,7 @@ router.post('/', auth(['creator']), async (req, res) => {
 
 // Get all content (with filters)
 router.get('/', async (req, res) => {
+  logger.info(`Route / with filters GET called`);
   try {
     const { creator, type, exclusive } = req.query;
     const filter = {};
@@ -119,6 +124,7 @@ router.get('/', async (req, res) => {
 
 // Get single content
 router.get('/:id', async (req, res) => {
+  logger.info(`Route /:id GET called`);
   try {
     const content = await Content.findById(req.params.id)
       .populate('creator', 'username name');
@@ -140,6 +146,7 @@ router.get('/:id', async (req, res) => {
 
 // Update content
 router.patch('/:id', auth(['creator']), async (req, res) => {
+  logger.info(`Route /:id PATCH called`);
   try {
     const content = await Content.findOne({
       _id: req.params.id,
@@ -166,6 +173,7 @@ router.patch('/:id', auth(['creator']), async (req, res) => {
 
 // Delete content
 router.delete('/:id', auth(['creator']), async (req, res) => {
+  logger.info(`Route /:id DELETE called`);
   try {
     const content = await Content.findOneAndDelete({
       _id: req.params.id,
