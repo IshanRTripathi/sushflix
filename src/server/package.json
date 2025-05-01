@@ -5,6 +5,8 @@
   "scripts": {
     "start": "node server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
+  },"engines": {
+  "node": "20.18.1"
   },
   "keywords": [],
   "author": "",
