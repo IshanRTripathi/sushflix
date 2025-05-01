@@ -64,9 +64,9 @@ app.use((req, res, next) => {
 logger.info('Performance monitoring middleware applied');
 
 // Serve static files from the 'dist' directory
-const distPath = path.join(__dirname, '..', '..', 'dist');
+const distPath = path.join(__dirname, 'dist');  // Updated to ensure it's within the current directory after build
 logger.info(`Serving static files from: ${distPath}`);
-app.use(express.static(distPath));
+app.use(express.static(distPath));  // Serving the Vite build's static files
 logger.info('Static files middleware applied');
 
 // Routes
@@ -90,10 +90,9 @@ logger.info('Upload routes applied');
 logger.info('Applying catch-all route for index.html');
 app.get('*', (req, res) => {
     logger.info(`Catch-all route serving index.html for path: ${req.path}`);
-    res.sendFile(path.join(distPath, 'index.html'));
+    res.sendFile(path.join(distPath, 'index.html'));  // Ensure this serves the built index.html
 });
 logger.info('Catch-all route applied');
-
 
 // Error handling (Consolidated)
 logger.info('Applying error handling middleware');
@@ -116,7 +115,7 @@ const startServer = async () => {
         await connectDB();
         logger.info('Database connected successfully');
         logger.info(`Attempting to start server listener on port ${PORT}...`); // Added log
-        app.listen(PORT, 0.0.0.0, () => {
+        app.listen(PORT, '0.0.0.0', () => {
             logger.info(`Server running on port ${PORT}`);
         });
     } catch (err) {
