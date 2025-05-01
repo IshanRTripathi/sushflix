@@ -100,7 +100,7 @@ logger.info('Applying error handling middleware');
 app.use(errorHandler);
 logger.info('Error handling middleware applied');
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 8080;
 
 // Add uncaught exception handler
 process.on('uncaughtException', (err) => {
