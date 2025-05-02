@@ -24,7 +24,7 @@ steps:
         '--allow-unauthenticated', # Change to --no-allow-unauthenticated if needed
         '--set-env-vars',
         # Combine all env vars into one comma-separated string
-        'MONGO_URI=mongodb+srv://qpwoeiruty9211:m5RRGZeMVe8AoILt@sushflix.0qovl.mongodb.net/?retryWrites=true&w=majority&appName=sushflix,AWS_ACCESS_KEY_ID=AKIAY6QVZPSXCWQD3UFH,AWS_SECRET_ACCESS_KEY=zPWmiP6J3fd@hefB5VZFZ7ZUT31HEI4MSeCH91CP,AWS_REGION=eu-north-1,AWS_BUCKET_NAME=sushflix,JWT_SECRET=I9$S#V8@!zR7p^LqJ*WnFbY2&mGcXd6%hBvT4sNfEaZ5UjM3P(HgKrD)iOQe1w+'
+        'MONGO_URI=mongodb+srv://qpwoeiruty9211:m5RRGZeMVe8AoILt@sushflix.0qovl.mongodb.net/?retryWrites=true&w=majority&appName=sushflix,AWS_ACCESS_KEY_ID=AKIAY6QVZPSXCWQD3UFH,AWS_SECRET_ACCESS_KEY=zPWmiP6J3fd@hefB5VZFZ7ZUT31HEI4MSeCH91CP,AWS_REGION=eu-north-1,AWS_BUCKET_NAME=sushflix,JWT_SECRET=I9S#V8@!zR7p^LqJ*WnFbY2&mGcXd6%hBvT4sNfEaZ5UjM3P(HgKrD)iOQe1w+'
       ]
 
   # Build and push the frontend Docker image, passing the backend URL as a build-arg
