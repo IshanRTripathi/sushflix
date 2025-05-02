@@ -7,7 +7,7 @@ import { HomePage } from './components/pages/HomePage';
 import { ExplorePage } from './components/content/ExplorePage';
 import { ContentDetail } from './components/content/ContentDetail';
 import { CreatorProfile } from './components/creator/CreatorProfile';
-import { SignupForm } from './components/auth/SignupForm'; // Import SignupForm
+import { LoginForm } from './components/auth/LoginForm';
 
 function App() {
 
@@ -15,10 +15,11 @@ function App() {
         <AuthProvider>
             <Router>
                 <div className="min-h-screen flex flex-col">
+                    {/* <Navigation /> */}{/* Removed Navigation component */}
                     <main className="flex-grow">
                         <Routes>
                             <Route path="/" element={<HomePage />} />
-                            <Route path="/signup" element={<SignupForm />} /> {/* Add route for signup */}
+                            <Route path="/login" element={<LoginForm />} />
                             <Route path="/explore" element={<ExplorePage />} />
                             <Route path="/content/:id" element={<ContentDetail />} />
                             <Route path="/creator/:username" element={<CreatorProfile />} />
