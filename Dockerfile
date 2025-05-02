@@ -15,14 +15,17 @@ RUN npm run build
 # Stage 2: Serve the application with Nginx
 FROM nginx:alpine
 
+# Install gettext-base for envsubst
+RUN apk add --no-cache gettext-base
+
 # Copy the built React app from the builder stage to the Nginx public directory
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Copy a custom nginx.conf if needed (optional, but good for SPAs)
-# COPY nginx.conf /etc/nginx/nginx.conf
+# Copy the custom nginx.conf
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Expose port 80 for the web server
+# Expose port 80 for the web server (documentation only)
 EXPOSE 80
 
-# Command to run Nginx
-CMD ["nginx", "-g", "daemon off;"]
+# Command to run Nginx, substituting the PORT environment variable
+CMD ["/bin/sh", "-c", "envsubst "\$PORT" < /etc/nginx/conf.d/default.conf > /etc/nginx/conf.d/nginx.conf && nginx -g 'daemon off;'"]
