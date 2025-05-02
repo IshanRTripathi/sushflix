@@ -9,7 +9,13 @@ steps:
 
   # Build and push the frontend Docker image
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['build', '-t', 'gcr.io/$PROJECT_ID/sushflix-frontend', '.']
+    args: [
+      'build',
+      '-t',
+      'gcr.io/$PROJECT_ID/sushflix-frontend',
+      '.',
+      '--build-arg', 'VITE_BACKEND_URL=${steps['Deploy Backend'].uri}' # Pass backend URL as a build argument
+    ]
     timeout: '1200s' # Adjust timeout as needed
 
   - name: 'gcr.io/cloud-builders/docker'
@@ -47,9 +53,7 @@ steps:
         'managed',
         '--region',
         'us-central1', # Replace with your desired region
-        '--allow-unauthenticated', # Frontend is usually public
-        '--update-env-vars', # This confirms the change was applied
-        'VITE_BACKEND_URL=https://sushflix-backend-796527544626.us-central1.run.app'
+        '--allow-unauthenticated' # Frontend is usually public
       ]
 
 logsBucket: gs://sushflix-logs

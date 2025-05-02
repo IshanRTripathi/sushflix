@@ -3,6 +3,12 @@ FROM node:20.18.1 as builder
 
 WORKDIR /app
 
+# Accept VITE_BACKEND_URL as a build argument
+ARG VITE_BACKEND_URL
+
+# Set VITE_BACKEND_URL as an environment variable for the build process
+ENV VITE_BACKEND_URL=$VITE_BACKEND_URL
+
 COPY package*.json ./
 
 RUN npm install
