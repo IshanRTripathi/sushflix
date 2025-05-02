@@ -1,9 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
+import { LoginModal } from '../auth/LoginModal';
 
 export function Header() {
     const { isAuthenticated, logout } = useAuth();
+    const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
 
     return (
         <header className="bg-white shadow-md py-4 px-6 md:px-12">
@@ -16,15 +18,21 @@ export function Header() {
                     <Link to="#" className="text-gray-600 hover:text-gray-800 text-sm">FAQ</Link>
                     <Link to="#" className="text-gray-600 hover:text-gray-800 text-sm">Contact Us</Link>
                     {!isAuthenticated ? (
-                        <>
-                            <Link to="/login" className="text-gray-600 hover:text-gray-800 text-sm">Login</Link>
-                            <Link to="/signup" className="text-gray-600 hover:text-gray-800 text-sm">Signup</Link>
-                        </>
+                        <button 
+                            onClick={() => setIsLoginModalOpen(true)} 
+                            className="text-gray-600 hover:text-gray-800 text-sm"
+                        >
+                            Login
+                        </button>
                     ) : (
                         <button onClick={logout} className="text-gray-600 hover:text-gray-800 text-sm">Logout</button>
                     )}
                 </nav>
             </div>
+            <LoginModal 
+                isOpen={isLoginModalOpen} 
+                onClose={() => setIsLoginModalOpen(false)} 
+            />
         </header>
     );
 }

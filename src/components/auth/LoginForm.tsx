@@ -1,142 +1,114 @@
 import React, { useState } from 'react';
 import { AlertCircle } from 'lucide-react';
-import SubmitButton from '../common/SubmitButton';
-import FormField from '../common/FormField'; // Import FormField
-import { useAuth } from './AuthContext'; // Import useAuth
-import { useNavigate } from 'react-router-dom'; // Import useNavigate for redirection
 
-interface FormData {
-  username: string;
-  password: string;
-}
+const countryCodes = [
+  { code: '+91', flag: '🇮🇳' },
+  { code: '+1', flag: '🇺🇸' },
+  // Add more as needed
+];
 
-interface FormErrors {
-  username?: string;
-  password?: string;
-  general?: string;
-}
-
-export function LoginForm() {
-  const [formData, setFormData] = useState<FormData>({
-    username: '',
-    password: ''
-  });
-  const [errors, setErrors] = useState<FormErrors>({});
-  const [isLoading, setIsLoading] = useState(false);
-  const { login } = useAuth(); // Get login function from context
-  const navigate = useNavigate(); // Initialize useNavigate
-
-  const validateForm = (): boolean => {
-    console.log("Validating LoginForm with data:", formData); // Log form data before validation
-    const newErrors: FormErrors = {};
-
-    if (!formData.username) {
-      newErrors.username = 'Username or Email is required'; // Updated message
-    } else if (formData.username.length < 3) {
-      newErrors.username = 'Username/Email should be >= 3 characters'; // Updated message
-    }
-
-    if (!formData.password) {
-      newErrors.password = 'Password is required';
-    }
-
-    console.log("Validation errors:", newErrors); // Log validation errors
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    console.log("LoginForm handleSubmit triggered"); // Log submit trigger
-
-    if (!validateForm()) {
-        console.log("LoginForm validation failed");
-        return;
-    }
-    console.log("LoginForm validation successful");
-
-    setIsLoading(true);
-    try {
-      console.log(`Calling context login with username: ${formData.username}`);
-      // Call the login function from AuthContext
-      const user = await login(formData.username, formData.password);
-
-      // If login is successful (user object is returned), navigate
-      if (user) {
-        console.log("Login successful, navigating...");
-        const redirectPath = user.isCreator ? '/creator/dashboard' : '/discover';
-        navigate(redirectPath); // Use navigate for SPA redirection
-      }
-      // If login fails, the login function in AuthContext should throw an error
-
-    } catch (error: unknown) {
-      console.error("Login error caught in component:", error);
-      // Catch errors thrown by the login function (e.g., invalid credentials)
-      setErrors({
-        general: error instanceof Error ? error.message : 'An error occurred during login'
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
+export function LoginForm({ closeModal }: { closeModal: () => void }) {
+  const [tab, setTab] = useState<'phone' | 'email'>('phone');
+  const [countryCode, setCountryCode] = useState(countryCodes[0].code);
+  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
 
   return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="w-full max-w-md p-8 bg-white rounded-lg shadow-lg">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">Welcome back</h2>
-
-          {errors.general && (
-              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md flex items-center gap-2">
-                <AlertCircle className="w-5 h-5 text-red-500"/>
-                <span className="text-red-700">{errors.general}</span>
-              </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <FormField
-                label="Username or Email"
-                id="username"
-                type="text"
-                value={formData.username}
-                onChange={(e) => setFormData({...formData, username: e.target.value})}
-                error={errors.username}
-            />
-
-            <FormField
-                label="Password"
-                id="password"
-                type="password"
-                value={formData.password}
-                onChange={(e) => setFormData({...formData, password: e.target.value})}
-                error={errors.password}
-            />
-
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <input
-                    id="remember-me"
-                    type="checkbox"
-                    className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                />
-                <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700">
-                  Remember me
-                </label>
-              </div>
-
-              <div className="text-sm">
-                <a href="/forgot-password" className="font-medium text-indigo-600 hover:text-indigo-500">
-                  Forgot your password?
-                </a>
-              </div>
-            </div>
-
-            <SubmitButton
-              isLoading={isLoading}
-              buttonText="Sign in"
-              loadingText="Signing in..."
-            />
-          </form>
-        </div>
+    <div className="w-full max-w-md">
+      <h2 className="text-xl font-bold text-gray-900 mb-1">Welcome to Bingeme.</h2>
+      <p className="text-sm text-gray-500 mb-6">The future of creator-fan connection.</p>
+      <div className="flex mb-4 rounded-lg overflow-hidden bg-gray-100">
+        <button
+          className={`flex-1 py-2 text-sm font-medium ${tab === 'phone' ? 'bg-white text-black' : 'text-gray-500'}`}
+          onClick={() => setTab('phone')}
+        >
+          Phone
+        </button>
+        <button
+          className={`flex-1 py-2 text-sm font-medium ${tab === 'email' ? 'bg-white text-black' : 'text-gray-500'}`}
+          onClick={() => setTab('email')}
+        >
+          Email
+        </button>
       </div>
+      {tab === 'phone' ? (
+        <div className="mb-4">
+          <label className="block text-xs font-medium text-gray-700 mb-1">Phone Number</label>
+          <div className="flex items-center border rounded-lg overflow-hidden bg-gray-50">
+            <select
+              className="px-2 py-2 bg-gray-50 text-sm outline-none"
+              value={countryCode}
+              onChange={e => setCountryCode(e.target.value)}
+            >
+              {countryCodes.map(c => (
+                <option key={c.code} value={c.code}>{c.flag} {c.code}</option>
+              ))}
+            </select>
+            <input
+              className="flex-1 px-3 py-2 bg-gray-50 outline-none text-sm"
+              type="tel"
+              placeholder="Enter Phone number"
+              value={phone}
+              onChange={e => setPhone(e.target.value)}
+            />
+          </div>
+        </div>
+      ) : (
+        <div className="mb-4">
+          <label className="block text-xs font-medium text-gray-700 mb-1">Email</label>
+          <input
+            className="w-full px-3 py-2 border rounded-lg bg-gray-50 outline-none text-sm"
+            type="email"
+            placeholder="Enter your email"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+          />
+        </div>
+      )}
+      <button className="w-full bg-black text-white rounded-lg py-2 font-medium mb-2">Sign in →</button>
+      <button
+        className="w-full border border-gray-300 rounded-lg py-2 font-medium mb-2 bg-white"
+        onClick={() => setShowPassword(v => !v)}
+        type="button"
+      >
+        Login with password
+      </button>
+      {showPassword && (
+        <div className="mb-4 mt-2">
+          <input
+            className="w-full px-3 py-2 border rounded-lg bg-gray-50 outline-none text-sm mb-2"
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={e => setPassword(e.target.value)}
+          />
+          <button className="w-full bg-black text-white rounded-lg py-2 font-medium">Sign in with password</button>
+        </div>
+      )}
+      <div className="text-center my-2">
+        <a href="/forgot-password" className="text-xs font-medium text-gray-700">Forgot Password ?</a>
+      </div>
+      <div className="flex items-center my-4">
+        <div className="flex-1 h-px bg-gray-200" />
+        <span className="mx-2 text-xs text-gray-400">Or sign in with</span>
+        <div className="flex-1 h-px bg-gray-200" />
+      </div>
+      <button className="w-full flex items-center justify-center border border-gray-300 rounded-lg py-2 font-medium bg-white mb-2">
+        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-5 h-5 mr-2" />
+        Continue with Google
+      </button>
+      <div className="text-center mt-4 text-xs text-gray-500">
+        New to Bingeme? <a href="/signup" className="text-indigo-600 font-medium">Sign up</a>
+      </div>
+      {error && (
+        <div className="mt-4 p-2 bg-red-50 border border-red-200 rounded flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 text-red-500" />
+          <span className="text-red-700 text-xs">{error}</span>
+        </div>
+      )}
+    </div>
   );
 }

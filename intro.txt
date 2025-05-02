@@ -1,0 +1,92 @@
+Project Overview: Sushflix
+
+Sushflix is a content-sharing and subscription platform that connects content creators with their fans. Creators can upload various types of content, manage their subscriptions, and engage with their followers. Fans can subscribe to their favorite creators, access exclusive content, and support creators through subscriptions.
+
+Key Features:
+
+Content Creation and Management: Creators can upload, store, retrieve, and manage their content.
+User Authentication: Secure user signup and login functionality.
+Subscription System: Fans can subscribe to creators, with payment processing handled via Stripe.
+User Profiles: Creators and fans have their own profiles.
+Content Discovery: Users can browse and search for content.
+Creator dashboard: Creators have a dashboard where they can see the analytics of their content.
+And more... There are many features to be implemented in the future.
+Tech Stack:
+
+Frontend: React (a JavaScript library for building user interfaces)
+Backend: Node.js/Express (a JavaScript runtime environment and web framework for building server-side applications)
+Database: MongoDB Atlas (a cloud-based NoSQL document database)
+Storage: AWS S3 (cloud-based object storage)
+Deployment:
+Frontend deployment via Netlify.
+Backend deployment on AWS EC2.
+Nginx configuration for reverse proxy.
+PM2 for process management.
+SSL certificate setup with Let's Encrypt.
+Important Files and Their Roles:
+
+Let's break down the codebase by some of the most critical files and their responsibilities:
+
+1. Frontend (src/ directory):
+
+src/App.tsx:
+Role: The main entry point for the React application. This file sets up the application's overall structure, including routing.
+Importance: If you need to add a new page or change the overall layout of the app, you'll likely modify this file.
+src/main.tsx:
+Role: This file bootstraps the React application, mounting it to the DOM.
+Importance: This file is where the App.tsx component is mounted to the DOM.
+src/components/layout/Navigation.tsx:
+Role: This file defines the main navigation bar that appears at the top of most pages. It includes links to different sections of the site (e.g., "Explore," "Subscribe," "Login," etc.)
+Importance: If you need to change the navigation links or add new ones, you'll modify this file. It also contains the login modal implementation.
+src/components/common/Modal.tsx:
+Role: This file defines a reusable Modal component, which is a popup card used for various purposes (like the login form).
+Importance: When you need to create a new popup or change the modal's style, this is the place to go.
+src/components/auth/LoginForm.tsx:
+Role: This file contains the LoginForm component, which handles user login.
+Importance: If you need to change the login form's structure, the login logic or add fields, you'll modify this file.
+src/components/auth/AuthContext.tsx:
+Role: This file uses React's Context API to manage authentication state globally.
+Importance: It provides the current authentication state and login function.
+src/services/apiService.ts:
+Role: This file manages the connections to the api.
+Importance: If you need to make new requests, this is where you should make them.
+2. Backend:
+
+src/server/index.js:
+Role: The main entry point for the Node.js/Express backend server. It sets up the server, routes, and middleware.
+Importance: Changes to overall server setup should be made here.
+src/server/routes:
+Role: The routes of the server are defined here.
+Importance: New routes should be added here.
+src/server/middlewares/auth.js:
+Role: Contains the authentication middleware for the server.
+Importance: This is where the requests are validated to see if they are authenticated.
+3. Documentation:
+
+readme.md:
+Role: The project's main documentation file.
+Importance: This is the first place a new developer should look for a high-level overview of the project, its features, and how to get started.
+issues.md:
+Role: Contains a list of the project's issues.
+Importance: You can check it to see what issues the project has.
+features.md:
+Role: Contains a list of the project's features.
+Importance: You can check it to see what features the project has.
+Key Concepts to Understand:
+
+React Components: The frontend is built using React components, which are reusable building blocks for the UI.
+Routing: react-router-dom is used for client-side routing, allowing navigation between different pages or views without full page reloads.
+State Management: React's useState hook is used for managing state within components. Context (AuthContext) is used for global state.
+API Calls: The frontend makes API calls to the backend to fetch and send data.
+Tailwind: It is a CSS framework to style the components.
+How to Approach the Codebase:
+
+Start with readme.md: Read the readme.md file to get a general understanding of the project.
+Explore App.tsx: Look at App.tsx to see the overall structure and how routing is set up.
+Follow the Navigation: Explore Navigation.tsx to understand how different parts of the app are connected.
+Study LoginForm.tsx: Examine LoginForm.tsx to see how forms and authentication are handled.
+Look at Modal.tsx: Understand how the modal component works.
+Check apiService.ts: Understand how the API requests are done.
+Check the backend: Look at the backend code to understand how the server is structured
+
+ your task is simple to follow the best coding standards, keep note of whats wrong and what could be a bug. I dont want any explanation or just minimal one liners about what you did and no unnecessary wasting of tokens, got it?

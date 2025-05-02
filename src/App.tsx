@@ -7,7 +7,6 @@ import { HomePage } from './components/pages/HomePage';
 import { ExplorePage } from './components/content/ExplorePage';
 import { ContentDetail } from './components/content/ContentDetail';
 import { CreatorProfile } from './components/creator/CreatorProfile';
-import { LoginForm } from './components/auth/LoginForm';
 
 function App() {
 
@@ -19,7 +18,6 @@ function App() {
                     <main className="flex-grow">
                         <Routes>
                             <Route path="/" element={<HomePage />} />
-                            <Route path="/login" element={<LoginForm />} />
                             <Route path="/explore" element={<ExplorePage />} />
                             <Route path="/content/:id" element={<ContentDetail />} />
                             <Route path="/creator/:username" element={<CreatorProfile />} />

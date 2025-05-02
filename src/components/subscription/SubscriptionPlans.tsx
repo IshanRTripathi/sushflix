@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Check } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
+import { LoginModal } from '../auth/LoginModal';
 
 interface Plan {
   id: string;
@@ -57,10 +58,11 @@ const plans: Plan[] = [
 
 export function SubscriptionPlans() {
   const { isAuthenticated } = useAuth();
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
 
   const handleSubscribe = async (planId: string) => {
     if (!isAuthenticated) {
-      window.location.href = '/login';
+      setIsLoginModalOpen(true);
       return;
     }
 
@@ -84,6 +86,7 @@ export function SubscriptionPlans() {
   };
 
   return (
+    <>
       <div className="bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           <div className="text-center">
@@ -153,5 +156,10 @@ export function SubscriptionPlans() {
           </div>
         </div>
       </div>
+      <LoginModal 
+        isOpen={isLoginModalOpen} 
+        onClose={() => setIsLoginModalOpen(false)} 
+      />
+    </>
   );
 }

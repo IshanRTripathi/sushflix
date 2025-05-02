@@ -51,3 +51,4 @@ yarn.lock
 Thumbs.db
 /dist
 /node_modules/
+.idea/*
