@@ -15,9 +15,9 @@ export const signupUser = (data: { username: string; password: string; email: st
   return apiClient.post('/auth/signup', data);
 };
 
+// Corrected LoginData interface to match backend expectation
 interface LoginData {
-  username?: string;
-  email?: string; // Assuming login can be by username or email
+  usernameOrEmail: string;
   password: string;
 }
 

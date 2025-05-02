@@ -89,7 +89,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // login function using apiService
   const login = async (usernameOrEmail: string, password: string): Promise<User> => {
     try {
-      const response = await loginUser({ username: usernameOrEmail, password }); // Call apiService
+      // Corrected: Pass usernameOrEmail with the correct key expected by the backend
+      const response = await loginUser({ usernameOrEmail: usernameOrEmail, password });
       const data = response.data as LoginResponseData;
 
       if (!data.token || !data.user) {
