@@ -27,7 +27,7 @@ router.post('/signup', [
         .trim()
         .isLength({ min: 3, max: 20 })
         .withMessage('Username must be between 3 and 20 characters'),
-        body('email')
+    body('email')
         .isEmail()
         .withMessage('Invalid email format'),
     body('password')
@@ -38,9 +38,8 @@ router.post('/signup', [
         .matches(/[0-9]/)
         .withMessage('Password must contain at least one number')
 ], async (req, res, next) => { // Added next here
-    logger.info(`Executing route: POST /signup`);
-    const { username, email, password, isCreator } = req.body; // Extracting password for logging before validation
-    logger.info(`Received registration request body (excluding password): ${JSON.stringify({ username, email, isCreator })}`);
+    logger.info(`Executing route: POST /api/auth/signup`); // Corrected log path
+    logger.info(`Received registration request body: ${JSON.stringify(req.body)}`); // Log the full body
 
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -48,6 +47,8 @@ router.post('/signup', [
         return res.status(400).json({ errors: errors.array() });
     }
     logger.info('Signup validation successful');
+
+    const { username, email, password, isCreator } = req.body;
 
     logger.info(`Checking if email already exists: ${email}`);
     try {
@@ -67,7 +68,7 @@ router.post('/signup', [
             return res.status(409).json({ message: 'Username already exists' });
         }
         logger.info('Username available');
-    
+
         // Hash the password
         logger.info('Hashing password');
         const salt = await bcrypt.genSalt(10);
@@ -93,7 +94,7 @@ router.post('/signup', [
         logger.info(`Sending success response for signup: ${JSON.stringify(newUserResponse)}`);
         res.status(201).json({ newUser: newUserResponse });
 
-    } catch (err) {        
+    } catch (err) {
         logger.error(`Error during signup process for email ${email}: ${err.message}`);
         if(err.code === 11000) { // Duplicate key error
              if (err.keyPattern && err.keyPattern.email) {
@@ -144,7 +145,7 @@ if (process.env.NODE_ENV === 'development') {
 
 
 router.get('/me', auth(), async (req, res, next) => { // Applying auth middleware
-    logger.info(`Executing route: GET /me`);
+    logger.info(`Executing route: GET /api/auth/me`); // Corrected log path
     // The auth middleware should populate req.user if authenticated
     if (!req.user) {
          // This case should ideally be handled by the auth middleware sending a 401
@@ -175,14 +176,13 @@ router.post('/login', [
         }
         return true;
       }),
-    
+
     body('password')
         .isLength({ min: 8 })
         .withMessage('Password must be at least 8 characters long')
 ], async (req, res, next) => { // Added next here
-    logger.info(`Executing route: POST /login`);
-    const { usernameOrEmail, password } = req.body; // Extract password here
-    logger.info(`Received login request body (excluding password): ${JSON.stringify({ usernameOrEmail })}`);
+    logger.info(`Executing route: POST /api/auth/login`); // Corrected log path
+    logger.info(`Received login request body: ${JSON.stringify(req.body)}`); // Log the full body
 
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -190,6 +190,8 @@ router.post('/login', [
         return res.status(400).json({ errors: errors.array() });
     }
     logger.info('Login validation successful');
+
+    const { usernameOrEmail, password } = req.body;
 
     logger.info(`Attempting to find user by username or email: ${usernameOrEmail}`);
     try {
@@ -222,9 +224,9 @@ router.post('/login', [
         delete userResponse.password;
         logger.info(`Sending success response for login: ${JSON.stringify({ user: userResponse, token: '[REDACTED]' })}`);
         return res.status(200).json({ user: userResponse, token, expiresIn: '10h' });
-    } catch (err) {        
+    } catch (err) {
         logger.error(`Error during login process for username or email ${usernameOrEmail}: ${err.message}`);
-        next(err);        
+        next(err);
     }
 });
 

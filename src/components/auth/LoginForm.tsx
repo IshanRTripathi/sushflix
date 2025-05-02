@@ -27,6 +27,7 @@ export function LoginForm() {
   const navigate = useNavigate(); // Initialize useNavigate
 
   const validateForm = (): boolean => {
+    console.log("Validating LoginForm with data:", formData); // Log form data before validation
     const newErrors: FormErrors = {};
 
     if (!formData.username) {
@@ -39,28 +40,37 @@ export function LoginForm() {
       newErrors.password = 'Password is required';
     }
 
+    console.log("Validation errors:", newErrors); // Log validation errors
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log("LoginForm handleSubmit triggered"); // Log submit trigger
 
-    if (!validateForm()) return;
+    if (!validateForm()) {
+        console.log("LoginForm validation failed");
+        return;
+    }
+    console.log("LoginForm validation successful");
 
     setIsLoading(true);
     try {
+      console.log(`Calling context login with username: ${formData.username}`);
       // Call the login function from AuthContext
       const user = await login(formData.username, formData.password);
 
       // If login is successful (user object is returned), navigate
       if (user) {
+        console.log("Login successful, navigating...");
         const redirectPath = user.isCreator ? '/creator/dashboard' : '/discover';
         navigate(redirectPath); // Use navigate for SPA redirection
       }
       // If login fails, the login function in AuthContext should throw an error
 
     } catch (error: unknown) {
+      console.error("Login error caught in component:", error);
       // Catch errors thrown by the login function (e.g., invalid credentials)
       setErrors({
         general: error instanceof Error ? error.message : 'An error occurred during login'
