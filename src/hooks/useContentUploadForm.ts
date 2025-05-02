@@ -1,5 +1,7 @@
 import { useState, ChangeEvent } from 'react';
 import { useAuth } from '../components/auth/AuthContext';
+import { uploadContent } from '../services/apiService'; // Import uploadContent
+import type { AxiosError } from 'axios'; // Import AxiosError
 
 interface FormData {
     title: string;
@@ -17,6 +19,19 @@ interface FormErrors {
     thumbnail?: string;
     media?: string;
     general?: string;
+}
+
+// Define structure for the response data from content upload
+interface UploadResponseData {
+    message?: string;
+    contentId?: string; // Assuming the backend returns the ID of the created content
+    content?: any; // Or a more specific type for the created content
+}
+
+// Define structure for potential error data from content upload
+interface UploadErrorData {
+  message?: string;
+  errors?: Array<{ param: string; msg: string }>;
 }
 
 const LEVEL_DESCRIPTIONS = {
@@ -73,6 +88,7 @@ export function useContentUploadForm() {
             [`${type}File`]: file
         }));
 
+        // Clear potential previous error for this field
         setErrors(prev => ({
             ...prev,
             [type]: undefined
@@ -83,8 +99,15 @@ export function useContentUploadForm() {
         e.preventDefault();
 
         if (!validateForm()) return;
+        if (!token) {
+            setErrors({ general: 'Authentication token is missing. Please log in again.' });
+            return;
+        }
 
         setIsUploading(true);
+        setUploadProgress(0);
+        setErrors({}); // Clear previous errors
+
         try {
             const formDataToSend = new FormData();
             formDataToSend.append('title', formData.title);
@@ -94,27 +117,55 @@ export function useContentUploadForm() {
             if (formData.thumbnailFile) formDataToSend.append('thumbnail', formData.thumbnailFile);
             if (formData.mediaFile) formDataToSend.append('media', formData.mediaFile);
 
-            const response = await fetch('/api/content/upload', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                },
-                body: formDataToSend
-            });
+            // Define progress handler
+            const onUploadProgress = (progressEvent: any) => {
+                const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+                setUploadProgress(percentCompleted);
+            };
 
-            if (!response.ok) {
-                throw new Error('Upload failed');
+            // Call the uploadContent function from apiService
+            const response = await uploadContent(formDataToSend, token, onUploadProgress);
+
+            const responseData = response.data as UploadResponseData;
+
+            // Handle success - redirect or show message
+            console.log('Upload successful:', responseData);
+            if (responseData.contentId) {
+                 window.location.href = `/content/${responseData.contentId}`; // Redirect to content page
+            } else {
+                // Handle success case where maybe only a message is returned
+                alert(responseData.message || 'Content uploaded successfully!');
+                // Optionally reset the form or redirect differently
             }
 
-            const { contentId } = await response.json();
-            window.location.href = `/content/${contentId}`;
-        } catch (error) {
-            setErrors({
-                general: error instanceof Error ? error.message : 'Failed to upload content'
-            });
+        } catch (error: unknown) {
+            const axiosError = error as AxiosError;
+            let errorMessage = 'Failed to upload content';
+
+            if (axiosError.response?.data) {
+                const errorData = axiosError.response.data as UploadErrorData;
+                if (errorData.errors && errorData.errors.length > 0) {
+                    // Handle specific validation errors if backend sends them
+                    const specificErrors: FormErrors = {};
+                    errorData.errors.forEach(err => {
+                        specificErrors[err.param as keyof FormErrors] = err.msg;
+                    });
+                    setErrors(specificErrors);
+                    errorMessage = 'Please correct the errors above.'; // Set a general message
+                } else if (errorData.message) {
+                    errorMessage = errorData.message;
+                } else {
+                     errorMessage = axiosError.message || 'Upload failed due to server error';
+                }
+            } else {
+                 errorMessage = axiosError.message || 'Network error or unable to reach server';
+            }
+            console.error("Upload error:", error);
+            setErrors(prev => ({ ...prev, general: errorMessage }));
         } finally {
             setIsUploading(false);
-            setUploadProgress(0);
+            // Keep uploadProgress at 100 or reset based on UX preference
+            // setUploadProgress(0); // Reset progress after completion/error
         }
     };
 
@@ -122,14 +173,12 @@ export function useContentUploadForm() {
         formData,
         setFormData,
         errors,
-        setErrors,
+        // Removed setErrors, setIsUploading, setUploadProgress from return if not needed externally
         isUploading,
-        setIsUploading,
         uploadProgress,
-        setUploadProgress,
         previewUrls,
         setPreviewUrls,
-        validateForm,
+        // Removed validateForm from return if only used internally
         handleFileChange,
         handleSubmit,
         LEVEL_DESCRIPTIONS

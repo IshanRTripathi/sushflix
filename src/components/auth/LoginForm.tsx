@@ -5,7 +5,12 @@ import FormField from '../common/FormField'; // Import FormField
 import { useAuth } from './AuthContext'; // Import useAuth
 import { useNavigate } from 'react-router-dom'; // Import useNavigate for redirection
 
-interface FormData {
+
+interface Props {
+  closeModal: () => void;
+}
+
+interface FormData { 
   username: string;
   password: string;
 }
@@ -16,7 +21,7 @@ interface FormErrors {
   general?: string;
 }
 
-export function LoginForm() {
+export function LoginForm({ closeModal }: Props) {
   const [formData, setFormData] = useState<FormData>({
     username: '',
     password: ''
@@ -25,7 +30,7 @@ export function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth(); // Get login function from context
   const navigate = useNavigate(); // Initialize useNavigate
-
+  
   const validateForm = (): boolean => {
     console.log("Validating LoginForm with data:", formData); // Log form data before validation
     const newErrors: FormErrors = {};
@@ -45,7 +50,7 @@ export function LoginForm() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     console.log("LoginForm handleSubmit triggered"); // Log submit trigger
 
@@ -61,11 +66,10 @@ export function LoginForm() {
       // Call the login function from AuthContext
       const user = await login(formData.username, formData.password);
 
-      // If login is successful (user object is returned), navigate
+      // If login is successful (user object is returned), close the modal
       if (user) {
-        console.log("Login successful, navigating...");
-        const redirectPath = user.isCreator ? '/creator/dashboard' : '/discover';
-        navigate(redirectPath); // Use navigate for SPA redirection
+        console.log("Login successful, closing modal...");
+        closeModal(); // Use navigate for SPA redirection
       }
       // If login fails, the login function in AuthContext should throw an error
 
@@ -92,7 +96,7 @@ export function LoginForm() {
               </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleLogin} className="space-y-6">
             <FormField
                 label="Username or Email"
                 id="username"

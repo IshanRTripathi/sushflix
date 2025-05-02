@@ -1,8 +1,190 @@
-## Deployment Instructions
+# Sushflix
 
-### Frontend Deployment (Netlify)
+## Project Description
 
-1. Build the frontend:
+Sushflix is a content sharing and subscription platform designed to connect creators with their fans. Creators can upload various types of content and manage their subscriptions, while fans can subscribe to their favorite creators and enjoy exclusive content. The platform uses a modern tech stack, including React for the frontend, Node.js/Express for the backend, MongoDB Atlas for the database, and AWS S3 for storage.
+
+## Features
+
+### Existing Features
+
+*   **User Authentication:**
+    *   User signup and login.
+    *   Secure password handling.
+*   **Content Management:**
+    *   Content creation and storage.
+    *   Content retrieval and display.
+    *   Content upload.
+*   **Subscription Management:**
+    *   User subscriptions to content creators.
+    *   Payment processing via Stripe.
+*   **Database:**
+    *   MongoDB Atlas setup.
+*   **Storage:**
+    *   AWS S3 storage integration.
+*   **API:**
+    *   Backend API serving data.
+*   **Deployment:**
+    *   Frontend deployment via Netlify.
+    *   Backend deployment on AWS EC2.
+    *   Nginx configuration for reverse proxy.
+    *   PM2 for process management.
+    *   SSL certificate setup with Let's Encrypt.
+*   **Security:**
+    *   AWS WAF integration.
+    *   Regular security updates.
+    *   Fail2ban for intrusion detection.
+*   **Monitoring:**
+    *   CloudWatch for CPU, memory, disk, network monitoring.
+    *   Alerts for exceeding CPU utilization thresholds.
+    *   pm2 logs and nginx error logs.
+*   **Database backup:**
+    *   Script to backup the database.
+    *   Automatic backup via crontab.
+*   **Access keys rotation:**
+    *   Instructions to rotate access keys.
+*   **Content and data retention:**
+    *   S3 lifecycle rules.
+
+### Planned Features
+
+#### High Priority
+
+1.  **User Profiles:**
+    *   Creator profiles (with description, social links, etc.).
+    *   Fan profiles (with settings, payment information, etc.).
+2.  **Content Browsing/Discovery:**
+    *   Search functionality for content.
+    *   Categorization and filtering of content.
+    *   "Explore" page for discovering new content/creators.
+3.  **Creator Dashboard:**
+    *   Analytics for creators (views, subscribers, earnings).
+    *   Content management tools.
+    *   Subscription plan management.
+    *   Profile customization.
+4.  **Creator earnings:**
+    *   The creators should be able to see their earnings.
+    *   The creators should be able to withdraw their earnings.
+5. **Content interaction:**
+    *   "Like" or "favorite" content.
+
+#### Medium Priority
+
+1.  **Direct Messaging:**
+    *   Fans can message creators.
+    *   Creators can reply to fans.
+2.  **Tip/Donation System:**
+    *   Fans can send tips to creators.
+    *   Creators can view their tips.
+3.  **Email Notifications:**
+    *   New follower/subscriber notifications.
+    *   Direct message notifications.
+    *   Payment confirmations.
+4.  **Improved error handling and logging:**
+    *   The app should have a better way to handle errors and to log them.
+5. **Content Interaction:**
+    *   Comments and discussions on content.
+    *   Content sharing.
+
+#### Low Priority
+
+1.  **Admin Panel:**
+    *   Moderation of content and users.
+    *   Site configuration.
+2.  **Onboarding:**
+    *   Tutorial or guide for new users.
+3.  **DRM (Digital Rights Management):**
+    *   Secure content delivery to prevent unauthorized copying or distribution.
+
+## Issues
+
+### High Urgency
+
+1.  **Lack of Robust Error Handling:**
+    *   The application lacks comprehensive error handling and logging, making it difficult to debug issues.
+2.  **Inconsistent Button Colors:**
+    *   In some places of the application, the buttons have different colors.
+    *   **Location:** `src/components/pages/HomePage.tsx`
+3.  **Development Login in Auth Middleware:**
+    *   The development login bypass is implemented directly in the authentication middleware, which is not ideal.
+    *   **Location:** `src/server/middlewares/auth.js`
+
+### Medium Urgency
+
+1.  **Missing Features from the Roadmap:**
+    *   Many features from the `features.md` file are not yet implemented, such as user profiles, content browsing/discovery, content interaction, direct messaging, tipping, creator dashboard, email notifications.
+2.  **Lack of validation:**
+    *   The requests dont have any validation.
+    *   **Location:** `src/server/routes`
+3.  **Hardcoded Data/Placeholders:**
+    *   The UI often uses hardcoded data or placeholder images.
+    *   **Location:** `src/components`
+4. **Unclear project structure:**
+    * The project has some files in not clear locations.
+
+### Low Urgency
+
+1.  **Lack of Admin Panel:**
+    *   There's no admin panel for content/user moderation or site configuration.
+2.  **Missing Onboarding Tutorial:**
+    *   New users lack an onboarding experience or tutorial.
+3.  **No Digital Rights Management:**
+    *   There is no DRM implemented.
+
+## File Structure
+
+### Root
+
+*   Configuration files (`.nix`, `cypress.config.ts`, `eslint.config.js`, `jest.config.js`, `postcss.config.js`, `tailwind.config.js`, `tsconfig.*.json`, `vite.config.ts`, `webpack.config.js`)
+*   Deployment (`Dockerfile`, `cloudbuild.yaml`, `nginx.conf`)
+*   Documentation (`features.md`, `issues.md`, `readme.md`, `docs/api.md`)
+*   Packages(`package.json`)
+* Other (`index.html`, `prisma/schema.prisma`)
+
+### `src/`
+
+*   `App.tsx`, `main.tsx`, `index.css`: Main frontend files
+*   `vite-env.d.ts`: Vite environment definitions
+*   `hooks/`: Custom React hooks (`useApi.ts`, `useContentUploadForm.ts`, `useForm.ts`, `useLoading.ts`)
+*   `images/`: Image assets
+* `services/`: services to consume the API (`apiService.ts`)
+*   `types/`: TypeScript types (`auth.ts`, `index.ts`)
+*   `components/`: React components organized by function (auth, common, content, creator, layout, pages, subscription)
+
+### `src/server/`
+
+*   `config/`: Server configuration files (database, email, logger, S3, socket, stripe)
+*   `middlewares/`: Express middleware (auth, errorHandler, requestLogger, security, upload)
+*   `models/`: Mongoose models (Content, Subscription, User)
+* `requests/`: Rest client requests (`new_user_request.rest`)
+*   `routes/`: Express routes (auth, content, subscriptions, upload)
+* `services/`: Services used by the app (`analytics.js`, `drm.js`, `search.js`)
+* `Dockerfile`, `devLogin.js`, `package.json`, `server.js`
+
+## Dependencies
+
+Dependencies can be found in `package.json` and `src/server/package.json`.
+
+## Setup Instructions
+
+### Prerequisites
+
+*   Node.js (v18 or higher)
+*   npm (or yarn)
+*   Git
+*   MongoDB Atlas account
+*   AWS account (for S3 and EC2)
+*   Stripe account
+*   Netlify account
+
+### Installation
+   1. Clone the repository:
+
+
+   2. Navigate to the root directory of the project.
+
+   3. Install frontend dependencies:
+
    ```bash
    npm run build
    ```
