@@ -23,14 +23,14 @@ steps:
         'run',
         'deploy',
         'sushflix-backend',
-        '--image',\
+        '--image',
         'gcr.io/$PROJECT_ID/sushflix-backend',
         '--platform',
         'managed',
-        '--region',\
+        '--region',
         'us-central1', # Replace with your desired region
         '--allow-unauthenticated', # Change to --no-allow-unauthenticated if needed
-        '--set-env-vars',\
+        '--set-env-vars',
         'MONGO_URI=mongodb+srv://qpwoeiruty9211:m5RRGZeMVe8AoILt@sushflix.0qovl.mongodb.net/?retryWrites=true&w=majority&appName=sushflix,AWS_ACCESS_KEY_ID=AKIAY6QVZPSXCWQD3UFH,AWS_SECRET_ACCESS_KEY=zPWmiP6J3fd@hefB5VZFZ7ZUT31HEI4MSeCH91CP,AWS_REGION=eu-north-1,AWS_BUCKET_NAME=sushflix' # Add other necessary env vars
       ]
 
@@ -39,17 +39,17 @@ steps:
     args:
       [
         'run',
-        'deploy',\
+        'deploy',
         'sushflix-frontend',
-        '--image',\
-        'gcr.io/$PROJECT_ID/sushflix-frontend',\
-        '--platform',\
-        'managed',\
-        '--region',\
+        '--image',
+        'gcr.io/$PROJECT_ID/sushflix-frontend',
+        '--platform',
+        'managed',
+        '--region',
         'us-central1', # Replace with your desired region
         '--allow-unauthenticated', # Frontend is usually public
         '--update-env-vars', # This confirms the change was applied
-        'VITE_BACKEND_URL=https://sushflix-backend-796527544626.us-central1.run.app'
+        'VITE_BACKEND_URL=${steps['Deploy Backend'].uri}'
       ]
 
 logsBucket: gs://sushflix-logs
