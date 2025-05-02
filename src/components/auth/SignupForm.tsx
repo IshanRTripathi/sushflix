@@ -2,10 +2,10 @@ import React, { useState } from 'react';
 import { useAuth } from './AuthContext';
 import { AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
-import type { AxiosError } from 'axios';
+import type { AxiosError } from 'axios'; // Keep AxiosError type import
 import SubmitButton from '../common/SubmitButton';
 import FormField from '../common/FormField'; // Import the new FormField component
+import { signupUser } from '../../services/apiService'; // Import signupUser from the centralized service
 
 interface FormData {
   email: string;
@@ -20,7 +20,7 @@ interface FormErrors {
   general?: string;
 }
 
-interface SignupResponse {
+interface SignupResponseData { // Renamed to reflect data structure within response
   newUser?: {
     isCreator: boolean;
     [key: string]: any;
@@ -73,31 +73,7 @@ export function SignupForm() {
     return newErrors;
   };
 
-  const signup = async (
-    username: string,
-    password: string,
-    email: string
-  ): Promise<SignupResponse> => {
-    const backendUrl = import.meta.env.VITE_BACKEND_URL; // Get backend URL from environment variable
-    console.log('VITE_BACKEND_URL:', backendUrl); // Add this line for logging
-    try {
-      const response = await axios.post(`${backendUrl}/auth/signup`, {
-        username,
-        password,
-        email,
-        isCreator: false
-      });
-
-      return response.data as SignupResponse;
-    } catch (e: unknown) {
-      const error = e as AxiosError;
-      if (error.response?.data) {
-        return error.response.data as SignupResponse;
-      } else {
-        return { message: 'No response from server' };
-      }
-    }
-  };
+  // Removed the local signup function as it's now in apiService.ts
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -110,36 +86,69 @@ export function SignupForm() {
 
     setIsLoading(true);
     try {
-      const response = await signup(
-        formData.username.trim(),
-        formData.password,
-        formData.email.trim()
-      );
+      // Use the imported signupUser function from the API service
+      const response = await signupUser({
+        username: formData.username.trim(),
+        password: formData.password,
+        email: formData.email.trim(),
+        isCreator: false // Assuming isCreator is always false for signup form
+      });
 
-      if (response.errors) {
+      // Access data from the Axios response object (response.data)
+      const responseData = response.data as SignupResponseData;
+
+      if (responseData.errors) {
         const serverErrors: FormErrors = {};
-        response.errors.forEach((err) => {
+        responseData.errors.forEach((err: { param: string; msg: string }) => {
           serverErrors[err.param as keyof FormErrors] = err.msg;
         });
         setErrors(serverErrors);
-      } else if (response.message) {
-        if (response.message === 'Email already exists') {
+      } else if (responseData.message) {
+        if (responseData.message === 'Email already exists') {
           setErrors({ email: 'Email already exists' });
-        } else if (response.message === 'Username already exists') {
+        } else if (responseData.message === 'Username already exists') {
           setErrors({ username: 'Username already exists' });
         } else {
-          setErrors({ general: response.message });
+          setErrors({ general: responseData.message });
         }
-      } else if (response.newUser) {
-        localStorage.setItem('user', JSON.stringify(response.newUser));
+      } else if (responseData.newUser) {
+        localStorage.setItem('user', JSON.stringify(responseData.newUser));
         await login(formData.username.trim(), formData.password);
         setSuccess(true);
-        navigate(response.newUser.isCreator ? '/creator/dashboard' : '/discover');
+        // Navigate based on isCreator from the response
+        navigate(responseData.newUser.isCreator ? '/creator/dashboard' : '/discover');
       } else {
-        setErrors({ general: 'An unexpected error occurred during signup' });
+        // Handle unexpected response structure
+        setErrors({ general: responseData.message || 'An unexpected error occurred during signup' });
       }
     } catch (error: unknown) {
-      setErrors({ general: error instanceof Error ? error.message : 'An error occurred during signup' });
+      const axiosError = error as AxiosError;
+      if (axiosError.response?.data) {
+        // Handle errors returned with non-2xx status codes
+        const errorData = axiosError.response.data as SignupResponseData;
+        if (errorData.errors) {
+          const serverErrors: FormErrors = {};
+          errorData.errors.forEach((err: { param: string; msg: string }) => {
+            serverErrors[err.param as keyof FormErrors] = err.msg;
+          });
+          setErrors(serverErrors);
+        } else if (errorData.message) {
+          if (errorData.message === 'Email already exists') {
+            setErrors({ email: 'Email already exists' });
+          }
+           else if (errorData.message === 'Username already exists') {
+            setErrors({ username: 'Username already exists' });
+          }
+           else {
+            setErrors({ general: errorData.message });
+          }
+        } else {
+           setErrors({ general: errorData.message || axiosError.message || 'An unexpected error occurred during signup' });
+        }
+      } else {
+        // Handle network errors or errors without response data
+        setErrors({ general: axiosError.message || 'An error occurred during signup' });
+      }
     } finally {
       setIsLoading(false);
     }

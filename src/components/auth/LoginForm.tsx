@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { AlertCircle } from 'lucide-react';
 import SubmitButton from '../common/SubmitButton';
 import FormField from '../common/FormField'; // Import FormField
+import { useAuth } from './AuthContext'; // Import useAuth
+import { useNavigate } from 'react-router-dom'; // Import useNavigate for redirection
 
 interface FormData {
   username: string;
@@ -21,14 +23,16 @@ export function LoginForm() {
   });
   const [errors, setErrors] = useState<FormErrors>({});
   const [isLoading, setIsLoading] = useState(false);
+  const { login } = useAuth(); // Get login function from context
+  const navigate = useNavigate(); // Initialize useNavigate
 
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {};
 
     if (!formData.username) {
-      newErrors.username = 'username is required';
+      newErrors.username = 'Username or Email is required'; // Updated message
     } else if (formData.username.length < 3) {
-      newErrors.username = 'Username should be >= 3 characters';
+      newErrors.username = 'Username/Email should be >= 3 characters'; // Updated message
     }
 
     if (!formData.password) {
@@ -46,28 +50,18 @@ export function LoginForm() {
 
     setIsLoading(true);
     try {
-      const response = await fetch('http://localhost:5000/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      });
+      // Call the login function from AuthContext
+      const user = await login(formData.username, formData.password);
 
-      const data = await response.json();
-      console.log("Login response data:", data);
-      if (!response.ok) {
-        throw new Error(data.message || 'Login failed');
+      // If login is successful (user object is returned), navigate
+      if (user) {
+        const redirectPath = user.isCreator ? '/creator/dashboard' : '/discover';
+        navigate(redirectPath); // Use navigate for SPA redirection
       }
+      // If login fails, the login function in AuthContext should throw an error
 
-      // Store auth token and user data
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify(data.user));
-
-      // Redirect based on user role
-      const redirectPath = data.user.isCreator ? '/creator/dashboard' : '/discover';
-      window.location.href = redirectPath;
-    } catch (error) {
+    } catch (error: unknown) {
+      // Catch errors thrown by the login function (e.g., invalid credentials)
       setErrors({
         general: error instanceof Error ? error.message : 'An error occurred during login'
       });
@@ -90,7 +84,7 @@ export function LoginForm() {
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <FormField
-                label="Username"
+                label="Username or Email"
                 id="username"
                 type="text"
                 value={formData.username}

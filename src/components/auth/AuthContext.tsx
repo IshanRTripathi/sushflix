@@ -1,4 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { loginUser } from '../../services/apiService'; // Import loginUser
+import type { AxiosError } from 'axios'; // Import AxiosError
 
 // Define the User interface
 interface User {
@@ -13,13 +15,25 @@ interface User {
 interface AuthContextType {
   user: User | null;
   token: string | null;
-  login: (username: string, password: string) => Promise<void>;
+  login: (usernameOrEmail: string, password: string) => Promise<User>; // Return user on success
   logout: () => void;
   isAuthenticated: boolean;
 }
 
 // Create the AuthContext
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+// Define expected structure of successful login response data
+interface LoginResponseData {
+  token: string;
+  user: User;
+}
+
+// Define expected structure of error response data
+interface LoginErrorData {
+  message?: string;
+  errors?: Array<{ param: string; msg: string }>;
+}
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -72,31 +86,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     initializeAuthState();
   }, []); // Empty dependency array to run only once
 
-  // login function
-  const login = async (username: string, password: string) => {
-    const response = await fetch('/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ usernameOrEmail:username, password })
-    });
-    const data = await response.json();
-      if (!response.ok) {
-          if (data.errors && data.errors.length > 0) {
-              const errorMessage = data.errors[0].msg || 'Invalid credentials';
-              throw new Error(errorMessage);
-          } else {
-              throw new Error(data.message || 'Invalid credentials');
-          }
+  // login function using apiService
+  const login = async (usernameOrEmail: string, password: string): Promise<User> => {
+    try {
+      const response = await loginUser({ username: usernameOrEmail, password }); // Call apiService
+      const data = response.data as LoginResponseData;
+
+      if (!data.token || !data.user) {
+        throw new Error('Login response missing token or user data');
       }
-    console.log("Login response data:", data);
 
-    localStorage.setItem('token', data.token);
-    localStorage.setItem('user', JSON.stringify(data.user));
+      console.log("Login successful, User:", data.user, "Token:", data.token);
 
-    setToken(data.token);
-    setUser(data.user);
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('user', JSON.stringify(data.user));
 
-    console.log("AuthProvider state after login, user: ", data.user, ", token: ", data.token);
+      setToken(data.token);
+      setUser(data.user);
+
+      return data.user; // Return user object on success
+    } catch (error) {
+      const axiosError = error as AxiosError;
+      let errorMessage = 'An error occurred during login';
+
+      if (axiosError.response?.data) {
+        const errorData = axiosError.response.data as LoginErrorData;
+        if (errorData.errors && errorData.errors.length > 0) {
+          errorMessage = errorData.errors[0].msg;
+        } else if (errorData.message) {
+          errorMessage = errorData.message;
+        } else {
+          errorMessage = axiosError.message || 'Login failed';
+        }
+      } else {
+        errorMessage = axiosError.message || 'Network error or unable to reach server';
+      }
+      console.error("Login failed:", errorMessage);
+      throw new Error(errorMessage); // Throw error to be caught by the component
+    }
   };
 
   // Logout function
