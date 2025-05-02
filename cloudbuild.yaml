@@ -47,3 +47,5 @@ steps:
         'us-central1', # Replace with your desired region
         '--allow-unauthenticated' # Frontend is usually public
       ]
+
+logsBucket: gs://sushflix-logs
