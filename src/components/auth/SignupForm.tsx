@@ -78,8 +78,9 @@ export function SignupForm() {
     password: string,
     email: string
   ): Promise<SignupResponse> => {
+    const backendUrl = import.meta.env.VITE_BACKEND_URL; // Get backend URL from environment variable
     try {
-      const response = await axios.post('/auth/signup', {
+      const response = await axios.post(`${backendUrl}/auth/signup`, {
         username,
         password,
         email,
