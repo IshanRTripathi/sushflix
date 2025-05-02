@@ -49,7 +49,7 @@ steps:
         'us-central1', # Replace with your desired region
         '--allow-unauthenticated', # Frontend is usually public
         '--update-env-vars', # This confirms the change was applied
-        'VITE_BACKEND_URL=${steps['Deploy Backend'].uri}'
+        'VITE_BACKEND_URL=https://sushflix-backend-796527544626.us-central1.run.app'
       ]
 
 logsBucket: gs://sushflix-logs
