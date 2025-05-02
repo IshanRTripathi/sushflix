@@ -24,5 +24,5 @@ COPY nginx.conf /etc/nginx/conf.d/default.conf
 # Expose port 80 for the web server (documentation only)
 EXPOSE 80
 
-# Command to run Nginx, substituting the PORT environment variable using sed
-CMD ["/bin/sh", "-c", "sed -i "s|LISTEN_PORT|$PORT|g" /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"]
+# Command to run Nginx, substituting the PORT environment variable using sed (shell form)
+CMD sed -i "s|LISTEN_PORT|$PORT|g" /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'
