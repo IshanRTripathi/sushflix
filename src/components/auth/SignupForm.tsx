@@ -79,6 +79,7 @@ export function SignupForm() {
     email: string
   ): Promise<SignupResponse> => {
     const backendUrl = import.meta.env.VITE_BACKEND_URL; // Get backend URL from environment variable
+    console.log('VITE_BACKEND_URL:', backendUrl); // Add this line for logging
     try {
       const response = await axios.post(`${backendUrl}/auth/signup`, {
         username,
@@ -199,8 +200,8 @@ export function SignupForm() {
           <SubmitButton
             isLoading={isLoading}
             buttonText="Sign up"
-            loadingText="Creating account..."
-          />
+            loadingText="Creating account...">
+          </SubmitButton>
         </form>
       </div>
     </div>
