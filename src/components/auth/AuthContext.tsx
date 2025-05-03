@@ -1,6 +1,19 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { loginUser } from '../../services/apiService'; // Import loginUser
-import type { AxiosError } from 'axios'; // Import AxiosError
+import axios from 'axios';
+import { API_BASE_URL } from '../config';
+import { User } from '../types/user';
+import { loginUser } from '../services/authService';
+import { logger } from '../utils/logger';
+
+interface LoginResponseData {
+  token: string;
+  user: User;
+}
+
+interface LoginErrorData {
+  message?: string;
+  errors?: Array<{ param: string; msg: string }>;
+}
 
 // Import UserProfile type
 import { UserProfile } from '../../types/user';
@@ -15,29 +28,55 @@ interface User extends UserProfile {
 interface AuthContextType {
   user: User | null;
   token: string | null;
-  login: (usernameOrEmail: string, password: string) => Promise<User>; // Return user on success
+  login: (usernameOrEmail: string, password: string) => Promise<User>;
   logout: () => void;
   isAuthenticated: boolean;
 }
 
-// Create the AuthContext
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-// Define expected structure of successful login response data
-interface LoginResponseData {
-  token: string;
-  user: User;
+interface AuthProviderProps {
+  children: React.ReactNode;
 }
 
-// Define expected structure of error response data
-interface LoginErrorData {
-  message?: string;
-  errors?: Array<{ param: string; msg: string }>;
-}
+export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
+export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  const checkAuthStatus = async () => {
+    try {
+      const storedToken = localStorage.getItem('token');
+      if (storedToken) {
+        setToken(storedToken);
+        setIsAuthenticated(true);
+        const response = await axios.get(`${API_BASE_URL}/auth/me`, {
+          headers: { Authorization: `Bearer ${storedToken}` }
+        });
+        setUser(response.data);
+      }
+      setLoading(false);
+    } catch (error) {
+      logger.error('Error checking auth status:', error);
+      setToken(null);
+      setIsAuthenticated(false);
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    logger.info('Auth provider initialized');
+    checkAuthStatus();
+  }, []);
+
+  useEffect(() => {
+    if (user) {
+      logger.info(`User authenticated: ${user.username}`);
+    } else {
+      logger.info('User logged out');
+    }
+  }, [user]);
 
   // Initial state setup function
   const initializeAuthState = () => {
@@ -89,63 +128,42 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // login function using apiService
   const login = async (usernameOrEmail: string, password: string): Promise<User> => {
     try {
-      // Corrected: Pass usernameOrEmail with the correct key expected by the backend
+      logger.debug('Attempting login with credentials');
       const response = await loginUser({ usernameOrEmail: usernameOrEmail, password });
       const data = response.data as LoginResponseData;
-
-      if (!data.token || !data.user) {
-        throw new Error('Login response missing token or user data');
-      }
-
-      console.log("Login successful, User:", data.user, "Token:", data.token);
-
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify(data.user));
-
       setToken(data.token);
       setUser(data.user);
-
-      return data.user; // Return user object on success
-    } catch (error) {
-      const axiosError = error as AxiosError;
-      let errorMessage = 'An error occurred during login';
-
-      if (axiosError.response?.data) {
-        const errorData = axiosError.response.data as LoginErrorData;
-        if (errorData.errors && errorData.errors.length > 0) {
-          errorMessage = errorData.errors[0].msg;
-        } else if (errorData.message) {
-          errorMessage = errorData.message;
-        } else {
-          errorMessage = axiosError.message || 'Login failed';
-        }
-      } else {
-        errorMessage = axiosError.message || 'Network error or unable to reach server';
-      }
-      console.error("Login failed:", errorMessage);
-      throw new Error(errorMessage); // Throw error to be caught by the component
+      setIsAuthenticated(true);
+      logger.info(`User ${data.user.username} logged in successfully`);
+      return data.user;
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      logger.error(`Login failed: ${errorMessage}`);
+      throw new Error(errorMessage);
     }
   };
 
   // Logout function
   const logout = () => {
-    console.log("User logging out");
+    logger.info('Logging out user');
+    setUser(null);
+    setToken(null);
+    setIsAuthenticated(false);
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    setToken(null);
-    setUser(null);
+    logger.info('User logged out successfully');
   };
 
   return (
-      <AuthContext.Provider value={{
-        user,
-        token,
-        login,
-        logout,
-        isAuthenticated: !!token
-      }}>
-        {children}
-      </AuthContext.Provider>
+    <AuthContext.Provider value={{
+      user,
+      token,
+      login,
+      logout,
+      isAuthenticated
+    }}>
+      {children}
+    </AuthContext.Provider>
   );
 }
 

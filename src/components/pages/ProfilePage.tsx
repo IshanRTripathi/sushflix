@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
-import { useQuery } from '@tanstack/react-query';
 import { ProfileService } from '../../services/profileService';
+import { logger } from '../../utils/logger';
 import ProfileSection from '../content/ProfileSection';
 import PostCard from '../content/PostCard';
 
@@ -12,12 +12,22 @@ export default function ProfilePage() {
   const { username } = useParams();
   const { user: currentUser } = useAuth();
 
+  useEffect(() => {
+    logger.info(`ProfilePage mounted for user: ${username}`);
+  }, [username]);
+
   // Early return if user is not authenticated
   if (!currentUser) {
+    logger.warn('Unauthenticated user trying to access profile page');
     return null;
   }
 
   const [error, setError] = useState<string | null>(null);
+
+  const handleError = (err: Error | string) => {
+    logger.error('Profile page error:', { error: err });
+    setError(err instanceof Error ? err.message : err);
+  };
 
   // Determine if viewing own profile
   const isOwnProfile = username === currentUser?.username;

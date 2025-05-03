@@ -48,42 +48,82 @@ export class ProfileService {
   }
 
   public async getUserProfile(username: string): Promise<UserProfile> {
-    const response = await this.request<ApiResponse<UserProfile>>({
-      method: 'GET',
-      url: `${this.API_BASE_URL}/users/${username}`,
-    });
-    return response.data;
+    try {
+      logger.debug(`Fetching profile for user: ${username}`);
+      const response = await this.request<ApiResponse<UserProfile>>({
+        method: 'GET',
+        url: `${this.API_BASE_URL}/users/${username}`,
+      });
+      logger.debug(`Successfully fetched profile for user: ${username}`);
+      return response.data;
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      logger.error(`Error fetching user profile: ${errorMessage}`);
+      throw new Error(`Failed to fetch user profile: ${errorMessage}`);
+    }
   }
 
   public async getUserPosts(username: string): Promise<Post[]> {
-    const response = await this.request<ApiResponse<Post[]>>({
-      method: 'GET',
-      url: `${this.API_BASE_URL}/posts/${username}`,
-    });
-    return response.data;
+    try {
+      logger.debug(`Fetching posts for user: ${username}`);
+      const response = await this.request<ApiResponse<Post[]>>({
+        method: 'GET',
+        url: `${this.API_BASE_URL}/posts/${username}`,
+      });
+      logger.debug(`Successfully fetched posts for user: ${username}`);
+      return response.data;
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      logger.error(`Error fetching user posts: ${errorMessage}`);
+      throw new Error(`Failed to fetch user posts: ${errorMessage}`);
+    }
   }
 
   public async getUserStats(username: string): Promise<UserStats> {
-    const response = await this.request<ApiResponse<UserStats>>({
-      method: 'GET',
-      url: `${this.API_BASE_URL}/users/${username}/stats`,
-    });
-    return response.data;
+    try {
+      logger.debug(`Fetching stats for user: ${username}`);
+      const response = await this.request<ApiResponse<UserStats>>({
+        method: 'GET',
+        url: `${this.API_BASE_URL}/users/${username}/stats`,
+      });
+      logger.debug(`Successfully fetched stats for user: ${username}`);
+      return response.data;
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      logger.error(`Error fetching user stats: ${errorMessage}`);
+      throw new Error(`Failed to fetch user stats: ${errorMessage}`);
+    }
   }
 
   public async toggleFollow(username: string): Promise<boolean> {
-    const response = await this.request<ApiResponse<boolean>>({
-      method: 'POST',
-      url: `${this.API_BASE_URL}/users/${username}/follow`,
-    });
-    return response.data;
+    try {
+      logger.debug(`Attempting to toggle follow for user: ${username}`);
+      const response = await this.request<ApiResponse<boolean>>({
+        method: 'POST',
+        url: `${this.API_BASE_URL}/users/${username}/follow`,
+      });
+      logger.info(`Successfully toggled follow for user: ${username}`);
+      return response.data;
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      logger.error(`Error toggling follow for user: ${errorMessage}`);
+      throw new Error(`Failed to toggle follow for user: ${errorMessage}`);
+    }
   }
 
   public async likePost(postId: string): Promise<void> {
-    await this.request({
-      method: 'POST',
-      url: `${this.API_BASE_URL}/posts/${postId}/like`,
-    });
+    try {
+      logger.debug(`Attempting to like post: ${postId}`);
+      await this.request({
+        method: 'POST',
+        url: `${this.API_BASE_URL}/posts/${postId}/like`,
+      });
+      logger.info(`Successfully liked post: ${postId}`);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      logger.error(`Error liking post: ${errorMessage}`);
+      throw new Error(`Failed to like post: ${errorMessage}`);
+    }
   }
 
   public async commentOnPost(postId: string, comment: string): Promise<void> {

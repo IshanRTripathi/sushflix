@@ -1,20 +1,23 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { LoginModal } from '../auth/LoginModal';
 import ThemeToggle from '../ui/ThemeToggle';
+import { logger } from '../../utils/logger';
 
-interface HeaderProps {
-  onMoreClick: () => void;
-}
-
-export function Header({ onMoreClick }: HeaderProps) {
+export function Header() {
   const { isAuthenticated, logout, user } = useAuth();
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
+  useEffect(() => {
+    logger.info('Header component mounted');
+  }, []);
+
   const handleMenuClick = () => {
-    setIsMenuOpen(!isMenuOpen);
+    const newState = !isMenuOpen;
+    logger.debug(`Menu toggle clicked - new state: ${newState}`);
+    setIsMenuOpen(newState);
   };
 
   return (
@@ -27,7 +30,7 @@ export function Header({ onMoreClick }: HeaderProps) {
         <div className="flex items-center space-x-4">
           <ThemeToggle />
           <button
-            onClick={handleMenuClick}
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
             className="text-gray-400 hover:text-white p-2 rounded"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -39,7 +42,7 @@ export function Header({ onMoreClick }: HeaderProps) {
             <div className="flex items-center space-x-2">
               <div className="relative">
                 <button
-                  onClick={handleMenuClick}
+                  onClick={() => setIsMenuOpen(!isMenuOpen)}
                   className="text-gray-400 hover:text-white"
                 >
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">

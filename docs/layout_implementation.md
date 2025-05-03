@@ -32,15 +32,16 @@
 // Layout components
 src/components/layout/
 ├── AppLayout.tsx         // Main layout container
-├── Sidebar.tsx           // Left navigation
+├── ProfileLayout.tsx     // Profile page layout
 ├── Header.tsx            // Top header with profile
-├── MoreMenu.tsx          // Overlay menu for "More" items
+├── Footer.tsx            // Site footer
 
 // Content components
 src/components/content/
 ├── PostCard.tsx          // Main post layout
 ├── ProfileSection.tsx    // User profile display
 ├── InteractionButtons.tsx // Like, comment, share, bookmark buttons
+├── ExplorePage.tsx       // Content exploration page
 
 // UI components
 src/components/ui/
@@ -48,6 +49,13 @@ src/components/ui/
 ├── Avatar.tsx
 ├── Card.tsx
 ├── Icon.tsx
+├── ThemeToggle.tsx       // Theme switch component
+
+// Auth components
+src/components/auth/
+├── AuthContext.tsx       // Authentication context
+├── ProtectedRoute.tsx    // Route protection
+├── LoginModal.tsx        // Login modal component
 ```
 
 ## 3. Implementation Details
@@ -66,35 +74,47 @@ interface AppLayoutProps {
 }
 
 const AppLayout = ({ children }: AppLayoutProps) => {
-  const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
-  
   return (
     <ThemeProvider>
-      <div className="flex h-screen bg-gray-900">
-        {/* Sidebar */}
-        <div className="w-64 bg-black border-r border-gray-800">
-          <Sidebar />
-        </div>
+      <div className="min-h-screen flex flex-col">
+        {/* Header */}
+        <Header />
 
         {/* Main Content */}
-        <div className="flex-1 flex flex-col overflow-hidden">
-          {/* Header */}
-          <Header onMoreClick={() => setIsMoreMenuOpen(true)} />
+        <main className="flex-grow">
+          {children}
+        </main>
 
-          {/* Content */}
-          <main className="flex-1 overflow-y-auto p-4">
-            {children}
-          </main>
-        </div>
-
-        {/* More Menu Overlay */}
-        {isMoreMenuOpen && (
-          <MoreMenu onClose={() => setIsMoreMenuOpen(false)} />
-        )}
+        {/* Footer */}
+        <Footer />
       </div>
     </ThemeProvider>
   );
 };
+
+// ProtectedRoute.tsx
+interface ProtectedRouteProps {
+  children: React.ReactNode;
+}
+
+const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
+  const { isAuthenticated } = useAuth();
+  
+  if (!isAuthenticated) {
+    return <Navigate to="/" replace />;
+  }
+  
+  return <>{children}</>;
+};
+
+// AuthContext.tsx
+interface AuthContextType {
+  isAuthenticated: boolean;
+  user: User | null;
+  login: (credentials: LoginCredentials) => Promise<void>;
+  logout: () => void;
+}
+```
 ```
 
 ### 2. Post Card Layout
@@ -409,11 +429,12 @@ export function Header({ onMoreClick }: HeaderProps) {
 - Toast notifications
 - Responsive grid layouts
 
-### Error Handling
+### Error Handling and Logging
 - Global error state
 - Error modals with close functionality
 - Loading states for async operations
 - Proper error messages for users
+- Logging implementation for debugging
 
 ### Responsive Design
 - Mobile-first approach
