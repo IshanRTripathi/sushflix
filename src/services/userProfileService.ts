@@ -3,16 +3,22 @@ import { UserProfile, FeaturedProfileConfig, EditableProfileFields } from '../ty
 import { cacheService } from './cacheService';
 import fs from 'fs/promises';
 import path from 'path';
+import { UserProfileModel } from '../models/UserProfile';
+import { CacheService } from './cacheService';
 
 export class UserProfileService {
   private static instance: UserProfileService;
   private readonly CACHE_KEY_PREFIX = 'user_profile_';
   private readonly CONFIG_FILE = 'featured-profiles.json';
   private readonly PROFILES_DIR = 'public/profiles';
+  private profileModel: UserProfileModel;
+  private cacheService: CacheService;
 
   private constructor() {
     logger.info('User profile service initialized');
     this.ensureProfilesDirectory();
+    this.profileModel = new UserProfileModel();
+    this.cacheService = CacheService.getInstance();
   }
 
   public static getInstance(): UserProfileService {
@@ -27,7 +33,7 @@ export class UserProfileService {
       await fs.mkdir(this.PROFILES_DIR, { recursive: true });
       logger.debug('Profiles directory ensured');
     } catch (error) {
-      logger.error('Failed to create profiles directory', { error });
+      logger.error('Failed to create profiles directory', error, { directory: this.PROFILES_DIR });
     }
   }
 
@@ -37,28 +43,24 @@ export class UserProfileService {
 
   public async getProfileByUsername(username: string): Promise<UserProfile | null> {
     try {
-      // TODO: Fetch profile from database by username
-      // For now, return a mock profile
-      const profile: UserProfile = {
-        userId: `user_${username}`,
-        username,
-        displayName: `User ${username}`,
-        email: `${username}@example.com`,
-        profilePicture: `/profiles/${username}.jpg`,
-        bio: 'This is a sample bio',
-        socialLinks: {
-          website: 'https://example.com',
-          twitter: 'https://twitter.com/example',
-          linkedin: 'https://linkedin.com/in/example'
-        },
-        createdAt: new Date(),
-        lastUpdated: new Date()
-      };
+      // Try to get from cache first
+      const cachedProfile = await this.cacheService.getProfile(username);
+      if (cachedProfile) {
+        logger.debug('Cache hit for profile', { username });
+        return cachedProfile;
+      }
 
+      // If not in cache, get from database
+      const profile = await this.profileModel.getProfileByUsername(username);
+      if (profile) {
+        // Cache the profile
+        await this.cacheService.setProfile(profile);
+        logger.debug('Profile cached', { username });
+      }
       return profile;
     } catch (error) {
-      logger.error(`Error getting profile by username: ${username}`, { error });
-      return null;
+      logger.error('Error getting profile by username', error, { username });
+      throw error;
     }
   }
 
@@ -69,7 +71,7 @@ export class UserProfileService {
       const cachedProfile = cacheService.get<UserProfile>(cacheKey);
       
       if (cachedProfile) {
-        logger.debug(`Cache hit for profile: ${userId}`);
+        logger.debug('Cache hit for profile', { userId });
         return cachedProfile;
       }
 
@@ -88,16 +90,21 @@ export class UserProfileService {
           linkedin: 'https://linkedin.com/in/example'
         },
         createdAt: new Date(),
-        lastUpdated: new Date()
+        lastUpdated: new Date(),
+        stats: {
+          posts: 0,
+          followers: 0,
+          subscribers: 0
+        }
       };
 
       // Cache the result
       cacheService.set(cacheKey, profile);
-      logger.debug(`Cached profile: ${userId}`);
+      logger.debug('Profile cached', { userId });
 
       return profile;
     } catch (error) {
-      logger.error(`Error getting profile: ${userId}`, { error });
+      logger.error('Error getting profile', error, { userId });
       return null;
     }
   }
@@ -112,72 +119,66 @@ export class UserProfileService {
         .filter((profile: FeaturedProfileConfig) => profile.isActive)
         .sort((a: FeaturedProfileConfig, b: FeaturedProfileConfig) => a.displayOrder - b.displayOrder);
     } catch (error) {
-      logger.error('Error reading featured profiles config', { error });
+      logger.error('Error reading featured profiles config', error, { configFile: this.CONFIG_FILE });
       return [];
     }
   }
 
   public async updateProfile(userId: string, updates: EditableProfileFields): Promise<boolean> {
     try {
-      // Get current profile
-      const currentProfile = await this.getProfile(userId);
-      if (!currentProfile) {
-        logger.error(`Profile not found: ${userId}`);
-        return false;
+      const success = await this.profileModel.updateProfile(userId, updates);
+      if (success) {
+        // Invalidate cache for this profile
+        const profile = await this.profileModel.getProfileByUserId(userId);
+        if (profile) {
+          await this.cacheService.setProfile(profile);
+          logger.debug('Profile updated and cache refreshed', { userId });
+        }
       }
-
-      // Validate email if provided
-      if (updates.email && !this.isValidEmail(updates.email)) {
-        logger.error(`Invalid email format: ${updates.email}`);
-        return false;
-      }
-
-      // Update profile fields
-      const updatedProfile: UserProfile = {
-        ...currentProfile,
-        ...updates,
-        lastUpdated: new Date()
-      };
-
-      // TODO: Save to database
-      
-      // Clear cache
-      const cacheKey = this.getCacheKey(userId);
-      cacheService.delete(cacheKey);
-      
-      logger.info(`Profile updated: ${userId}`);
-      return true;
+      return success;
     } catch (error) {
-      logger.error(`Error updating profile: ${userId}`, { error });
-      return false;
+      logger.error('Error updating profile', error, { userId, updates });
+      throw error;
     }
   }
 
-  public async updateProfilePicture(userId: string, file: Buffer, filename: string): Promise<string | null> {
+  public async updateProfilePicture(userId: string, file: ArrayBuffer, filename: string): Promise<string | null> {
     try {
-      // Generate unique filename
-      const extension = path.extname(filename);
-      const uniqueFilename = `${userId}_${Date.now()}${extension}`;
-      const filePath = path.join(this.PROFILES_DIR, uniqueFilename);
-
-      // Save file
-      await fs.writeFile(filePath, file);
-
-      // Update profile with new picture path
-      const success = await this.updateProfile(userId, {
-        profilePicture: `/profiles/${uniqueFilename}`
-      });
-
-      if (!success) {
-        // Clean up file if profile update failed
-        await fs.unlink(filePath);
-        return null;
+      // TODO: Implement file upload to storage service (e.g., S3)
+      const profilePictureUrl = `/uploads/${filename}`;
+      
+      const success = await this.profileModel.updateProfilePicture(userId, profilePictureUrl);
+      if (success) {
+        // Invalidate cache for this profile
+        const profile = await this.profileModel.getProfileByUserId(userId);
+        if (profile) {
+          await this.cacheService.setProfile(profile);
+          logger.debug('Profile picture updated and cache refreshed', { userId });
+        }
+        return profilePictureUrl;
       }
-
-      return `/profiles/${uniqueFilename}`;
-    } catch (error) {
-      logger.error(`Error updating profile picture: ${userId}`, { error });
       return null;
+    } catch (error) {
+      logger.error('Error updating profile picture', error, { userId, filename });
+      throw error;
+    }
+  }
+
+  public async updateStats(userId: string, stats: Partial<UserProfile['stats']>): Promise<boolean> {
+    try {
+      const success = await this.profileModel.updateStats(userId, stats);
+      if (success) {
+        // Invalidate cache for this profile
+        const profile = await this.profileModel.getProfileByUserId(userId);
+        if (profile) {
+          await this.cacheService.setProfile(profile);
+          logger.debug('Profile stats updated and cache refreshed', { userId, stats });
+        }
+      }
+      return success;
+    } catch (error) {
+      logger.error('Error updating profile stats', error, { userId, stats });
+      throw error;
     }
   }
 

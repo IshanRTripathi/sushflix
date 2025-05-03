@@ -1,24 +1,25 @@
-export enum LogLevel {
-  DEBUG = 'DEBUG',
-  INFO = 'INFO',
-  WARN = 'WARN',
-  ERROR = 'ERROR',
+import { User } from '../components/auth/AuthContext';
+
+export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
+
+export interface LogContext {
+  userId?: string;
+  traceId?: string;
+  [key: string]: unknown;
 }
 
-interface LogEntry {
+export interface LogEntry {
+  timestamp: Date;
   level: LogLevel;
   message: string;
-  timestamp: Date;
-  context?: Record<string, unknown>;
+  context: LogContext;
 }
 
 class Logger {
   private static instance: Logger;
-  private logLevel: LogLevel;
+  private currentUser: User | null = null;
 
-  private constructor() {
-    this.logLevel = process.env.NODE_ENV === 'production' ? LogLevel.INFO : LogLevel.DEBUG;
-  }
+  private constructor() {}
 
   public static getInstance(): Logger {
     if (!Logger.instance) {
@@ -27,59 +28,70 @@ class Logger {
     return Logger.instance;
   }
 
-  private formatMessage(entry: LogEntry): string {
-    const timestamp = entry.timestamp.toISOString();
-    const context = entry.context ? ` ${JSON.stringify(entry.context)}` : '';
-    return `[${timestamp}] [${entry.level}] ${entry.message}${context}`;
+  public setUser(user: User | null): void {
+    this.currentUser = user;
   }
 
-  private shouldLog(level: LogLevel): boolean {
-    const levels = Object.values(LogLevel);
-    return levels.indexOf(level) >= levels.indexOf(this.logLevel);
+  private formatError(error: unknown): string {
+    if (error instanceof Error) {
+      return error.message;
+    }
+    return String(error);
   }
 
-  private log(level: LogLevel, message: string, context?: Record<string, unknown>) {
-    if (!this.shouldLog(level)) return;
-
-    const entry: LogEntry = {
+  private createLogEntry(level: LogLevel, message: string, context: LogContext = {}): LogEntry {
+    return {
+      timestamp: new Date(),
       level,
       message,
-      timestamp: new Date(),
-      context,
+      context: {
+        ...context,
+        userId: this.currentUser?.userId,
+      },
     };
+  }
 
-    const formattedMessage = this.formatMessage(entry);
-
+  private log(level: LogLevel, message: string, context: LogContext = {}): void {
+    const entry = this.createLogEntry(level, message, context);
+    const formattedMessage = `[${entry.timestamp.toISOString()}] [${level.toUpperCase()}] ${message}`;
+    
     switch (level) {
-      case LogLevel.ERROR:
-        console.error(formattedMessage);
+      case 'debug':
+        console.debug(formattedMessage, entry.context);
         break;
-      case LogLevel.WARN:
-        console.warn(formattedMessage);
+      case 'info':
+        console.info(formattedMessage, entry.context);
         break;
-      case LogLevel.INFO:
-        console.info(formattedMessage);
+      case 'warn':
+        console.warn(formattedMessage, entry.context);
         break;
-      case LogLevel.DEBUG:
-        console.debug(formattedMessage);
+      case 'error':
+        console.error(formattedMessage, entry.context);
         break;
     }
   }
 
-  public debug(message: string, context?: Record<string, unknown>) {
-    this.log(LogLevel.DEBUG, message, context);
+  public debug(message: string, context: LogContext = {}): void {
+    this.log('debug', message, context);
   }
 
-  public info(message: string, context?: Record<string, unknown>) {
-    this.log(LogLevel.INFO, message, context);
+  public info(message: string, context: LogContext = {}): void {
+    this.log('info', message, context);
   }
 
-  public warn(message: string, context?: Record<string, unknown>) {
-    this.log(LogLevel.WARN, message, context);
+  public warn(message: string, context: LogContext = {}): void {
+    this.log('warn', message, context);
   }
 
-  public error(message: string, context?: Record<string, unknown>) {
-    this.log(LogLevel.ERROR, message, context);
+  public error(message: string, error: unknown, context: LogContext = {}): void {
+    this.log('error', `${message}: ${this.formatError(error)}`, {
+      ...context,
+      error: error instanceof Error ? {
+        name: error.name,
+        message: error.message,
+        stack: error.stack,
+      } : error,
+    });
   }
 }
 

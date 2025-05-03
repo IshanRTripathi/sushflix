@@ -1,3 +1,5 @@
+import { ObjectId } from 'mongodb';
+
 export interface SocialLinks {
   website?: string;
   twitter?: string;
@@ -5,26 +7,28 @@ export interface SocialLinks {
 }
 
 export interface UserProfile {
-  // Non-editable fields
+  _id?: ObjectId;
   userId: string;
   username: string;
-  createdAt: Date;
-  
-  // Editable fields
   displayName: string;
   email: string;
   profilePicture: string;
   bio: string;
   socialLinks: SocialLinks;
+  createdAt: Date;
   lastUpdated: Date;
+  stats: {
+    posts: number;
+    followers: number;
+    subscribers: number;
+  };
 }
 
 export interface EditableProfileFields {
   displayName?: string;
   email?: string;
-  profilePicture?: string;
   bio?: string;
-  socialLinks: SocialLinks;
+  socialLinks?: SocialLinks;
 }
 
 export interface FeaturedProfile extends Omit<UserProfile, 'userId' | 'createdAt' | 'lastUpdated'> {
@@ -38,4 +42,10 @@ export interface FeaturedProfileConfig {
   username: string;
   isActive: boolean;
   displayOrder: number;
+}
+
+export interface CacheEntry<T> {
+  data: T;
+  timestamp: number;
+  ttl: number;
 } 

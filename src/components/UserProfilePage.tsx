@@ -1,51 +1,37 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { UserProfile, EditableProfileFields, SocialLinks } from '../types/user';
-import { userProfileService } from '../services/userProfileService';
-import { logger } from '../utils/logger';
-import LoadingSpinner from './LoadingSpinner';
 import { useAuth } from './auth/AuthContext';
+import { UserProfileService } from '../services/userProfileService';
+import LoadingSpinner from './LoadingSpinner';
+import { UserProfile, EditableProfileFields } from '../types/user';
+import { logger } from '../utils/logger';
+import './UserProfilePage.css';
 
 interface UserProfilePageProps {
   username: string;
 }
 
-const UserProfilePage: React.FC<UserProfilePageProps> = ({ username }) => {
-  const navigate = useNavigate();
-  const { isAuthenticated, user } = useAuth();
+export const UserProfilePage: React.FC<UserProfilePageProps> = ({ username }) => {
+  const { user } = useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [formData, setFormData] = useState<EditableProfileFields>({
-    displayName: '',
-    email: '',
-    bio: '',
-    socialLinks: {
-      website: '',
-      twitter: '',
-      linkedin: ''
-    }
-  });
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingField, setEditingField] = useState<string | null>(null);
+  const [editingValue, setEditingValue] = useState<string>('');
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  const userProfileService = UserProfileService.getInstance();
 
   useEffect(() => {
     const fetchProfile = async () => {
       try {
+        setIsLoading(true);
         const profileData = await userProfileService.getProfileByUsername(username);
-        if (profileData) {
-          setProfile(profileData);
-          setFormData({
-            displayName: profileData.displayName,
-            email: profileData.email,
-            bio: profileData.bio,
-            socialLinks: profileData.socialLinks
-          });
-        } else {
-          setError('Profile not found');
-        }
+        setProfile(profileData);
+        setError(null);
       } catch (err) {
+        logger.error('Error fetching profile', err, { username });
         setError('Failed to load profile');
-        logger.error('Error fetching profile:', { error: err instanceof Error ? err.message : String(err) });
       } finally {
         setIsLoading(false);
       }
@@ -54,67 +40,74 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ username }) => {
     fetchProfile();
   }, [username]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    if (name.startsWith('social.')) {
-      const socialKey = name.split('.')[1] as keyof SocialLinks;
-      setFormData(prev => ({
-        ...prev,
-        socialLinks: {
-          ...prev.socialLinks,
-          [socialKey]: value
-        }
-      }));
-    } else {
-      setFormData(prev => ({
-        ...prev,
-        [name]: value
-      }));
-    }
+  const handleEditStart = (field: string, value: string) => {
+    setEditingField(field);
+    setEditingValue(value);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!profile || !isAuthenticated || user?.username !== username) return;
+  const handleEditCancel = () => {
+    setEditingField(null);
+    setEditingValue('');
+  };
+
+  const handleEditSave = async () => {
+    if (!profile || !editingField) return;
 
     try {
-      const success = await userProfileService.updateProfile(profile.userId, formData);
+      const updates: EditableProfileFields = {
+        [editingField]: editingValue
+      };
+
+      const success = await userProfileService.updateProfile(profile.userId, updates);
       if (success) {
-        setProfile(prev => prev ? { ...prev, ...formData, lastUpdated: new Date() } : null);
-        setIsEditing(false);
+        setProfile({
+          ...profile,
+          [editingField]: editingValue,
+          lastUpdated: new Date()
+        });
+        setSuccessMessage('Profile updated successfully');
+        setTimeout(() => setSuccessMessage(null), 3000);
+        logger.info('Profile field updated', { userId: profile.userId, field: editingField });
       } else {
         setError('Failed to update profile');
+        logger.warn('Profile update failed', { userId: profile.userId, field: editingField });
       }
     } catch (err) {
+      logger.error('Error updating profile', err, { userId: profile.userId, field: editingField });
       setError('Failed to update profile');
-      logger.error('Error updating profile:', { error: err instanceof Error ? err.message : String(err) });
+    } finally {
+      setEditingField(null);
+      setEditingValue('');
     }
   };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files || !e.target.files[0] || !profile || !isAuthenticated || user?.username !== username) return;
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (!profile || !event.target.files?.[0]) return;
 
-    const file = e.target.files[0];
     try {
-      const reader = new FileReader();
-      reader.onload = async () => {
-        if (reader.result) {
-          const buffer = Buffer.from(reader.result as ArrayBuffer);
-          const newPicturePath = await userProfileService.updateProfilePicture(
-            profile.userId,
-            buffer,
-            file.name
-          );
-          if (newPicturePath) {
-            setProfile(prev => prev ? { ...prev, profilePicture: newPicturePath } : null);
-            setFormData(prev => ({ ...prev, profilePicture: newPicturePath }));
-          }
-        }
-      };
-      reader.readAsArrayBuffer(file);
+      const file = event.target.files[0];
+      const success = await userProfileService.updateProfilePicture(
+        profile.userId,
+        await file.arrayBuffer(),
+        file.name
+      );
+
+      if (success) {
+        setProfile({
+          ...profile,
+          profilePicture: success,
+          lastUpdated: new Date()
+        });
+        setSuccessMessage('Profile picture updated successfully');
+        setTimeout(() => setSuccessMessage(null), 3000);
+        logger.info('Profile picture updated', { userId: profile.userId });
+      } else {
+        setError('Failed to update profile picture');
+        logger.warn('Profile picture update failed', { userId: profile.userId });
+      }
     } catch (err) {
-      setError('Failed to upload profile picture');
-      logger.error('Error uploading profile picture:', { error: err instanceof Error ? err.message : String(err) });
+      logger.error('Error updating profile picture', err, { userId: profile.userId });
+      setError('Failed to update profile picture');
     }
   };
 
@@ -123,165 +116,126 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ username }) => {
   }
 
   if (error) {
-    return <div className="text-red-500">{error}</div>;
+    return <div className="error-message">{error}</div>;
   }
 
   if (!profile) {
-    return <div>Profile not found</div>;
+    return <div className="error-message">Profile not found</div>;
   }
 
-  const isOwner = isAuthenticated && user?.username === username;
+  const isOwner = user?.userId === profile.userId;
 
   return (
-    <div className="max-w-4xl mx-auto p-4">
-      <div className="bg-white shadow rounded-lg p-6">
-        {!isEditing ? (
-          <div>
-            <div className="flex items-center space-x-4">
-              <img
-                src={profile.profilePicture}
-                alt={profile.displayName}
-                className="w-24 h-24 rounded-full"
+    <div className="profile-container">
+      {successMessage && <div className="success-message">{successMessage}</div>}
+      
+      <div className="profile-header">
+        <div className="profile-picture-container">
+          <img
+            src={profile.profilePicture}
+            alt={`${profile.displayName}'s profile`}
+            className="profile-picture"
+          />
+          {isOwner && (
+            <div className="profile-picture-upload">
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleFileUpload}
+                className="file-input"
               />
-              <div>
-                <h1 className="text-2xl font-bold">{profile.displayName}</h1>
-                <p className="text-gray-600">@{profile.username}</p>
-              </div>
+              <button className="upload-button">Change Picture</button>
             </div>
-            <div className="mt-4">
-              <p className="text-gray-700">{profile.bio}</p>
-            </div>
-            <div className="mt-4">
-              <h2 className="text-lg font-semibold">Contact</h2>
-              <p className="text-gray-600">{profile.email}</p>
-            </div>
-            <div className="mt-4">
-              <h2 className="text-lg font-semibold">Social Links</h2>
-              <div className="space-y-2">
-                {profile.socialLinks.website && (
-                  <a href={profile.socialLinks.website} className="text-blue-600 hover:underline">
-                    Website
-                  </a>
-                )}
-                {profile.socialLinks.twitter && (
-                  <a href={profile.socialLinks.twitter} className="text-blue-600 hover:underline">
-                    Twitter
-                  </a>
-                )}
-                {profile.socialLinks.linkedin && (
-                  <a href={profile.socialLinks.linkedin} className="text-blue-600 hover:underline">
-                    LinkedIn
-                  </a>
-                )}
-              </div>
-            </div>
-            {isOwner && (
-              <button
-                onClick={() => setIsEditing(true)}
-                className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-              >
-                Edit Profile
-              </button>
-            )}
+          )}
+        </div>
+        
+        <div className="profile-stats">
+          <div className="stat">
+            <span className="stat-value">{profile.stats.posts}</span>
+            <span className="stat-label">Posts</span>
           </div>
-        ) : (
-          <form onSubmit={handleSubmit}>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Display Name</label>
+          <div className="stat">
+            <span className="stat-value">{profile.stats.followers}</span>
+            <span className="stat-label">Followers</span>
+          </div>
+          <div className="stat">
+            <span className="stat-value">{profile.stats.subscribers}</span>
+            <span className="stat-label">Subscribers</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="profile-content">
+        <div className="profile-info">
+          <div className="profile-field">
+            <span className="field-label">Display Name</span>
+            {editingField === 'displayName' ? (
+              <div className="edit-field">
                 <input
                   type="text"
-                  name="displayName"
-                  value={formData.displayName}
-                  onChange={handleInputChange}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  value={editingValue}
+                  onChange={(e) => setEditingValue(e.target.value)}
+                  className="edit-input"
                 />
+                <button onClick={handleEditSave} className="save-button">Save</button>
+                <button onClick={handleEditCancel} className="cancel-button">Cancel</button>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Email</label>
-                <input
-                  type="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                />
+            ) : (
+              <div className="field-value">
+                <span>{profile.displayName}</span>
+                {isOwner && (
+                  <button
+                    onClick={() => handleEditStart('displayName', profile.displayName)}
+                    className="edit-button"
+                  >
+                    Edit
+                  </button>
+                )}
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Bio</label>
+            )}
+          </div>
+
+          <div className="profile-field">
+            <span className="field-label">Bio</span>
+            {editingField === 'bio' ? (
+              <div className="edit-field">
                 <textarea
-                  name="bio"
-                  value={formData.bio}
-                  onChange={handleInputChange}
-                  rows={4}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  value={editingValue}
+                  onChange={(e) => setEditingValue(e.target.value)}
+                  className="edit-input"
                 />
+                <button onClick={handleEditSave} className="save-button">Save</button>
+                <button onClick={handleEditCancel} className="cancel-button">Cancel</button>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Profile Picture</label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFileUpload}
-                  className="mt-1 block w-full"
-                />
+            ) : (
+              <div className="field-value">
+                <span>{profile.bio}</span>
+                {isOwner && (
+                  <button
+                    onClick={() => handleEditStart('bio', profile.bio)}
+                    className="edit-button"
+                  >
+                    Edit
+                  </button>
+                )}
               </div>
-              <div>
-                <h3 className="text-sm font-medium text-gray-700">Social Links</h3>
-                <div className="space-y-2">
-                  <div>
-                    <label className="block text-sm text-gray-600">Website</label>
-                    <input
-                      type="url"
-                      name="social.website"
-                      value={formData.socialLinks.website || ''}
-                      onChange={handleInputChange}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm text-gray-600">Twitter</label>
-                    <input
-                      type="url"
-                      name="social.twitter"
-                      value={formData.socialLinks.twitter || ''}
-                      onChange={handleInputChange}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm text-gray-600">LinkedIn</label>
-                    <input
-                      type="url"
-                      name="social.linkedin"
-                      value={formData.socialLinks.linkedin || ''}
-                      onChange={handleInputChange}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                    />
-                  </div>
+            )}
+          </div>
+
+          <div className="social-links">
+            <h3>Social Links</h3>
+            {Object.entries(profile.socialLinks).map(([platform, url]) => (
+              url && (
+                <div key={platform} className="social-link">
+                  <a href={url} target="_blank" rel="noopener noreferrer">
+                    {platform}
+                  </a>
                 </div>
-              </div>
-            </div>
-            <div className="mt-6 flex space-x-4">
-              <button
-                type="submit"
-                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-              >
-                Save Changes
-              </button>
-              <button
-                type="button"
-                onClick={() => setIsEditing(false)}
-                className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
-              >
-                Cancel
-              </button>
-            </div>
-          </form>
-        )}
+              )
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );
-};
-
-export default UserProfilePage; 
+}; 
