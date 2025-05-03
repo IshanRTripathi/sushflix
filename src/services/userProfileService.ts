@@ -1,5 +1,6 @@
 import { logger } from '../utils/logger';
 import { UserProfile, FeaturedProfileConfig, EditableProfileFields } from '../types/user';
+import { getProfile, getProfileByUsername, updateProfile, uploadProfilePicture } from '../services/apiService';
 import { cacheService } from './cacheService';
 import fs from 'fs/promises';
 import path from 'path';
@@ -37,25 +38,8 @@ export class UserProfileService {
 
   public async getProfileByUsername(username: string): Promise<UserProfile | null> {
     try {
-      // TODO: Fetch profile from database by username
-      // For now, return a mock profile
-      const profile: UserProfile = {
-        userId: `user_${username}`,
-        username,
-        displayName: `User ${username}`,
-        email: `${username}@example.com`,
-        profilePicture: `/profiles/${username}.jpg`,
-        bio: 'This is a sample bio',
-        socialLinks: {
-          website: 'https://example.com',
-          twitter: 'https://twitter.com/example',
-          linkedin: 'https://linkedin.com/in/example'
-        },
-        createdAt: new Date(),
-        lastUpdated: new Date()
-      };
-
-      return profile;
+      const response = await getProfileByUsername(username);
+      return response.data;
     } catch (error) {
       logger.error(`Error getting profile by username: ${username}`, { error });
       return null;
@@ -73,23 +57,8 @@ export class UserProfileService {
         return cachedProfile;
       }
 
-      // TODO: Fetch profile from database
-      // For now, return a mock profile
-      const profile: UserProfile = {
-        userId,
-        username: `user${userId}`,
-        displayName: `User ${userId}`,
-        email: `user${userId}@example.com`,
-        profilePicture: `/profiles/${userId}.jpg`,
-        bio: 'This is a sample bio',
-        socialLinks: {
-          website: 'https://example.com',
-          twitter: 'https://twitter.com/example',
-          linkedin: 'https://linkedin.com/in/example'
-        },
-        createdAt: new Date(),
-        lastUpdated: new Date()
-      };
+      const response = await getProfile(userId);
+      const profile = response.data;
 
       // Cache the result
       cacheService.set(cacheKey, profile);
@@ -139,7 +108,8 @@ export class UserProfileService {
         lastUpdated: new Date()
       };
 
-      // TODO: Save to database
+      // Save to database
+      await updateProfile(userId, updatedProfile);
       
       // Clear cache
       const cacheKey = this.getCacheKey(userId);
@@ -153,28 +123,10 @@ export class UserProfileService {
     }
   }
 
-  public async updateProfilePicture(userId: string, file: Buffer, filename: string): Promise<string | null> {
+  public async updateProfilePicture(userId: string, file: File): Promise<string | null> {
     try {
-      // Generate unique filename
-      const extension = path.extname(filename);
-      const uniqueFilename = `${userId}_${Date.now()}${extension}`;
-      const filePath = path.join(this.PROFILES_DIR, uniqueFilename);
-
-      // Save file
-      await fs.writeFile(filePath, file);
-
-      // Update profile with new picture path
-      const success = await this.updateProfile(userId, {
-        profilePicture: `/profiles/${uniqueFilename}`
-      });
-
-      if (!success) {
-        // Clean up file if profile update failed
-        await fs.unlink(filePath);
-        return null;
-      }
-
-      return `/profiles/${uniqueFilename}`;
+      const response = await uploadProfilePicture(userId, file);
+      return response.data.profilePicture;
     } catch (error) {
       logger.error(`Error updating profile picture: ${userId}`, { error });
       return null;

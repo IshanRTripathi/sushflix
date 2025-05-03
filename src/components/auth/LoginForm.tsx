@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { AlertCircle } from 'lucide-react';
+import { loginUser } from '../../services/apiService';
+import { useAuth } from '../../components/auth/AuthContext';
 
 const countryCodes = [
   { code: '+91', flag: '🇮🇳' },
@@ -15,6 +17,37 @@ export function LoginForm({ closeModal }: { closeModal: () => void }) {
   const [showPassword, setShowPassword] = useState(false);
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+
+  const { login } = useAuth();
+  const [loading, setLoading] = useState(false);
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+    
+    try {
+      if (tab === 'phone') {
+        // For phone login, we need to implement phone verification
+        // This is a placeholder for now
+        setError('Phone verification coming soon');
+        return;
+      }
+
+      // Email login
+      if (!email || !password) {
+        setError('Please enter both email and password');
+        return;
+      }
+
+      await login(email, password);
+      closeModal();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Login failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="w-full max-w-md">
@@ -68,7 +101,13 @@ export function LoginForm({ closeModal }: { closeModal: () => void }) {
           />
         </div>
       )}
-      <button className="w-full bg-black text-white rounded-lg py-2 font-medium mb-2">Sign in →</button>
+      <button
+        onClick={handleLogin}
+        disabled={loading}
+        className={`w-full bg-black text-white rounded-lg py-2 font-medium mb-2 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+      >
+        {loading ? 'Signing in...' : 'Sign in →'}
+      </button>
       <button
         className="w-full border border-gray-300 rounded-lg py-2 font-medium mb-2 bg-white"
         onClick={() => setShowPassword(v => !v)}
@@ -85,7 +124,13 @@ export function LoginForm({ closeModal }: { closeModal: () => void }) {
             value={password}
             onChange={e => setPassword(e.target.value)}
           />
-          <button className="w-full bg-black text-white rounded-lg py-2 font-medium">Sign in with password</button>
+          <button
+          onClick={handleLogin}
+          disabled={loading}
+          className={`w-full bg-black text-white rounded-lg py-2 font-medium ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+        >
+          {loading ? 'Signing in...' : 'Sign in with password'}
+        </button>
         </div>
       )}
       <div className="text-center my-2">
