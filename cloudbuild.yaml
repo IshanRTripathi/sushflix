@@ -33,7 +33,7 @@ steps:
     id: Get Client ID
     args: ['secrets', 'versions', 'access', 'latest', '--secret=google-oauth-client-id']
     env:
-      - 'CLIENT_ID=$(gcloud secrets versions access latest --secret=google-oauth-client-id)'
+      - 'CLIENT_ID=$$(gcloud secrets versions access latest --secret=google-oauth-client-id)'
 
   # Build and push the frontend Docker image, passing the backend URL and client ID as build-args
   - name: 'gcr.io/cloud-builders/docker'
@@ -45,7 +45,7 @@ steps:
       '--build-arg',
       'VITE_BACKEND_URL=https://sushflix-backend-796527544626.us-central1.run.app',
       '--build-arg',
-      'VITE_CLIENT_ID=${CLIENT_ID}'
+      'VITE_CLIENT_ID=$$CLIENT_ID'
     ]
     timeout: '1200s'
 
