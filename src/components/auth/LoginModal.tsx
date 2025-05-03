@@ -11,8 +11,7 @@ interface LoginModalProps {
   onClose: () => void;
 }
 
-const GOOGLE_CLIENT_ID = import.meta.env.VITE_CLIENT_ID || '';
-const GOOGLE_CLIENT_SECRET = import.meta.env.VITE_CLIENT_SECRET || '';
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_CLIENT_ID;
 
 export function LoginModal({ isOpen, onClose }: LoginModalProps) {
   const [tab, setTab] = useState<'phone' | 'email'>('email');
