@@ -1,14 +1,13 @@
 import React, { useState } from 'react';
 import Modal from '../common/Modal';
 import { useAuth } from './AuthContext';
+import { logger } from '../../utils/logger';
+import { useNavigate } from 'react-router-dom';
 import { AlertCircle } from 'lucide-react';
 import { signupUser } from '../../services/apiService';
-interface LoginModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-}
 
-export function LoginModal({ isOpen, onClose }: LoginModalProps) {
+export const LoginModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, onClose }) => {
+  const navigate = useNavigate();
   const [tab, setTab] = useState<'phone' | 'email'>('email');
   const [isSignup, setIsSignup] = useState(false);
   const [emailOrUsername, setEmailOrUsername] = useState('');
@@ -55,6 +54,7 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
           logAction('Attempting email/password login');
           const response = await login(emailOrUsername, password);
           logApiResponse('success', response);
+          navigate('/explore');
         } else {
           logAction('Attempting email OTP login');
           // TODO: Implement email OTP login
