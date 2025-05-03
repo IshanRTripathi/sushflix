@@ -82,13 +82,17 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
         return;
       }
 
+      // Prepare user data to match backend requirements
       const userData = {
-        username: username.trim(),
-        email: emailOrUsername.trim(),
+        username,
+        email: emailOrUsername,
         password,
-        isCreator: false
+        isCreator: false,
+        displayName: username, // Using username as display name
+        profilePic: '' // Empty string for now, can be updated later
       };
 
+      logAction('Sending signup request', userData);
       const response = await signupUser(userData);
       logApiResponse('success', response);
       logAction('Signup successful');
