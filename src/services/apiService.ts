@@ -11,6 +11,11 @@ const apiClient = axios.create({
   },
 });
 
+// Add signup function
+export const signupUser = (data: { username: string; password: string; email: string; isCreator: boolean }) => {
+  return apiClient.post('/auth/signup', data);
+};
+
 // Add request interceptor for token
 apiClient.interceptors.request.use(
   (config) => {
