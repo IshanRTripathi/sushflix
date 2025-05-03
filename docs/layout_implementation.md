@@ -208,12 +208,240 @@ interface AppContextType {
   setSidebarOpen: (open: boolean) => void;
   setMoreMenuOpen: (open: boolean) => void;
   setSelectedPost: (post: Post | null) => void;
-}
 
-export const AppContext = createContext<AppContextType | undefined>(undefined);
+### Authentication
+```typescript
+// AuthContext.tsx
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem('token'));
+  const [user, setUser] = useState<User | null>(null);
+
+  const login = async (usernameOrEmail: string, password: string) => {
+    // Implementation
+  };
+
+  const logout = () => {
+    localStorage.removeItem('token');
+    setIsAuthenticated(false);
+    setUser(null);
+  };
+
+  return (
+    <AuthContext.Provider value={{ isAuthenticated, user, login, logout }}>
+      {children}
+    </AuthContext.Provider>
+  );
+}
 ```
 
-## 6. Logging and Error Handling
+### Theme System
+```typescript
+// ThemeContext.tsx
+export function ThemeProvider({ children }: { children: React.ReactNode }) {
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    const savedTheme = localStorage.getItem('theme');
+    return savedTheme ? (savedTheme as 'light' | 'dark') : 'dark';
+  });
+
+  const toggleTheme = () => {
+    const newTheme = theme === 'light' ? 'dark' : 'light';
+    setTheme(newTheme);
+    localStorage.setItem('theme', newTheme);
+    document.documentElement.classList.toggle('dark', newTheme === 'dark');
+  };
+
+  return (
+    <ThemeContext.Provider value={{ theme, toggleTheme }}>
+      {children}
+    </ThemeContext.Provider>
+  );
+}
+```
+
+### Profile Page
+```typescript
+// ProfilePage.tsx
+export default function ProfilePage() {
+  const { username } = useParams();
+  const { user: currentUser } = useAuth();
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch user data using ProfileService
+  const { data: posts, isLoading: postsLoading } = useQuery({
+    queryKey: ['userPosts', username],
+    queryFn: () => profileService.getUserPosts(username || ''),
+    enabled: !!username,
+  });
+
+  // Handle errors
+  useEffect(() => {
+    if (postsError || statsError) {
+      setError('Failed to load profile data. Please try again later.');
+    } else {
+      setError(null);
+    }
+  }, [postsError, statsError]);
+
+  return (
+    <div className="max-w-7xl mx-auto px-4">
+      {/* Profile Section */}
+      <ProfileSection
+        user={currentUser}
+        isFollowing={!isOwnProfile}
+        onFollow={handleFollow}
+        posts={stats?.posts || 0}
+        followers={stats?.followers || 0}
+        following={stats?.following || 0}
+      />
+
+      {/* Posts Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-8">
+        {posts?.map((post) => (
+          <PostCard
+            key={post.id}
+            user={currentUser}
+            post={post}
+            isFollowing={!isOwnProfile}
+            onFollow={handleFollow}
+          />
+        ))}
+      </div>
+
+      {/* Error Modal */}
+      {error && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-black p-6 rounded-lg text-white">
+            <p>{error}</p>
+            <button
+              onClick={() => setError(null)}
+              className="mt-4 bg-red-600 hover:bg-red-700 px-4 py-2 rounded"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+```
+
+## Component Structure
+
+### Header
+```tsx
+// Header.tsx
+export function Header({ onMoreClick }: HeaderProps) {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const handleMenuClick = () => setIsMenuOpen(!isMenuOpen);
+
+  return (
+    <header className="h-16 bg-black border-b border-gray-800 flex items-center px-4">
+      <div className="flex items-center justify-between w-full">
+        <Link to="/" className="text-white text-xl font-bold">
+          Sushflix
+        </Link>
+        <div className="flex items-center space-x-4">
+          <ThemeToggle />
+          <button onClick={handleMenuClick}>
+            <svg>...</svg>
+          </button>
+          {isAuthenticated && (
+            <div className="flex items-center space-x-2">
+              <div className="relative">
+                <button onClick={handleMenuClick}>
+                  <svg>...</svg>
+                </button>
+                <div className={`absolute right-0 mt-2 w-48 bg-black border border-gray-800 rounded-lg shadow-lg ${isMenuOpen ? 'block' : 'hidden'}`}>
+                  <div className="py-2">
+                    <Link to="/profile" onClick={handleMenuClick}>Profile</Link>
+                    <Link to="/settings" onClick={handleMenuClick}>Settings</Link>
+                    <button onClick={logout}>Logout</button>
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center space-x-2">
+                <span className="text-gray-400">{user?.displayName}</span>
+                <img src={user?.profilePicture} alt="Profile" className="w-8 h-8 rounded-full" />
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </header>
+  );
+}
+```
+
+### Navigation
+- Home
+- Explore
+- Profile
+- Settings
+- Logout
+
+### Profile Page Components
+- ProfileSection
+- PostCard
+- ErrorModal
+- LoadingSpinner
+
+## Technical Details
+
+### State Management
+- React Context for global state
+- Local state for component-specific state
+- Proper state lifting for shared state
+- UseQuery for data fetching
+
+### Routing
+- React Router for navigation
+- Protected routes for authenticated content
+- Route guards for access control
+- Proper redirection after login
+
+### UI Components
+- Reusable button components
+- Loading spinners
+- Error modals
+- Toast notifications
+- Responsive grid layouts
+
+### Error Handling
+- Global error state
+- Error modals with close functionality
+- Loading states for async operations
+- Proper error messages for users
+
+### Responsive Design
+- Mobile-first approach
+- Collapsible menus
+- Responsive grid layouts
+- Proper spacing and padding
+- Touch-friendly buttons
+
+## Next Steps
+
+### High Priority
+1. **Profile Page Features**
+   - Implement post creation
+   - Add post editing
+   - Implement post deletion
+   - Add post comments
+
+2. **UI/UX Improvements**
+   - Add animations for transitions
+   - Improve loading states
+   - Add skeleton loading
+4. **UI/UX Improvements**
+   - Add loading states
+   - Add error handling
+   - Improve error messages
+   - Add success messages for actions
+
+## 7. Logging and Error Handling
 
 ### Implementation
 ```typescript
