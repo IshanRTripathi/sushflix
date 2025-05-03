@@ -1,10 +1,10 @@
-import { logger } from '../utils/logger';
+import logger from '../utils/logger';
 import { UserProfile, FeaturedProfileConfig, EditableProfileFields } from '../types/user';
-import { cacheService } from './cacheService';
+import { CacheService } from './cacheService';
 import fs from 'fs/promises';
 import path from 'path';
 import { UserProfileModel } from '../models/UserProfile';
-import { CacheService } from './cacheService';
+import { ensureDirectoryExists, readJsonFile } from '../utils/fileSystem';
 
 export class UserProfileService {
   private static instance: UserProfileService;
@@ -13,12 +13,14 @@ export class UserProfileService {
   private readonly PROFILES_DIR = 'public/profiles';
   private profileModel: UserProfileModel;
   private cacheService: CacheService;
+  private readonly FEATURED_PROFILES_CONFIG = path.join(process.cwd(), 'config', 'featured-profiles.json');
 
   private constructor() {
     logger.info('User profile service initialized');
     this.ensureProfilesDirectory();
-    this.profileModel = new UserProfileModel();
+    this.profileModel = UserProfileModel.getInstance();
     this.cacheService = CacheService.getInstance();
+    this.initialize();
   }
 
   public static getInstance(): UserProfileService {
@@ -26,6 +28,14 @@ export class UserProfileService {
       UserProfileService.instance = new UserProfileService();
     }
     return UserProfileService.instance;
+  }
+
+  private async initialize(): Promise<void> {
+    try {
+      await ensureDirectoryExists(this.PROFILES_DIR);
+    } catch (error) {
+      logger.error('Failed to create profiles directory', { error });
+    }
   }
 
   private async ensureProfilesDirectory(): Promise<void> {
@@ -43,7 +53,7 @@ export class UserProfileService {
 
   public async getProfileByUsername(username: string): Promise<UserProfile | null> {
     try {
-      // Try to get from cache first
+      // Check cache first
       const cachedProfile = await this.cacheService.getProfile(username);
       if (cachedProfile) {
         logger.debug('Cache hit for profile', { username });
@@ -59,8 +69,8 @@ export class UserProfileService {
       }
       return profile;
     } catch (error) {
-      logger.error('Error getting profile by username', error, { username });
-      throw error;
+      logger.error('Error fetching profile:', error);
+      return null;
     }
   }
 
@@ -68,40 +78,19 @@ export class UserProfileService {
     try {
       // Check cache first
       const cacheKey = this.getCacheKey(userId);
-      const cachedProfile = cacheService.get<UserProfile>(cacheKey);
+      const cachedProfile = this.cacheService.get<UserProfile>(cacheKey);
       
       if (cachedProfile) {
         logger.debug('Cache hit for profile', { userId });
         return cachedProfile;
       }
 
-      // TODO: Fetch profile from database
-      // For now, return a mock profile
-      const profile: UserProfile = {
-        userId,
-        username: `user${userId}`,
-        displayName: `User ${userId}`,
-        email: `user${userId}@example.com`,
-        profilePicture: `/profiles/${userId}.jpg`,
-        bio: 'This is a sample bio',
-        socialLinks: {
-          website: 'https://example.com',
-          twitter: 'https://twitter.com/example',
-          linkedin: 'https://linkedin.com/in/example'
-        },
-        createdAt: new Date(),
-        lastUpdated: new Date(),
-        stats: {
-          posts: 0,
-          followers: 0,
-          subscribers: 0
-        }
-      };
-
-      // Cache the result
-      cacheService.set(cacheKey, profile);
-      logger.debug('Profile cached', { userId });
-
+      const profile = await this.profileModel.getProfileByUserId(userId);
+      if (profile) {
+        // Cache the result
+        this.cacheService.set(cacheKey, profile);
+        logger.debug('Profile cached', { userId });
+      }
       return profile;
     } catch (error) {
       logger.error('Error getting profile', error, { userId });
@@ -109,76 +98,65 @@ export class UserProfileService {
     }
   }
 
-  public async getFeaturedProfiles(): Promise<FeaturedProfileConfig[]> {
+  public async getFeaturedProfiles(): Promise<UserProfile[]> {
     try {
-      const configPath = path.join(process.cwd(), this.CONFIG_FILE);
-      const configData = await fs.readFile(configPath, 'utf-8');
-      const config = JSON.parse(configData);
+      const config = await readJsonFile<{ featuredProfiles: Array<{ userId: string; username: string }> }>(
+        this.FEATURED_PROFILES_CONFIG
+      );
       
-      return config.featuredProfiles
-        .filter((profile: FeaturedProfileConfig) => profile.isActive)
-        .sort((a: FeaturedProfileConfig, b: FeaturedProfileConfig) => a.displayOrder - b.displayOrder);
+      const profiles: UserProfile[] = [];
+      for (const featured of config.featuredProfiles) {
+        const profile = await this.getProfileByUsername(featured.username);
+        if (profile) {
+          profiles.push(profile);
+        }
+      }
+      return profiles;
     } catch (error) {
-      logger.error('Error reading featured profiles config', error, { configFile: this.CONFIG_FILE });
+      logger.error('Error reading featured profiles config', { error });
       return [];
     }
   }
 
-  public async updateProfile(userId: string, updates: EditableProfileFields): Promise<boolean> {
+  public async updateProfile(userId: string, updates: Partial<EditableProfileFields>): Promise<UserProfile | null> {
     try {
-      const success = await this.profileModel.updateProfile(userId, updates);
-      if (success) {
-        // Invalidate cache for this profile
-        const profile = await this.profileModel.getProfileByUserId(userId);
-        if (profile) {
-          await this.cacheService.setProfile(profile);
-          logger.debug('Profile updated and cache refreshed', { userId });
-        }
+      const updatedProfile = await this.profileModel.updateProfile(userId, updates);
+      if (updatedProfile) {
+        // Update cache
+        await this.cacheService.setProfile(updatedProfile);
       }
-      return success;
+      return updatedProfile;
     } catch (error) {
-      logger.error('Error updating profile', error, { userId, updates });
-      throw error;
-    }
-  }
-
-  public async updateProfilePicture(userId: string, file: ArrayBuffer, filename: string): Promise<string | null> {
-    try {
-      // TODO: Implement file upload to storage service (e.g., S3)
-      const profilePictureUrl = `/uploads/${filename}`;
-      
-      const success = await this.profileModel.updateProfilePicture(userId, profilePictureUrl);
-      if (success) {
-        // Invalidate cache for this profile
-        const profile = await this.profileModel.getProfileByUserId(userId);
-        if (profile) {
-          await this.cacheService.setProfile(profile);
-          logger.debug('Profile picture updated and cache refreshed', { userId });
-        }
-        return profilePictureUrl;
-      }
+      logger.error('Error updating profile:', error);
       return null;
-    } catch (error) {
-      logger.error('Error updating profile picture', error, { userId, filename });
-      throw error;
     }
   }
 
-  public async updateStats(userId: string, stats: Partial<UserProfile['stats']>): Promise<boolean> {
+  public async updateProfilePicture(userId: string, file: File): Promise<UserProfile | null> {
     try {
-      const success = await this.profileModel.updateStats(userId, stats);
-      if (success) {
-        // Invalidate cache for this profile
-        const profile = await this.profileModel.getProfileByUserId(userId);
-        if (profile) {
-          await this.cacheService.setProfile(profile);
-          logger.debug('Profile stats updated and cache refreshed', { userId, stats });
-        }
+      const updatedProfile = await this.profileModel.updateProfilePicture(userId, file);
+      if (updatedProfile) {
+        // Update cache
+        await this.cacheService.setProfile(updatedProfile);
       }
-      return success;
+      return updatedProfile;
     } catch (error) {
-      logger.error('Error updating profile stats', error, { userId, stats });
-      throw error;
+      logger.error('Error updating profile picture:', error);
+      return null;
+    }
+  }
+
+  public async updateStats(userId: string, stats: Partial<UserProfile['stats']>): Promise<UserProfile | null> {
+    try {
+      const updatedProfile = await this.profileModel.updateStats(userId, stats);
+      if (updatedProfile) {
+        // Update cache
+        await this.cacheService.setProfile(updatedProfile);
+      }
+      return updatedProfile;
+    } catch (error) {
+      logger.error('Error updating stats:', error);
+      return null;
     }
   }
 
