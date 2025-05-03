@@ -96,6 +96,8 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
       const response = await signupUser(userData);
       logApiResponse('success', response);
       logAction('Signup successful');
+      resetForm();
+      setIsSignup(false);
       onClose();
     } catch (err: any) {
       logApiResponse('error', err);
