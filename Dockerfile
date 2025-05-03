@@ -3,11 +3,13 @@ FROM node:20.18.1 as builder
 
 WORKDIR /app
 
-# Accept VITE_BACKEND_URL as a build argument
+# Accept build arguments
 ARG VITE_BACKEND_URL
+ARG VITE_CLIENT_ID
 
-# Set VITE_BACKEND_URL as an environment variable for the build process
+# Set environment variables for the build process
 ENV VITE_BACKEND_URL=$VITE_BACKEND_URL
+ENV VITE_CLIENT_ID=$VITE_CLIENT_ID
 
 COPY package*.json ./
 

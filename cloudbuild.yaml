@@ -28,7 +28,7 @@ steps:
         'AWS_REGION=eu-north-1,AWS_BUCKET_NAME=sushflix'
       ]
 
-  # Build and push the frontend Docker image, passing the backend URL as a build-arg
+  # Build and push the frontend Docker image, passing the backend URL and client ID as build-args
   - name: 'gcr.io/cloud-builders/docker'
     args: [
       'build',
@@ -36,7 +36,9 @@ steps:
       'gcr.io/$PROJECT_ID/sushflix-frontend',
       '.',
       '--build-arg',
-      'VITE_BACKEND_URL=https://sushflix-backend-796527544626.us-central1.run.app'
+      'VITE_BACKEND_URL=https://sushflix-backend-796527544626.us-central1.run.app',
+      '--build-arg',
+      'VITE_CLIENT_ID=796527544626-69ljfrtta5t5e0eb2chnlvmhqilb9nsp.apps.googleusercontent.com'
     ]
     timeout: '1200s'
 
