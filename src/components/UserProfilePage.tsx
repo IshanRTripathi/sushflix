@@ -1,14 +1,18 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { UserProfile, EditableProfileFields, SocialLinks } from '../types/user';
 import { userProfileService } from '../services/userProfileService';
 import { logger } from '../utils/logger';
-import LoadingSpinner from '../components/LoadingSpinner';
+import LoadingSpinner from './LoadingSpinner';
+import { useAuth } from './auth/AuthContext';
 
 interface UserProfilePageProps {
   username: string;
 }
 
 const UserProfilePage: React.FC<UserProfilePageProps> = ({ username }) => {
+  const navigate = useNavigate();
+  const { isAuthenticated, user } = useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -71,7 +75,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ username }) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!profile) return;
+    if (!profile || !isAuthenticated || user?.username !== username) return;
 
     try {
       const success = await userProfileService.updateProfile(profile.userId, formData);
@@ -88,7 +92,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ username }) => {
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files || !e.target.files[0] || !profile) return;
+    if (!e.target.files || !e.target.files[0] || !profile || !isAuthenticated || user?.username !== username) return;
 
     const file = e.target.files[0];
     try {
@@ -125,6 +129,8 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ username }) => {
   if (!profile) {
     return <div>Profile not found</div>;
   }
+
+  const isOwner = isAuthenticated && user?.username === username;
 
   return (
     <div className="max-w-4xl mx-auto p-4">
@@ -169,12 +175,14 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ username }) => {
                 )}
               </div>
             </div>
-            <button
-              onClick={() => setIsEditing(true)}
-              className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-            >
-              Edit Profile
-            </button>
+            {isOwner && (
+              <button
+                onClick={() => setIsEditing(true)}
+                className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+              >
+                Edit Profile
+              </button>
+            )}
           </div>
         ) : (
           <form onSubmit={handleSubmit}>

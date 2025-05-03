@@ -27,13 +27,10 @@ export interface EditableProfileFields {
   socialLinks: SocialLinks;
 }
 
-export interface FeaturedProfile {
+export interface FeaturedProfile extends Omit<UserProfile, 'userId' | 'createdAt' | 'lastUpdated'> {
   userId: string;
-  username: string;
-  displayName: string;
-  profilePicture: string;
-  bio: string;
-  socialLinks: SocialLinks;
+  createdAt: Date;
+  lastUpdated: Date;
 }
 
 export interface FeaturedProfileConfig {
