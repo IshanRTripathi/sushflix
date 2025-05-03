@@ -2,13 +2,13 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { loginUser } from '../../services/apiService'; // Import loginUser
 import type { AxiosError } from 'axios'; // Import AxiosError
 
+// Import UserProfile type
+import { UserProfile } from '../../types/user';
+
 // Define the User interface
-interface User {
+interface User extends UserProfile {
   id: string;
-  username: string;
-  name: string;
   isCreator: boolean;
-  email: string;
 }
 
 // Define the AuthContext type
