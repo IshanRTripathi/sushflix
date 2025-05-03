@@ -20,11 +20,12 @@ steps:
         '--platform',
         'managed',
         '--region',
-        'us-central1', # Replace with your desired region
-        '--allow-unauthenticated', # Change to --no-allow-unauthenticated if needed
+        'us-central1',
+        '--allow-unauthenticated',
+        '--set-secrets',
+        'CLIENT_ID=google-oauth-client-id:latest,CLIENT_SECRET=google-oauth-client-secret:latest,MONGO_URI=mongo-uri:latest,AWS_ACCESS_KEY_ID=aws-access-key-id:latest,AWS_SECRET_ACCESS_KEY=aws-secret-access-key:latest,JWT_SECRET=jwt-secret:latest',
         '--set-env-vars',
-        # Combine all env vars into one comma-separated string
-        'MONGO_URI=mongodb+srv://qpwoeiruty9211:m5RRGZeMVe8AoILt@sushflix.0qovl.mongodb.net/?retryWrites=true&w=majority&appName=sushflix,AWS_ACCESS_KEY_ID=AKIAY6QVZPSXCWQD3UFH,AWS_SECRET_ACCESS_KEY=zPWmiP6J3fd@hefB5VZFZ7ZUT31HEI4MSeCH91CP,AWS_REGION=eu-north-1,AWS_BUCKET_NAME=sushflix,JWT_SECRET=I9S#V8@!zR7p^LqJ*WnFbY2&mGcXd6%hBvT4sNfEaZ5UjM3P(HgKrD)iOQe1w+,CLIENT_ID=796527544626-69ljfrtta5t5e0eb2chnlvmhqilb9nsp.apps.googleusercontent.com,CLIENT_SECRET=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'
+        'AWS_REGION=eu-north-1,AWS_BUCKET_NAME=sushflix'
       ]
 
   # Build and push the frontend Docker image, passing the backend URL as a build-arg
@@ -34,11 +35,10 @@ steps:
       '-t',
       'gcr.io/$PROJECT_ID/sushflix-frontend',
       '.',
-      # Temporarily hardcode the backend URL for testing
       '--build-arg',
       'VITE_BACKEND_URL=https://sushflix-backend-796527544626.us-central1.run.app'
     ]
-    timeout: '1200s' # Adjust timeout as needed
+    timeout: '1200s'
 
   - name: 'gcr.io/cloud-builders/docker'
     args: ['push', 'gcr.io/$PROJECT_ID/sushflix-frontend']
@@ -56,8 +56,8 @@ steps:
         '--platform',
         'managed',
         '--region',
-        'us-central1', # Replace with your desired region
-        '--allow-unauthenticated' # Frontend is usually public
+        'us-central1',
+        '--allow-unauthenticated'
       ]
 
 logsBucket: gs://sushflix-logs
