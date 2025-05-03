@@ -1,0 +1,22 @@
+{
+  "featuredProfiles": [
+    {
+      "userId": "user1",
+      "username": "johndoe",
+      "isActive": true,
+      "displayOrder": 1
+    },
+    {
+      "userId": "user2",
+      "username": "janedoe",
+      "isActive": true,
+      "displayOrder": 2
+    },
+    {
+      "userId": "user3",
+      "username": "bobsmith",
+      "isActive": true,
+      "displayOrder": 3
+    }
+  ]
+} 

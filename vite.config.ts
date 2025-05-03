@@ -8,7 +8,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'robots.txt', 'apple-touch-icon.png'],
+      includeAssets: ['favicon.ico', 'robots.txt', 'apple-touch-icon.png', 'static/**/*'],
       manifest: {
         name: 'Sushflix',
         short_name: 'Sushflix',
@@ -30,8 +30,14 @@ export default defineConfig({
     }),
   ],
   build: {
-    outDir: 'dist', // Ensure Vite outputs the build to the correct folder
+    outDir: 'dist',
     emptyOutDir: true,
+    assetsDir: 'static',
+    rollupOptions: {
+      output: {
+        assetFileNames: 'static/[name]-[hash][extname]',
+      },
+    },
   },
   server: {
     proxy: {
@@ -44,7 +50,8 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, 'src'), // Alias to make imports cleaner
+      '@': path.resolve(__dirname, 'src'),
     },
   },
+  publicDir: 'public',
 });

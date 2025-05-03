@@ -11,13 +11,18 @@ ARG VITE_CLIENT_ID
 ENV VITE_BACKEND_URL=$VITE_BACKEND_URL
 ENV VITE_CLIENT_ID=$VITE_CLIENT_ID
 
+# Copy package files first for better caching
 COPY package*.json ./
 
 RUN npm install
 
+# Copy the rest of the application code
 COPY . .
 
-# Assuming your build script is 'npm run build' and output is in 'dist'
+# Generate placeholder images
+RUN node scripts/generate-placeholders.js
+
+# Build the application
 RUN npm run build
 
 # Stage 2: Serve the application with Nginx
