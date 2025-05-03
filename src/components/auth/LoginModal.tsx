@@ -21,30 +21,50 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
   const [emailPasswordMode, setEmailPasswordMode] = useState(true); // true = password, false = otp
   const { login } = useAuth();
 
+  // Log user actions
+  const logAction = (action: string, data?: any) => {
+    console.log('[LoginModal] Action:', action);
+    if (data) {
+      console.log('[LoginModal] Data:', data);
+    }
+  };
+
+  // Log API responses
+  const logApiResponse = (type: 'success' | 'error', response: any) => {
+    console.log(`[LoginModal] API ${type}:`, response);
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
     try {
-      if (tab === 'email') {
-        if (emailPasswordMode) {
-          await login(emailOrUsername, password);
+      logAction('Login attempt', { tab, emailOrUsername, phone, passwordMode: emailPasswordMode ? 'password' : 'otp' });
+      
+      if (tab === 'phone') {
+        if (phonePasswordMode) {
+          logAction('Attempting phone password login');
+          const response = await login(phone, password);
+          logApiResponse('success', response);
         } else {
-          setError('Email OTP login not implemented');
-          setIsLoading(false);
-          return;
+          logAction('Attempting phone OTP login');
+          // TODO: Implement phone OTP login
         }
       } else {
-        if (phonePasswordMode) {
-          setError('Phone password login not implemented');
+        if (emailPasswordMode) {
+          logAction('Attempting email/password login');
+          const response = await login(emailOrUsername, password);
+          logApiResponse('success', response);
         } else {
-          setError('Phone OTP login not implemented');
+          logAction('Attempting email OTP login');
+          // TODO: Implement email OTP login
         }
-        setIsLoading(false);
-        return;
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Login failed');
+      logAction('Login successful');
+      onClose();
+    } catch (err: any) {
+      logApiResponse('error', err);
+      setError(err.response?.data?.message || 'Login failed');
     } finally {
       setIsLoading(false);
     }
@@ -55,6 +75,8 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
     setError('');
     setIsLoading(true);
     try {
+      logAction('Signup attempt', { username, emailOrUsername, password });
+      
       if (!username || !emailOrUsername || !password) {
         setError('Please fill in all required fields');
         return;
@@ -67,22 +89,25 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
         isCreator: false
       };
 
-      await signupUser(userData);
-      setError('Signup successful! Please log in.');
-      setIsSignup(false);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Signup failed');
+      const response = await signupUser(userData);
+      logApiResponse('success', response);
+      logAction('Signup successful');
+      onClose();
+    } catch (err: any) {
+      logApiResponse('error', err);
+      setError(err.response?.data?.message || 'Signup failed');
     } finally {
       setIsLoading(false);
     }
   };
 
   const resetForm = () => {
-    setEmailOrUsername('');
+    logAction('Form reset');
+    setError('');
     setPhone('');
+    setEmailOrUsername('');
     setUsername('');
     setPassword('');
-    setError('');
     setPhonePasswordMode(true);
     setEmailPasswordMode(true);
   };
