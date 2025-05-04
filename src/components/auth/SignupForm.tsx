@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from './AuthContext';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import type { AxiosError } from 'axios'; // Keep AxiosError type import
 import SubmitButton from '../common/SubmitButton';
@@ -29,7 +29,7 @@ interface SignupResponseData { // Renamed to reflect data structure within respo
   message?: string;
 }
 
-export function SignupForm() {
+export function SignupForm({ onClose }: { onClose: () => void }) {
   const [formData, setFormData] = useState<FormData>({
     email: '',
     username: '',
@@ -156,62 +156,67 @@ export function SignupForm() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="w-full max-w-md p-8 bg-white rounded-lg shadow-lg">
-        {success && (
-          <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-md flex items-center gap-2">
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-              <path d="m9 11 3 3L22 4" />
-            </svg>
-            <span className="text-green-700">Account created successfully!</span>
-          </div>
-        )}
+      <div className="relative">
+        {/* Close button */}
+        <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
+          <X className="h-5 w-5" />
+        </button>
+        <div className="w-full max-w-md p-8 bg-white rounded-lg shadow-lg">
+          {success && (
+            <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-md flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                <path d="m9 11 3 3L22 4" />
+              </svg>
+              <span className="text-green-700">Account created successfully!</span>
+            </div>
+          )}
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">Create your account</h2>
 
-        <h2 className="text-2xl font-bold text-gray-900 mb-6">Create your account</h2>
+          {errors.general && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md flex items-center gap-2">
+              <AlertCircle className="w-5 h-5 text-red-500" />
+              <span className="text-red-700">{errors.general}</span>
+            </div>
+          )}
 
-        {errors.general && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md flex items-center gap-2">
-            <AlertCircle className="w-5 h-5 text-red-500" />
-            <span className="text-red-700">{errors.general}</span>
-          </div>
-        )}
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <FormField
+              label="Email"
+              id="email"
+              type="email"
+              value={formData.email}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              error={errors.email}
+            />
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <FormField
-            label="Email"
-            id="email"
-            type="email"
-            value={formData.email}
-            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-            error={errors.email}
-          />
+            <FormField
+              label="Username"
+              id="username"
+              type="text"
+              autoComplete="off"
+              value={formData.username}
+              onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+              error={errors.username}
+            />
 
-          <FormField
-            label="Username"
-            id="username"
-            type="text"
-            autoComplete="off"
-            value={formData.username}
-            onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-            error={errors.username}
-          />
+            <FormField
+              label="Password"
+              id="password"
+              type="password"
+              autoComplete="new-password"
+              value={formData.password}
+              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+              error={errors.password}
+            />
 
-          <FormField
-            label="Password"
-            id="password"
-            type="password"
-            autoComplete="new-password"
-            value={formData.password}
-            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-            error={errors.password}
-          />
-
-          <SubmitButton
-            isLoading={isLoading}
-            buttonText="Sign up"
-            loadingText="Creating account...">
-          </SubmitButton>
-        </form>
+            <SubmitButton
+              isLoading={isLoading}
+              buttonText="Sign up"
+              loadingText="Creating account...">
+            </SubmitButton>
+          </form>
+        </div>
       </div>
     </div>
   );

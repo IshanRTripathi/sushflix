@@ -33,7 +33,6 @@ function App() {
                   </ProtectedRoute>
                 } />
                 <Route path="/login" element={<Navigate to="/" />} />
-                <Route path="/signup" element={<Navigate to="/" />} />
                 <Route path="/content/:id" element={
                   <ProtectedRoute>
                     <ContentDetail />
