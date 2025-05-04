@@ -14,7 +14,6 @@ const devLogin = require('./devLogin');
 const authRoutes = require('./routes/auth');
 const contentRoutes = require('./routes/content');
 const subscriptionRoutes = require('./routes/subscriptions');
-const uploadRoutes = require('./routes/upload');
 
 // Initialize express
 const app = express();
@@ -81,10 +80,6 @@ logger.info('Content routes applied');
 logger.info('Applying subscriptions routes');
 app.use('/api/subscriptions', subscriptionRoutes);
 logger.info('Subscriptions routes applied');
-
-logger.info('Applying upload routes');
-app.use('/api', uploadRoutes);
-logger.info('Upload routes applied');
 
 // Handle other routes by serving the 'index.html' file
 logger.info('Applying catch-all route for index.html');

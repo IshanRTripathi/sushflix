@@ -7,20 +7,11 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const logger = require('../config/logger');
 
-
-
-const upload = require('../middlewares/upload');
 const auth = require('../middlewares/auth');
 const devLogin = require('../devLogin');
 require('dotenv').config();
 
 const router = express.Router();
-
-router.post('/upload', upload.single('file'), (req, res) => {
-    logger.info(`Executing route: POST /upload`);
-    if (req.file === undefined) return res.status(400).json({ msg: 'No file uploaded' });
-    res.status(200).json({ file: req.file });
-});
 
 router.post('/signup', [
     body('username')

@@ -4,26 +4,11 @@ const auth = require('../middlewares/auth');
 const logger = require('../config/logger');
 const router = express.Router();
 
-
-// Connecting GridFS for file retrieval
-const Grid = require('gridfs-stream');
-const mongoose = require("mongoose");
-const upload = require("../middlewares/upload");
-let gfs;
-
-mongoose.connection.once('open', () => {
-  gfs = Grid(mongoose.connection.db, mongoose.mongo);
-  gfs.collection('uploads');
-});
-
-
 // Upload content with an image
-router.post('/upload', auth(['creator']), upload.single('file'), async (req, res) => {
+router.post('/upload', auth(['creator']), async (req, res) => {
   logger.info(`Route /upload POST called`);
   try {
-    const { title, description, mediaType, creator, isExclusive, requiredLevel } = req.body;
-    const mediaUrl = `/files/${req.file.filename}`;
-    const thumbnailUrl = mediaUrl; // Assuming the same file is used for thumbnail
+    const { title, description, mediaType, creator, isExclusive, requiredLevel, mediaUrl, thumbnailUrl } = req.body;
 
     const newContent = new Content({
       title,
@@ -59,25 +44,6 @@ router.get('/', async (req, res) => {
   
    
   }
-});
-
-// Fetch file from GridFS
-router.get('/files/:filename', (req, res) => {
-  logger.info(`Route /files/:filename GET called`);
-  gfs.files.findOne({ filename: req.params.filename }, (err, file) => {
-    if (!file || file.length === 0) {
-      return res.status(404).json({ err: 'No file exists' });
-        } else if (err) {
-          logger.error(`File retrieval error: ${err.message}`);
-          return res.status(500).json({ message: 'Failed to retrieve file' });
-        }
-    if (file.contentType.includes('image') || file.contentType.includes('video')) {
-      const readStream = gfs.createReadStream(file.filename);
-      readStream.pipe(res);
-    } else {
-      res.status(400).json({ err: 'Not an image or video' });
-    }
-  });
 });
 
 // Create content
