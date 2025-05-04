@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { API_BASE_URL } from '../../config';
+import { API_BASE_URL } from '../../config/index';
 import { UserProfile } from '../../types/user';
 import { logger } from '../../utils/logger';
 
@@ -64,7 +64,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const response = await fetch(AUTH_ENDPOINTS.LOGIN, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
+        body: JSON.stringify({ usernameOrEmail: username, password })
       });
 
       if (!response.ok) {

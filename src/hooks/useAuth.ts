@@ -61,7 +61,7 @@ export const useAuth = () => {
     profilePic: string;
   }) => {
     try {
-      const response = await axios.post('/api/auth/signup', userData);
+      const response = await axios.post('/api/signup', userData);
       const { token, user } = {
         token: response.data.response.newUser.token || '',
         user: response.data.response.newUser

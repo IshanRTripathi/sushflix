@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Check } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
-import { API_BASE_URL } from '../../config';
+import { API_BASE_URL } from '../../config/index';
 
 interface Plan {
   id: string;
