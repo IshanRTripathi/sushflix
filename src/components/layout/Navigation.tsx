@@ -3,10 +3,12 @@ import { Link } from 'react-router-dom';
 import { Menu, X, User, LogOut } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
 import Modal from '../common/Modal';
+import { SignupForm } from '../auth/SignupForm';
 import { LoginForm } from '../auth/LoginForm';
 
 export function Navigation() {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [isSignupModalOpen, setIsSignupModalOpen] = useState(false);
   const { user, isAuthenticated, logout } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
 
@@ -17,6 +19,11 @@ export function Navigation() {
 
   const closeModal = () => {
     setIsLoginModalOpen(false);
+    setIsSignupModalOpen(false);
+  };
+
+  const openSignupModal = () => {
+    setIsSignupModalOpen(true);
   };
 
   return (
@@ -153,7 +160,12 @@ export function Navigation() {
       <Modal isOpen={isLoginModalOpen} onClose={closeModal}>
         <h3 className="text-lg font-semibold">Welcome to Bingeme</h3>
         <p className="text-sm text-gray-500">The future of creator-fan connection.</p>
-        <LoginForm isOpen={isLoginModalOpen} onClose={closeModal} />
+        <LoginForm isOpen={isLoginModalOpen} onClose={closeModal} openSignupModal={openSignupModal} />
+      </Modal>
+      <Modal isOpen={isSignupModalOpen} onClose={closeModal}>
+        <h3 className="text-lg font-semibold">Create Account</h3>
+        <p className="text-sm text-gray-500">Join Bingeme and connect with creators.</p>
+        <SignupForm />
       </Modal>
     </nav>
   );
