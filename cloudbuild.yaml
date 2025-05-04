@@ -23,9 +23,7 @@ steps:
         'us-central1',
         '--allow-unauthenticated',
         '--set-secrets',
-        'CLIENT_ID=google-oauth-client-id:latest,CLIENT_SECRET=google-oauth-client-secret:latest,MONGO_URI=mongo-uri:latest,AWS_ACCESS_KEY_ID=aws-access-key-id:latest,AWS_SECRET_ACCESS_KEY=aws-secret-access-key:latest,JWT_SECRET=jwt-secret:latest',
-        '--set-env-vars',
-        'AWS_REGION=eu-north-1,AWS_BUCKET_NAME=sushflix'
+        'CLIENT_ID=google-oauth-client-id:latest,CLIENT_SECRET=google-oauth-client-secret:latest,MONGO_URI=mongo-uri:latest,JWT_SECRET=jwt-secret:latest'
       ]
 
   # Get the Google OAuth client ID from Secret Manager

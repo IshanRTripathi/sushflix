@@ -55,7 +55,7 @@ export const LoginForm: React.FC<{ onClose: () => void; openSignupModal: () => v
   };
 
   return (
-    <div className="relative max-w-md w-full mx-auto bg-white p-6 overflow-hidden rounded-lg shadow">
+    <div className="w-full">
       {/* Close button */}
       <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
         <X className="h-5 w-5" />
