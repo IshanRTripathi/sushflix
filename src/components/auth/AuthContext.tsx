@@ -31,11 +31,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
-  const login = async (username: string, password: string): Promise<UserProfile> => {
+  const login = async (credentials: string, password: string): Promise<UserProfile> => {
     logger.debug('Attempting login with credentials');
     try {
       const response = await loginUser({
-        usernameOrEmail: username,
+        usernameOrEmail: credentials,
         password
       });
 

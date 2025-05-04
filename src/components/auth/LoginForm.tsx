@@ -14,7 +14,7 @@ const countryCodes = [
 
 export const LoginForm: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, onClose }) => {
   const navigate = useNavigate();
-  const [tab, setTab] = useState<'phone' | 'email'>('phone');
+  const [tab, setTab] = useState<'phone' | 'email'>('email');
   const [countryCode, setCountryCode] = useState(countryCodes[0].code);
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
@@ -31,24 +31,17 @@ export const LoginForm: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ 
     setError('');
     setIsLoading(true);
     try {
-      if (tab === 'phone') {
-        if (phonePasswordMode) {
-          await login(phone, password);
-          navigate('/explore');
-        } else {
-          setError('Phone OTP login coming soon');
-          return;
-        }
+      const credentials = tab === 'phone' ? phone : email;
+      const isPasswordMode = tab === 'phone' ? phonePasswordMode : emailPasswordMode;
+      
+      if (isPasswordMode) {
+        await login(credentials, password);
+        navigate('/explore');
+        onClose();
       } else {
-        if (emailPasswordMode) {
-          await login(email, password);
-          navigate('/explore');
-        } else {
-          setError('Email OTP login coming soon');
-          return;
-        }
+        setError(`${tab === 'phone' ? 'Phone' : 'Email'} OTP login coming soon`);
+        return;
       }
-      onClose();
     } catch (err: any) {
       setError(err.response?.data?.message || 'Login failed');
     } finally {
@@ -143,7 +136,7 @@ export const LoginForm: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ 
               <input
                 className="w-full px-3 py-2 border rounded-lg bg-gray-50 outline-none text-sm"
                 type="email"
-                placeholder="Enter email"
+                placeholder="Username or email"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
               />
