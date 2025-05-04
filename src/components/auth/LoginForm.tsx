@@ -2,14 +2,14 @@ import React, { useState } from 'react';
 import Modal from '../common/Modal';
 import { useAuth } from './AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { AlertCircle, X } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 
 const countryCodes = [
   { code: '+91', flag: '🇮🇳' },
   { code: '+1', flag: '🇺🇸' },
 ];
 
-export const LoginForm: React.FC<{ isOpen: boolean; onClose: () => void; openSignupModal: () => void }> = ({ isOpen, onClose, openSignupModal }) => {
+export const LoginForm: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, onClose }) => {
   const navigate = useNavigate();
   const [tab, setTab] = useState<'phone' | 'email'>('email');
   const [countryCode, setCountryCode] = useState(countryCodes[0].code);
@@ -57,11 +57,7 @@ export const LoginForm: React.FC<{ isOpen: boolean; onClose: () => void; openSig
 
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
-      <div className="relative max-w-md w-full mx-auto bg-white p-6 overflow-hidden rounded-lg shadow">
-        {/* Close button */}
-        <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
-          <X className="h-5 w-5" />
-        </button>
+      <div className="max-w-md w-full mx-auto bg-white p-6 overflow-hidden rounded-lg shadow">
 
         <h2 className="text-xl font-bold text-gray-900 mb-1">Welcome to Bingeme.</h2>
         <p className="text-sm text-gray-500 mb-6">The future of creator-fan connection.</p>
@@ -191,7 +187,7 @@ export const LoginForm: React.FC<{ isOpen: boolean; onClose: () => void; openSig
           <button
             onClick={() => {
               onClose();
-              openSignupModal();
+              window.dispatchEvent(new CustomEvent('openSignupModal'));
             }}
             className="text-indigo-600 font-medium"
           >

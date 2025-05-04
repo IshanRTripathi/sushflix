@@ -22,9 +22,19 @@ export function Navigation() {
     setIsSignupModalOpen(false);
   };
 
-  const openSignupModal = () => {
-    setIsSignupModalOpen(true);
-  };
+  // Listen for signup modal event
+  React.useEffect(() => {
+    const handleSignupModalEvent = (event: CustomEvent) => {
+      if (event.type === 'openSignupModal') {
+        setIsSignupModalOpen(true);
+      }
+    };
+
+    window.addEventListener('openSignupModal', handleSignupModalEvent as EventListener);
+    return () => {
+      window.removeEventListener('openSignupModal', handleSignupModalEvent as EventListener);
+    };
+  }, []);
 
   return (
     <nav className="bg-white shadow-lg">
@@ -160,7 +170,7 @@ export function Navigation() {
       <Modal isOpen={isLoginModalOpen} onClose={closeModal}>
         <h3 className="text-lg font-semibold">Welcome to Bingeme</h3>
         <p className="text-sm text-gray-500">The future of creator-fan connection.</p>
-        <LoginForm isOpen={isLoginModalOpen} onClose={closeModal} openSignupModal={openSignupModal} />
+        <LoginForm isOpen={isLoginModalOpen} onClose={closeModal} />
       </Modal>
       <Modal isOpen={isSignupModalOpen} onClose={closeModal}>
         <h3 className="text-lg font-semibold">Create Account</h3>
