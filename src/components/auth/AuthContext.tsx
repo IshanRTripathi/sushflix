@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import axios from 'axios';
 import { API_BASE_URL } from '../../config';
 import { UserProfile } from '../../types/user';
+import { loginUser } from '../../services/apiService';
 import { logger } from '../../utils/logger';
 
 interface AuthContextType {
@@ -34,17 +34,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (username: string, password: string): Promise<UserProfile> => {
     logger.debug('Attempting login with credentials');
     try {
-      const response = await axios.post<{ token: string; user: UserProfile }>(
-        `${API_BASE_URL}/auth/login`,
-        {
-          username,
-          password
-        }
-      );
-
-      if (!response.data) {
-        throw new Error('Invalid response from server');
-      }
+      const response = await loginUser({
+        usernameOrEmail: username,
+        password
+      });
 
       const { token, user: userData } = response.data;
       logger.info('Login successful');
@@ -56,8 +49,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(userData);
       return userData;
     } catch (err: unknown) {
-      const errorMessage = `Login failed: ${err instanceof Error ? err.message : 'Unknown error'}`;
-      logger.error('Login failed', { error: errorMessage });
+      const errorMessage = err instanceof Error ? err.message : 'Login failed';
+      logger.error('Login failed:', { error: errorMessage });
       setError(errorMessage);
       throw new Error(errorMessage);
     }
