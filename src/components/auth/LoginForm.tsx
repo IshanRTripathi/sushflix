@@ -18,7 +18,7 @@ export const LoginForm: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ 
   const [countryCode, setCountryCode] = useState(countryCodes[0].code);
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
-  const [credentials, setCredentials] = useState('');
+  const [credentials, setCredentials] = useState<string>('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [phonePasswordMode, setPhonePasswordMode] = useState(true);
@@ -30,7 +30,7 @@ export const LoginForm: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ 
     setError('');
     setIsLoading(true);
     try {
-      const credentials = tab === 'phone' ? phone : credentials;
+      const loginCredentials = tab === 'phone' ? phone : credentials;
       const isPasswordMode = tab === 'phone' ? phonePasswordMode : emailPasswordMode;
       
       if (isPasswordMode) {
@@ -43,7 +43,7 @@ export const LoginForm: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ 
           return;
         }
         
-        await login(credentials, password);
+        await login(loginCredentials, password);
         navigate('/explore');
         onClose();
       } else {
