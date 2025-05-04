@@ -1,7 +1,6 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Check } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
-import { LoginForm } from '../auth/LoginForm';
 
 interface Plan {
   id: string;
@@ -57,12 +56,11 @@ const plans: Plan[] = [
 ];
 
 export function SubscriptionPlans() {
-  const { isAuthenticated } = useAuth();
-  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const { isAuthenticated, openAuthModal } = useAuth();
 
   const handleSubscribe = async (planId: string) => {
     if (!isAuthenticated) {
-      setIsLoginModalOpen(true);
+      openAuthModal('login');
       return;
     }
 
@@ -156,10 +154,6 @@ export function SubscriptionPlans() {
           </div>
         </div>
       </div>
-      <LoginForm 
-        isOpen={isLoginModalOpen} 
-        onClose={() => setIsLoginModalOpen(false)} 
-      />
     </>
   );
 }

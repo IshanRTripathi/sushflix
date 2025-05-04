@@ -3,11 +3,30 @@ import { useAuth } from './AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { AlertCircle, X } from 'lucide-react';
 
+// Reusable Modal wrapper
+export const Modal: React.FC<{ isOpen: boolean; onClose: () => void; children: React.ReactNode }> = ({ isOpen, onClose, children }) => {
+  if (!isOpen) return null;
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 backdrop-blur-sm p-4"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 relative"
+        onClick={e => e.stopPropagation()}
+      >
+        {children}
+      </div>
+    </div>
+  );
+};
+
 const countryCodes = [
   { code: '+91', flag: '🇮🇳' },
   { code: '+1', flag: '🇺🇸' },
 ];
 
+// LoginForm component
 export const LoginForm: React.FC<{ onClose: () => void; openSignupModal: () => void }> = ({ onClose, openSignupModal }) => {
   const navigate = useNavigate();
   const [tab, setTab] = useState<'phone' | 'email'>('email');
@@ -55,23 +74,27 @@ export const LoginForm: React.FC<{ onClose: () => void; openSignupModal: () => v
   };
 
   return (
-    <div className="w-full">
-      {/* Close button */}
-      <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
-        <X className="h-5 w-5" />
-      </button>
-      <h2 className="text-xl font-bold text-gray-900 mb-1">Welcome to Bingeme.</h2>
-      <p className="text-sm text-gray-500 mb-6">The future of creator-fan connection.</p>
+    <div className="relative w-full">
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h2 className="text-xl font-bold text-gray-900 mb-1">Welcome to Bingeme.</h2>
+          <p className="text-sm text-gray-500">The future of creator-fan connection.</p>
+        </div>
+        <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+          <X className="h-5 w-5" />
+        </button>
+      </div>
 
-      {/* Tabs */}
       <div className="flex mb-4 rounded-lg overflow-hidden bg-gray-100">
         <button
+          type="button"
           className={`flex-1 py-2 text-sm font-medium ${tab === 'phone' ? 'bg-white text-black' : 'text-gray-500'}`}
           onClick={() => setTab('phone')}
         >
           Phone
         </button>
         <button
+          type="button"
           className={`flex-1 py-2 text-sm font-medium ${tab === 'email' ? 'bg-white text-black' : 'text-gray-500'}`}
           onClick={() => setTab('email')}
         >
@@ -80,7 +103,6 @@ export const LoginForm: React.FC<{ onClose: () => void; openSignupModal: () => v
       </div>
 
       <form onSubmit={handleLogin} className="space-y-4">
-        {/* Input fields */}
         {tab === 'phone' ? (
           <>
             <div className="flex items-center border rounded-lg overflow-hidden bg-gray-50">
@@ -148,7 +170,6 @@ export const LoginForm: React.FC<{ onClose: () => void; openSignupModal: () => v
           </>
         )}
 
-        {/* Error Message */}
         {error && (
           <div className="mt-4 p-2 bg-red-50 border border-red-200 rounded flex items-center gap-2">
             <AlertCircle className="w-4 h-4 text-red-500" />
@@ -156,7 +177,6 @@ export const LoginForm: React.FC<{ onClose: () => void; openSignupModal: () => v
           </div>
         )}
 
-        {/* Submit Button */}
         <button
           type="submit"
           className="w-full bg-black text-white py-2 rounded-lg font-medium hover:bg-gray-900 transition disabled:opacity-50"
@@ -166,7 +186,6 @@ export const LoginForm: React.FC<{ onClose: () => void; openSignupModal: () => v
         </button>
       </form>
 
-      {/* Social login */}
       <div className="flex items-center my-4">
         <div className="flex-1 h-px bg-gray-200" />
         <span className="mx-2 text-xs text-gray-400">Or sign in with</span>
@@ -182,13 +201,9 @@ export const LoginForm: React.FC<{ onClose: () => void; openSignupModal: () => v
         Continue with Google
       </button>
 
-      {/* Redirect to Signup */}
       <div className="text-center mt-4 text-xs text-gray-500">
         Don't have an account?{' '}
-        <button
-          onClick={openSignupModal}
-          className="text-indigo-600 font-medium"
-        >
+        <button onClick={openSignupModal} className="text-indigo-600 font-medium">
           Sign up
         </button>
       </div>

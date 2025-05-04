@@ -1,13 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
-import { LoginForm } from '../auth/LoginForm';
 import ThemeToggle from '../ui/ThemeToggle';
 import { logger } from '../../utils/logger';
 
 export function Header() {
-  const { isAuthenticated, logout, user } = useAuth();
-  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const { isAuthenticated, logout, user, openAuthModal } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   useEffect(() => {
@@ -88,20 +86,10 @@ export function Header() {
               </div>
             </div>
           ) : (
-            <button 
-              onClick={() => setIsLoginModalOpen(true)} 
-              className="text-gray-400 hover:text-white"
-            >
-              Login
-            </button>
+            <button onClick={() => openAuthModal('login')}>Login</button>
           )}
         </div>
       </div>
-
-      <LoginForm 
-        isOpen={isLoginModalOpen} 
-        onClose={() => setIsLoginModalOpen(false)} 
-      />
     </header>
   );
 }

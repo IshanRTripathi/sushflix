@@ -10,6 +10,10 @@ interface AuthContextType {
   login: (username: string, password: string) => Promise<UserProfile>;
   logout: () => void;
   error: string | null;
+  isAuthModalOpen: boolean;
+  authModalType: 'login' | 'signup';
+  openAuthModal: (type: 'login' | 'signup') => void;
+  closeAuthModal: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -17,6 +21,8 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [authModalType, setAuthModalType] = useState<'login' | 'signup'>('login');
 
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
@@ -63,12 +69,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null);
   };
 
+  const openAuthModal = (type: 'login' | 'signup') => {
+    setAuthModalType(type);
+    setIsAuthModalOpen(true);
+  };
+
+  const closeAuthModal = () => {
+    setIsAuthModalOpen(false);
+  };
+
   const value: AuthContextType = {
     user,
     isAuthenticated: !!user,
     login,
     logout,
-    error
+    error,
+    isAuthModalOpen,
+    authModalType,
+    openAuthModal,
+    closeAuthModal
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

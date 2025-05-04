@@ -10,6 +10,7 @@ import { ExplorePage } from './components/content/ExplorePage';
 import { ContentDetail } from './components/content/ContentDetail';
 import SettingsPage from './components/pages/SettingsPage';
 import ProfilePage from './components/pages/ProfilePage';
+import { AuthModal } from './components/auth/AuthModal';
 
 function App() {
   return (
@@ -52,6 +53,7 @@ function App() {
             </main>
             <Footer />
           </div>
+          <AuthModal />
         </Router>
       </AuthProvider>
     </ThemeProvider>

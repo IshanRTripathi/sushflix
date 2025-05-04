@@ -24,7 +24,7 @@ interface ApiResponse<T> {
 
 export class ProfileService {
   private static instance: ProfileService;
-  private readonly API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+  private readonly API_BASE_URL = 'http://localhost:8080';
 
   private constructor() {
     logger.info('Profile service initialized');
