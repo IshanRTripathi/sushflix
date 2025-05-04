@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { API_BASE_URL } from '../config';
 import { UserProfile } from '../types/user';
 import { logger } from '../utils/logger';
 
@@ -24,7 +25,6 @@ interface ApiResponse<T> {
 
 export class ProfileService {
   private static instance: ProfileService;
-  private readonly API_BASE_URL = 'http://localhost:8080';
 
   private constructor() {
     logger.info('Profile service initialized');
@@ -52,7 +52,7 @@ export class ProfileService {
       logger.debug(`Fetching profile for user: ${username}`);
       const response = await this.request<ApiResponse<UserProfile>>({
         method: 'GET',
-        url: `${this.API_BASE_URL}/users/${username}`,
+        url: `${API_BASE_URL}/users/${username}`,
       });
       logger.debug(`Successfully fetched profile for user: ${username}`);
       return response.data;
@@ -68,7 +68,7 @@ export class ProfileService {
       logger.debug(`Fetching posts for user: ${username}`);
       const response = await this.request<ApiResponse<Post[]>>({
         method: 'GET',
-        url: `${this.API_BASE_URL}/posts/${username}`,
+        url: `${API_BASE_URL}/posts/${username}`,
       });
       logger.debug(`Successfully fetched posts for user: ${username}`);
       return response.data;
@@ -84,7 +84,7 @@ export class ProfileService {
       logger.debug(`Fetching stats for user: ${username}`);
       const response = await this.request<ApiResponse<UserStats>>({
         method: 'GET',
-        url: `${this.API_BASE_URL}/users/${username}/stats`,
+        url: `${API_BASE_URL}/users/${username}/stats`,
       });
       logger.debug(`Successfully fetched stats for user: ${username}`);
       return response.data;
@@ -100,7 +100,7 @@ export class ProfileService {
       logger.debug(`Attempting to toggle follow for user: ${username}`);
       const response = await this.request<ApiResponse<boolean>>({
         method: 'POST',
-        url: `${this.API_BASE_URL}/users/${username}/follow`,
+        url: `${API_BASE_URL}/users/${username}/follow`,
       });
       logger.info(`Successfully toggled follow for user: ${username}`);
       return response.data;
@@ -116,7 +116,7 @@ export class ProfileService {
       logger.debug(`Attempting to like post: ${postId}`);
       await this.request({
         method: 'POST',
-        url: `${this.API_BASE_URL}/posts/${postId}/like`,
+        url: `${API_BASE_URL}/posts/${postId}/like`,
       });
       logger.info(`Successfully liked post: ${postId}`);
     } catch (error: unknown) {
@@ -129,7 +129,7 @@ export class ProfileService {
   public async commentOnPost(postId: string, comment: string): Promise<void> {
     await this.request({
       method: 'POST',
-      url: `${this.API_BASE_URL}/posts/${postId}/comment`,
+      url: `${API_BASE_URL}/posts/${postId}/comment`,
       data: { comment },
     });
   }
@@ -137,14 +137,14 @@ export class ProfileService {
   public async sharePost(postId: string): Promise<void> {
     await this.request({
       method: 'POST',
-      url: `${this.API_BASE_URL}/posts/${postId}/share`,
+      url: `${API_BASE_URL}/posts/${postId}/share`,
     });
   }
 
   public async bookmarkPost(postId: string): Promise<void> {
     await this.request({
       method: 'POST',
-      url: `${this.API_BASE_URL}/posts/${postId}/bookmark`,
+      url: `${API_BASE_URL}/posts/${postId}/bookmark`,
     });
   }
 }

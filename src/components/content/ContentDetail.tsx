@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { Play, Heart, Share2, BookmarkPlus } from 'lucide-react';
-import { useAuth } from '../auth/AuthContext';
+import { API_BASE_URL } from '../../config';
 
 interface ContentData {
   id: string;
@@ -17,7 +17,6 @@ interface ContentData {
 
 export function ContentDetail() {
   const { id } = useParams<{ id: string }>();
-  const { user, isAuthenticated } = useAuth();
   const [content, setContent] = useState<ContentData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -25,7 +24,7 @@ export function ContentDetail() {
   useEffect(() => {
     const fetchContent = async () => {
       try {
-        const response = await fetch(`http://localhost:5000/api/content/${id}`, {
+        const response = await fetch(`${API_BASE_URL}content/${id}`, {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`
           }

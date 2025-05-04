@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronRight } from 'lucide-react';
+import { API_BASE_URL } from '../../config';
 
 interface Category {
   id: string;
@@ -18,7 +19,7 @@ export function ContentCategories() {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const response = await fetch('http://localhost:5000/api/categories');
+        const response = await fetch(`${API_BASE_URL}categories`);
         if (!response.ok) throw new Error('Failed to fetch categories');
 
         const data = await response.json();

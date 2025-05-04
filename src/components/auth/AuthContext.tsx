@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { API_BASE_URL } from '../../config';
 import { UserProfile } from '../../types/user';
-import { loginUser } from '../../services/apiService';
 import { logger } from '../../utils/logger';
 
 interface AuthContextType {
@@ -37,15 +36,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
-  const login = async (credentials: string, password: string): Promise<UserProfile> => {
+  const login = async (username: string, password: string): Promise<UserProfile> => {
     logger.debug('Attempting login with credentials');
     try {
-      const response = await loginUser({
-        usernameOrEmail: credentials,
-        password
+      const response = await fetch(`${API_BASE_URL}auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
       });
 
-      const { token, user: userData } = response.data;
+      const data = await response.json();
+      const { token, user: userData } = data;
       logger.info('Login successful');
 
       // Store token in localStorage

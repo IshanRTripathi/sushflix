@@ -1,6 +1,7 @@
-import React from 'react';
+import { useState, useEffect } from 'react';
 import { Check } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
+import { API_BASE_URL } from '../../config';
 
 interface Plan {
   id: string;
@@ -65,7 +66,7 @@ export function SubscriptionPlans() {
     }
 
     try {
-      const response = await fetch('http://localhost:5000/api/subscriptions/create', {
+      const response = await fetch(`${API_BASE_URL}subscriptions/create`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
