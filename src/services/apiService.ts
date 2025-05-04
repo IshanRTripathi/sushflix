@@ -13,7 +13,7 @@ const apiClient = axios.create({
 
 // Add signup function
 export const signupUser = (data: { username: string; password: string; email: string; isCreator: boolean }) => {
-  return apiClient.post('/auth/signup', data);
+  return apiClient.post('signup', data);
 };
 
 // Add request interceptor for token
@@ -59,11 +59,11 @@ interface LoginData {
 }
 
 export const loginUser = (data: LoginData) => {
-  return apiClient.post('/auth/login', data);
+  return apiClient.post('login', data);
 };
 
-export const getProfile = (userId: string) => {
-  return apiClient.get(`/profile/${userId}`);
+export const getProfile = () => {
+  return apiClient.get('me');
 };
 
 export const getProfileByUsername = (username: string) => {

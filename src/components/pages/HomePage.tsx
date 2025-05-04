@@ -11,6 +11,8 @@ interface UserProfile {
   profilePic?: string;
 }
 
+const API_BASE_URL = '/api/auth/'; // assuming this is defined somewhere in your code
+
 export function HomePage() {
     console.log('HomePage loaded');
     const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -18,7 +20,7 @@ export function HomePage() {
     useEffect(() => {
       const fetchProfile = async () => {
           try {
-              const response = await fetch('/api/auth/me');
+              const response = await fetch(`${API_BASE_URL}profile`);
               const userData = await response.json()
               if (response.ok) {
                 setProfile(userData);

@@ -3,7 +3,7 @@ import React from 'react';
 interface SubmitButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   isLoading: boolean;
   buttonText: string;
-  loadingText: string;
+  loadingText: React.ReactNode;
 }
 
 const SubmitButton: React.FC<SubmitButtonProps> = ({

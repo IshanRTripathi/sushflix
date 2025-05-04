@@ -3,27 +3,42 @@ import { useAuth } from './AuthContext';
 import { LoginForm } from './LoginForm';
 import { SignupForm } from './SignupForm';
 import { Modal } from '../common/Modal';
+import { logger } from '../../utils/logger';
 
-export function AuthModal() {
+export const AuthModal = () => {
   const { 
     isAuthModalOpen, 
     authModalType, 
-    closeAuthModal,
-    openAuthModal
+    closeAuthModal, 
+    openAuthModal 
   } = useAuth();
 
+  React.useEffect(() => {
+    if (isAuthModalOpen) {
+      logger.debug('Auth modal opened', { 
+        modalType: authModalType,
+        user: null
+      });
+    }
+  }, [isAuthModalOpen, authModalType]);
+
   return (
-    <Modal isOpen={isAuthModalOpen} onClose={closeAuthModal}>
+    <Modal 
+      isOpen={isAuthModalOpen} 
+      onClose={closeAuthModal}
+      aria-labelledby="auth-modal-title"
+    >
       {authModalType === 'login' ? (
         <LoginForm 
-          onClose={closeAuthModal}
+          onClose={closeAuthModal} 
           openSignupModal={() => openAuthModal('signup')}
         />
       ) : (
         <SignupForm 
-          onClose={closeAuthModal}
+          onClose={closeAuthModal} 
+          openLoginModal={() => openAuthModal('login')}
         />
       )}
     </Modal>
   );
-}
+};
