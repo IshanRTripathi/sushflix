@@ -194,8 +194,8 @@ export const LoginForm: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ 
         </button>
         <div className="text-center mt-4 text-xs text-gray-500">
           Don't have an account? <button onClick={() => {
-            onClose();
             navigate('/signup');
+            onClose();
           }} className="text-indigo-600 font-medium">Sign up</button>
         </div>
       </div>
