@@ -3,7 +3,7 @@ import Modal from '../common/Modal';
 import { useAuth } from './AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { AlertCircle } from 'lucide-react';
-import { signupUser } from '../../services/apiService';
+
 import { loginUser } from '../../services/apiService';
 
 const countryCodes = [
@@ -18,7 +18,7 @@ export const LoginForm: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ 
   const [countryCode, setCountryCode] = useState(countryCodes[0].code);
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
-  const [username, setUsername] = useState('');
+
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -56,35 +56,7 @@ export const LoginForm: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ 
     }
   };
 
-  const handleSignup = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setIsLoading(true);
-    try {
-      if (!username || !email || !password) {
-        setError('Please fill in all required fields');
-        return;
-      }
 
-      // Prepare user data to match backend requirements
-      const userData = {
-        username,
-        email,
-        password,
-        isCreator: false,
-        displayName: username,
-        profilePic: ''
-      };
-
-      await signupUser(userData);
-      navigate('/explore');
-      onClose();
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Signup failed');
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
 
 
@@ -166,16 +138,7 @@ export const LoginForm: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ 
             </button>
           </form>
         ) : (
-          <form onSubmit={handleSignup} className="space-y-4">
-            <div>
-              <input
-                className="w-full px-3 py-2 border rounded-lg bg-gray-50 outline-none text-sm"
-                type="text"
-                placeholder="Username"
-                value={username}
-                onChange={e => setUsername(e.target.value)}
-              />
-            </div>
+          <form onSubmit={handleLogin} className="space-y-4">
             <div>
               <input
                 className="w-full px-3 py-2 border rounded-lg bg-gray-50 outline-none text-sm"
@@ -207,7 +170,7 @@ export const LoginForm: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ 
               className="w-full bg-black text-white py-2 rounded-lg font-medium hover:bg-gray-900 transition disabled:opacity-50"
               disabled={isLoading}
             >
-              {isLoading ? 'Signing up...' : 'Sign up'}
+              {isLoading ? 'Signing in...' : 'Sign in →'}
             </button>
             <button
               type="button"
@@ -228,7 +191,10 @@ export const LoginForm: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ 
           Continue with Google
         </button>
         <div className="text-center mt-4 text-xs text-gray-500">
-          Already have an account? <button onClick={onClose} className="text-indigo-600 font-medium">Sign in</button>
+          Don't have an account? <button onClick={() => {
+            onClose();
+            navigate('/signup');
+          }} className="text-indigo-600 font-medium">Sign up</button>
         </div>
       </div>
     </Modal>
