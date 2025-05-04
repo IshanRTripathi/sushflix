@@ -34,6 +34,15 @@ export const LoginForm: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ 
       const isPasswordMode = tab === 'phone' ? phonePasswordMode : emailPasswordMode;
       
       if (isPasswordMode) {
+        if (!credentials.trim()) {
+          setError('Please enter your username or email');
+          return;
+        }
+        if (!password.trim()) {
+          setError('Please enter your password');
+          return;
+        }
+        
         await login(credentials, password);
         navigate('/explore');
         onClose();
@@ -134,7 +143,7 @@ export const LoginForm: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ 
             <div>
               <input
                 className="w-full px-3 py-2 border rounded-lg bg-gray-50 outline-none text-sm"
-                type="email"
+                type="text"
                 placeholder="Username or email"
                 onChange={(e) => setCredentials(e.target.value)}
                 value={credentials}
