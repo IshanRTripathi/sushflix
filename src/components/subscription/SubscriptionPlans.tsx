@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Check } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
-import { LoginModal } from '../auth/LoginModal';
+import { LoginForm } from '../auth/LoginForm';
 
 interface Plan {
   id: string;
@@ -156,7 +156,7 @@ export function SubscriptionPlans() {
           </div>
         </div>
       </div>
-      <LoginModal 
+      <LoginForm 
         isOpen={isLoginModalOpen} 
         onClose={() => setIsLoginModalOpen(false)} 
       />

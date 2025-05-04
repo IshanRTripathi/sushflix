@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
+import Modal from '../common/Modal';
+import { useAuth } from './AuthContext';
+import { useNavigate } from 'react-router-dom';
 import { AlertCircle } from 'lucide-react';
+import { signupUser } from '../../services/apiService';
 import { loginUser } from '../../services/apiService';
-import { useAuth } from '../../components/auth/AuthContext';
 
 const countryCodes = [
   { code: '+91', flag: '🇮🇳' },
@@ -9,151 +12,225 @@ const countryCodes = [
   // Add more as needed
 ];
 
-export function LoginForm({ closeModal }: { closeModal: () => void }) {
+export const LoginForm: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, onClose }) => {
+  const navigate = useNavigate();
   const [tab, setTab] = useState<'phone' | 'email'>('phone');
   const [countryCode, setCountryCode] = useState(countryCodes[0].code);
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-
+  const [isLoading, setIsLoading] = useState(false);
+  const [phonePasswordMode, setPhonePasswordMode] = useState(true);
+  const [emailPasswordMode, setEmailPasswordMode] = useState(true);
   const { login } = useAuth();
-  const [loading, setLoading] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setError('');
-    
+    setIsLoading(true);
     try {
       if (tab === 'phone') {
-        // For phone login, we need to implement phone verification
-        // This is a placeholder for now
-        setError('Phone verification coming soon');
-        return;
+        if (phonePasswordMode) {
+          await login(phone, password);
+          navigate('/explore');
+        } else {
+          setError('Phone OTP login coming soon');
+          return;
+        }
+      } else {
+        if (emailPasswordMode) {
+          await login(email, password);
+          navigate('/explore');
+        } else {
+          setError('Email OTP login coming soon');
+          return;
+        }
       }
-
-      // Email login
-      if (!email || !password) {
-        setError('Please enter both email and password');
-        return;
-      }
-
-      await login(email, password);
-      closeModal();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Login failed. Please try again.');
+      onClose();
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Login failed');
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setIsLoading(true);
+    try {
+      if (!username || !email || !password) {
+        setError('Please fill in all required fields');
+        return;
+      }
+
+      // Prepare user data to match backend requirements
+      const userData = {
+        username,
+        email,
+        password,
+        isCreator: false,
+        displayName: username,
+        profilePic: ''
+      };
+
+      await signupUser(userData);
+      navigate('/explore');
+      onClose();
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Signup failed');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+
+
   return (
-    <div className="w-full max-w-md">
-      <h2 className="text-xl font-bold text-gray-900 mb-1">Welcome to Bingeme.</h2>
-      <p className="text-sm text-gray-500 mb-6">The future of creator-fan connection.</p>
-      <div className="flex mb-4 rounded-lg overflow-hidden bg-gray-100">
+    <Modal isOpen={isOpen} onClose={onClose}>
+      <div className="relative max-w-md w-full mx-auto bg-white p-6 overflow-hidden">
         <button
-          className={`flex-1 py-2 text-sm font-medium ${tab === 'phone' ? 'bg-white text-black' : 'text-gray-500'}`}
-          onClick={() => setTab('phone')}
+          onClick={onClose}
+          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
         >
-          Phone
+          <AlertCircle className="h-6 w-6" />
         </button>
-        <button
-          className={`flex-1 py-2 text-sm font-medium ${tab === 'email' ? 'bg-white text-black' : 'text-gray-500'}`}
-          onClick={() => setTab('email')}
-        >
-          Email
-        </button>
-      </div>
-      {tab === 'phone' ? (
-        <div className="mb-4">
-          <label className="block text-xs font-medium text-gray-700 mb-1">Phone Number</label>
-          <div className="flex items-center border rounded-lg overflow-hidden bg-gray-50">
-            <select
-              className="px-2 py-2 bg-gray-50 text-sm outline-none"
-              value={countryCode}
-              onChange={e => setCountryCode(e.target.value)}
-            >
-              {countryCodes.map(c => (
-                <option key={c.code} value={c.code}>{c.flag} {c.code}</option>
-              ))}
-            </select>
-            <input
-              className="flex-1 px-3 py-2 bg-gray-50 outline-none text-sm"
-              type="tel"
-              placeholder="Enter Phone number"
-              value={phone}
-              onChange={e => setPhone(e.target.value)}
-            />
-          </div>
-        </div>
-      ) : (
-        <div className="mb-4">
-          <label className="block text-xs font-medium text-gray-700 mb-1">Email</label>
-          <input
-            className="w-full px-3 py-2 border rounded-lg bg-gray-50 outline-none text-sm"
-            type="email"
-            placeholder="Enter your email"
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-          />
-        </div>
-      )}
-      <button
-        onClick={handleLogin}
-        disabled={loading}
-        className={`w-full bg-black text-white rounded-lg py-2 font-medium mb-2 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
-      >
-        {loading ? 'Signing in...' : 'Sign in →'}
-      </button>
-      <button
-        className="w-full border border-gray-300 rounded-lg py-2 font-medium mb-2 bg-white"
-        onClick={() => setShowPassword(v => !v)}
-        type="button"
-      >
-        Login with password
-      </button>
-      {showPassword && (
-        <div className="mb-4 mt-2">
-          <input
-            className="w-full px-3 py-2 border rounded-lg bg-gray-50 outline-none text-sm mb-2"
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-          />
+        <h2 className="text-xl font-bold text-gray-900 mb-1">Welcome to Bingeme.</h2>
+        <p className="text-sm text-gray-500 mb-6">The future of creator-fan connection.</p>
+        <div className="flex mb-4 rounded-lg overflow-hidden bg-gray-100">
           <button
-          onClick={handleLogin}
-          disabled={loading}
-          className={`w-full bg-black text-white rounded-lg py-2 font-medium ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
-        >
-          {loading ? 'Signing in...' : 'Sign in with password'}
+            className={`flex-1 py-2 text-sm font-medium ${tab === 'phone' ? 'bg-white text-black' : 'text-gray-500'}`}
+            onClick={() => setTab('phone')}
+          >
+            Phone
+          </button>
+          <button
+            className={`flex-1 py-2 text-sm font-medium ${tab === 'email' ? 'bg-white text-black' : 'text-gray-500'}`}
+            onClick={() => setTab('email')}
+          >
+            Email
+          </button>
+        </div>
+        {tab === 'phone' ? (
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div className="flex items-center border rounded-lg overflow-hidden bg-gray-50">
+              <select
+                className="px-2 py-2 bg-gray-50 text-sm outline-none"
+                value={countryCode}
+                onChange={e => setCountryCode(e.target.value)}
+              >
+                {countryCodes.map(c => (
+                  <option key={c.code} value={c.code}>{c.flag} {c.code}</option>
+                ))}
+              </select>
+              <input
+                className="flex-1 px-3 py-2 bg-gray-50 outline-none text-sm"
+                type="tel"
+                placeholder="Enter Phone number"
+                value={phone}
+                onChange={e => setPhone(e.target.value)}
+              />
+            </div>
+            {phonePasswordMode ? (
+              <div>
+                <input
+                  className="w-full px-3 py-2 border rounded-lg bg-gray-50 outline-none text-sm"
+                  type="password"
+                  placeholder="Password"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                />
+              </div>
+            ) : null}
+            {error && (
+              <div className="mt-4 p-2 bg-red-50 border border-red-200 rounded flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-red-500" />
+                <span className="text-red-700 text-xs">{error}</span>
+              </div>
+            )}
+            <button
+              type="submit"
+              className="w-full bg-black text-white py-2 rounded-lg font-medium hover:bg-gray-900 transition disabled:opacity-50"
+              disabled={isLoading}
+            >
+              {isLoading ? 'Signing in...' : 'Sign in →'}
+            </button>
+            <button
+              type="button"
+              className="w-full border border-gray-300 rounded-lg py-2 font-medium hover:bg-gray-50 transition"
+              onClick={() => setPhonePasswordMode(!phonePasswordMode)}
+            >
+              {phonePasswordMode ? 'Login via OTP' : 'Login via password'}
+            </button>
+          </form>
+        ) : (
+          <form onSubmit={handleSignup} className="space-y-4">
+            <div>
+              <input
+                className="w-full px-3 py-2 border rounded-lg bg-gray-50 outline-none text-sm"
+                type="text"
+                placeholder="Username"
+                value={username}
+                onChange={e => setUsername(e.target.value)}
+              />
+            </div>
+            <div>
+              <input
+                className="w-full px-3 py-2 border rounded-lg bg-gray-50 outline-none text-sm"
+                type="email"
+                placeholder="Enter email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+              />
+            </div>
+            {emailPasswordMode ? (
+              <div>
+                <input
+                  className="w-full px-3 py-2 border rounded-lg bg-gray-50 outline-none text-sm"
+                  type="password"
+                  placeholder="Password"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                />
+              </div>
+            ) : null}
+            {error && (
+              <div className="mt-4 p-2 bg-red-50 border border-red-200 rounded flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-red-500" />
+                <span className="text-red-700 text-xs">{error}</span>
+              </div>
+            )}
+            <button
+              type="submit"
+              className="w-full bg-black text-white py-2 rounded-lg font-medium hover:bg-gray-900 transition disabled:opacity-50"
+              disabled={isLoading}
+            >
+              {isLoading ? 'Signing up...' : 'Sign up'}
+            </button>
+            <button
+              type="button"
+              className="w-full border border-gray-300 rounded-lg py-2 font-medium hover:bg-gray-50 transition"
+              onClick={() => setEmailPasswordMode(!emailPasswordMode)}
+            >
+              {emailPasswordMode ? 'Login via OTP' : 'Login via password'}
+            </button>
+          </form>
+        )}
+        <div className="flex items-center my-4">
+          <div className="flex-1 h-px bg-gray-200" />
+          <span className="mx-2 text-xs text-gray-400">Or sign in with</span>
+          <div className="flex-1 h-px bg-gray-200" />
+        </div>
+        <button className="w-full flex items-center justify-center border border-gray-300 rounded-lg py-2 font-medium bg-white">
+          <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-5 h-5 mr-2" />
+          Continue with Google
         </button>
+        <div className="text-center mt-4 text-xs text-gray-500">
+          Already have an account? <button onClick={onClose} className="text-indigo-600 font-medium">Sign in</button>
         </div>
-      )}
-      <div className="text-center my-2">
-        <a href="/forgot-password" className="text-xs font-medium text-gray-700">Forgot Password ?</a>
       </div>
-      <div className="flex items-center my-4">
-        <div className="flex-1 h-px bg-gray-200" />
-        <span className="mx-2 text-xs text-gray-400">Or sign in with</span>
-        <div className="flex-1 h-px bg-gray-200" />
-      </div>
-      <button className="w-full flex items-center justify-center border border-gray-300 rounded-lg py-2 font-medium bg-white mb-2">
-        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-5 h-5 mr-2" />
-        Continue with Google
-      </button>
-      <div className="text-center mt-4 text-xs text-gray-500">
-        New to Bingeme? <a href="/signup" className="text-indigo-600 font-medium">Sign up</a>
-      </div>
-      {error && (
-        <div className="mt-4 p-2 bg-red-50 border border-red-200 rounded flex items-center gap-2">
-          <AlertCircle className="w-4 h-4 text-red-500" />
-          <span className="text-red-700 text-xs">{error}</span>
-        </div>
-      )}
-    </div>
+    </Modal>
   );
-}
+};

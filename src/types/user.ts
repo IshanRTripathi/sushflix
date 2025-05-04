@@ -17,6 +17,7 @@ export interface UserProfile {
   bio: string;
   socialLinks: SocialLinks;
   lastUpdated: Date;
+  isCreator: boolean;
 }
 
 export interface EditableProfileFields {
@@ -25,6 +26,7 @@ export interface EditableProfileFields {
   profilePicture?: string;
   bio?: string;
   socialLinks: SocialLinks;
+  isCreator: boolean;
 }
 
 export interface FeaturedProfile {

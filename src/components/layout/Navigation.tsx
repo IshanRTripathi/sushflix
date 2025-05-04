@@ -153,7 +153,7 @@ export function Navigation() {
       <Modal isOpen={isLoginModalOpen} onClose={closeModal}>
         <h3 className="text-lg font-semibold">Welcome to Bingeme</h3>
         <p className="text-sm text-gray-500">The future of creator-fan connection.</p>
-        <LoginForm closeModal={closeModal} />
+        <LoginForm isOpen={isLoginModalOpen} onClose={closeModal} />
       </Modal>
     </nav>
   );

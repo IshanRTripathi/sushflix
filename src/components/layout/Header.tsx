@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
-import { LoginModal } from '../auth/LoginModal';
+import { LoginForm } from '../auth/LoginForm';
 import ThemeToggle from '../ui/ThemeToggle';
 import { logger } from '../../utils/logger';
 
@@ -98,7 +98,7 @@ export function Header() {
         </div>
       </div>
 
-      <LoginModal 
+      <LoginForm 
         isOpen={isLoginModalOpen} 
         onClose={() => setIsLoginModalOpen(false)} 
       />
