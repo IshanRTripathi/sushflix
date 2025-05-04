@@ -186,10 +186,7 @@ export const LoginForm: React.FC<{ onClose: () => void; openSignupModal: () => v
       <div className="text-center mt-4 text-xs text-gray-500">
         Don't have an account?{' '}
         <button
-          onClick={() => {
-            onClose();
-            openSignupModal();
-          }}
+          onClick={openSignupModal}
           className="text-indigo-600 font-medium"
         >
           Sign up

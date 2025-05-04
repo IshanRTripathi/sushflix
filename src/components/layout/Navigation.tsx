@@ -23,6 +23,7 @@ export function Navigation() {
   };
 
   const openSignupModal = () => {
+    setIsLoginModalOpen(false);
     setIsSignupModalOpen(true);
   };
 
@@ -158,13 +159,12 @@ export function Navigation() {
         </div>
       )}
       <Modal isOpen={isLoginModalOpen} onClose={closeModal}>
-        <h3 className="text-lg font-semibold">Welcome to Bingeme</h3>
-        <p className="text-sm text-gray-500">The future of creator-fan connection.</p>
+        <h2 className="text-xl font-bold text-gray-900 mb-1">Welcome to Bingeme.</h2>
+        <p className="text-sm text-gray-500 mb-6">The future of creator-fan connection.</p>
         <LoginForm onClose={closeModal} openSignupModal={openSignupModal} />
       </Modal>
       <Modal isOpen={isSignupModalOpen} onClose={closeModal}>
-        <h3 className="text-lg font-semibold">Create Account</h3>
-        <p className="text-sm text-gray-500">Join Bingeme and connect with creators.</p>
+        <h2 className="text-2xl font-bold text-gray-900 mb-6">Create your account</h2>
         <SignupForm onClose={closeModal} />
       </Modal>
     </nav>
