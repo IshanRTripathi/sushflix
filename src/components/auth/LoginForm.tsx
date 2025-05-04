@@ -17,9 +17,8 @@ export const LoginForm: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ 
   const [tab, setTab] = useState<'phone' | 'email'>('email');
   const [countryCode, setCountryCode] = useState(countryCodes[0].code);
   const [phone, setPhone] = useState('');
-  const [email, setEmail] = useState('');
-
   const [password, setPassword] = useState('');
+  const [credentials, setCredentials] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [phonePasswordMode, setPhonePasswordMode] = useState(true);
@@ -31,7 +30,7 @@ export const LoginForm: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ 
     setError('');
     setIsLoading(true);
     try {
-      const credentials = tab === 'phone' ? phone : email;
+      const credentials = tab === 'phone' ? phone : credentials;
       const isPasswordMode = tab === 'phone' ? phonePasswordMode : emailPasswordMode;
       
       if (isPasswordMode) {
@@ -75,7 +74,7 @@ export const LoginForm: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ 
             className={`flex-1 py-2 text-sm font-medium ${tab === 'email' ? 'bg-white text-black' : 'text-gray-500'}`}
             onClick={() => setTab('email')}
           >
-            Email
+            Email/Username
           </button>
         </div>
         {tab === 'phone' ? (
@@ -137,8 +136,9 @@ export const LoginForm: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ 
                 className="w-full px-3 py-2 border rounded-lg bg-gray-50 outline-none text-sm"
                 type="email"
                 placeholder="Username or email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
+                onChange={(e) => setCredentials(e.target.value)}
+                value={credentials}
+
               />
             </div>
             {emailPasswordMode ? (
