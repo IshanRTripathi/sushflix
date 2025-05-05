@@ -14,7 +14,7 @@ steps:
     waitFor: ['-']
 
   - name: 'gcr.io/cloud-builders/gcloud'
-    args: ['storage', 'buckets', 'update-iam-policy', 'gs://user-profile-pictures-sushflix', '--member', 'serviceAccount:${_SERVICE_ACCOUNT_EMAIL}', '--role', 'roles/storage.admin']
+    args: ['storage', 'buckets', 'set-iam-policy', 'gs://user-profile-pictures-sushflix', '--member', 'serviceAccount:${_SERVICE_ACCOUNT_EMAIL}', '--role', 'roles/storage.admin']
     waitFor: ['-']
 
   # Deploy backend
