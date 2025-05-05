@@ -1,0 +1,72 @@
+:root {
+  /* Light theme */
+  --bg-color: #ffffff;
+  --text-color: #1a1a1a;
+  --primary-color: #ff4757;
+  --secondary-color: #2f3542;
+  --border-color: #e0e0e0;
+  --card-bg: #ffffff;
+  --card-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  --hover-bg: #f5f6fa;
+  --active-bg: #e0e0e0;
+}
+
+[data-theme="dark"] {
+  /* Dark theme */
+  --bg-color: #1a1a1a;
+  --text-color: #ffffff;
+  --primary-color: #ff4757;
+  --secondary-color: #4a4e69;
+  --border-color: #333333;
+  --card-bg: #2f3542;
+  --card-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  --hover-bg: #333333;
+  --active-bg: #4a4e69;
+}
+
+/* Apply theme variables to common elements */
+body {
+  background-color: var(--bg-color);
+  color: var(--text-color);
+}
+
+[data-theme="dark"] body {
+  background-color: var(--bg-color);
+  color: var(--text-color);
+}
+
+.card {
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--card-shadow);
+}
+
+[data-theme="dark"] .card {
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--card-shadow);
+}
+
+.button {
+  transition: background-color 0.2s;
+}
+
+[data-theme="dark"] .button {
+  transition: background-color 0.2s;
+}
+
+.button:hover {
+  background-color: var(--hover-bg);
+}
+
+[data-theme="dark"] .button:hover {
+  background-color: var(--hover-bg);
+}
+
+.button:active {
+  background-color: var(--active-bg);
+}
+
+[data-theme="dark"] .button:active {
+  background-color: var(--active-bg);
+}
