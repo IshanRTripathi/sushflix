@@ -49,9 +49,9 @@ export default function ProfilePage() {
     queryFn: async () => {
       setLoadingState({ isLoading: true });
       try {
-        const data = await profileService.getUserPosts(username || '');
+        const response = await profileService.getUserPosts(username || '');
         setLoadingState({ isLoading: false });
-        return data;
+        return response;
       } catch (error) {
         setLoadingState({ isLoading: false });
         throw error;
@@ -67,9 +67,9 @@ export default function ProfilePage() {
     queryFn: async () => {
       setLoadingState({ isLoading: true });
       try {
-        const data = await profileService.getUserStats(username || '');
+        const response = await profileService.getUserStats(username || '');
         setLoadingState({ isLoading: false });
-        return data;
+        return response;
       } catch (error) {
         setLoadingState({ isLoading: false });
         throw error;
@@ -84,16 +84,16 @@ export default function ProfilePage() {
     queryFn: async () => {
       setLoadingState({ isLoading: true });
       try {
-        const data = await profileService.getUserProfile(username || '');
+        const response = await profileService.getUserProfile(username || '');
         setLoadingState({ isLoading: false });
-        return data;
+        return response;
       } catch (error) {
         setLoadingState({ isLoading: false });
         throw error;
       }
     },
     enabled: !!username,
-    retry: 3,
+    retry: 3
   });
 
   // Handle loading state
@@ -102,23 +102,6 @@ export default function ProfilePage() {
 
   // Determine if viewing own profile
   const isOwnProfile = username === currentUser?.username;
-
-  // Check follow status on mount
-  useEffect(() => {
-    const checkFollowStatus = async () => {
-      try {
-        const isFollowing = await profileService.toggleFollow(username || '');
-        // Update local state
-        // setIsFollowing(isFollowing);
-      } catch (error) {
-        console.error('Error checking follow status:', error);
-      }
-    };
-
-    if (username && !isOwnProfile) {
-      checkFollowStatus();
-    }
-  }, [username, isOwnProfile]);
 
   // Handle follow/unfollow
   const handleFollow = async () => {

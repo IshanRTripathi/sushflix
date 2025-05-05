@@ -79,7 +79,7 @@ export function HomePage() {
   const fetchFeaturedProfiles = async () => {
     setLoadingState({ isLoading: true });
     try {
-      const response = await fetch(`${API_BASE_URL}/api/profiles/featured`);
+      const response = await fetch(`${API_BASE_URL}/profiles/featured`);
       if (!response.ok) {
         throw new Error('Failed to fetch featured profiles');
       }
