@@ -1,5 +1,6 @@
 const User = require('../models/User');
 const Post = require('../models/Post');
+const StorageService = require('../services/StorageService');
 
 // Get user profile
 const getUserProfile = async (req, res) => {
@@ -114,7 +115,60 @@ const getUserStats = async (req, res) => {
   }
 };
 
+const storageService = StorageService.getInstance();
+
+// Upload profile picture
+const uploadProfilePicture = async (req, res) => {
+  try {
+    const { username } = req.params;
+    const file = req.file;
+
+    if (!file) {
+      return res.status(400).json({
+        success: false,
+        error: 'No file uploaded'
+      });
+    }
+
+    // Upload to GCS
+    const uploadResponse = await storageService.uploadFile(username, file);
+
+    if (!uploadResponse.success) {
+      return res.status(400).json({
+        success: false,
+        error: uploadResponse.error
+      });
+    }
+
+    // Update user profile with new image URL
+    const user = await User.findOneAndUpdate(
+      { username },
+      { profilePic: uploadResponse.url },
+      { new: true }
+    );
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found'
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      imageUrl: uploadResponse.url
+    });
+  } catch (error) {
+    logger.error('Error uploading profile picture', { error });
+    res.status(500).json({
+      success: false,
+      error: 'Failed to upload profile picture'
+    });
+  }
+};
+
 module.exports = {
   getUserProfile,
-  getUserStats
+  getUserStats,
+  uploadProfilePicture
 };

@@ -6,15 +6,8 @@ import path from 'path';
 export default defineConfig({
   resolve: {
     alias: {
-      path: 'path-browserify',
-      stream: 'stream-browserify',
-      crypto: 'crypto-browserify',
-      http: 'stream-http',
-      https: 'https-browserify',
-      os: 'os-browserify',
-      url: 'url',
-      querystring: 'querystring-es3',
-      zlib: 'browserify-zlib'
+      '@': path.resolve(__dirname, 'src')
+      // Removed unnecessary Node polyfills
     }
   },
   define: {
@@ -65,11 +58,6 @@ export default defineConfig({
         secure: false
       }
     }
-  },
-  resolve: {
-    alias: {
-      '@': path.resolve(__dirname, 'src'),
-    },
   },
   publicDir: 'public',
 });

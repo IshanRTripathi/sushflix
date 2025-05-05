@@ -2,9 +2,6 @@ import { logger } from '../utils/logger';
 import axios from 'axios';
 import { UserProfile } from '../types/user';
 import { API_BASE_URL } from '../config/index';
-import { StorageService } from './storageService';
-
-const storageService = StorageService.getInstance();
 
 // API Endpoints
 const API_ENDPOINTS = {
@@ -188,26 +185,23 @@ export class ProfileService {
     try {
       logger.debug(`Uploading profile picture for user: ${username}`);
 
-      // Upload to Google Cloud Storage
-      const uploadResponse = await storageService.uploadFile(username, file);
-      
-      if (!uploadResponse.success) {
-        throw new Error(uploadResponse.error || 'Failed to upload profile picture');
-      }
+      // Send file to backend for storage upload
+      const formData = new FormData();
+      formData.append('file', file);
 
-      // Update user profile with new image URL
-      await this.request({
-        method: 'PUT',
-        url: `${API_BASE_URL}/users/${username}/profile`,
-        data: {
-          profilePicture: uploadResponse.url
+      const response = await this.request<{ success: boolean; imageUrl?: string; error?: string }>({
+        method: 'POST',
+        url: `${API_BASE_URL}/users/${username}/profile-picture`,
+        data: formData,
+        headers: {
+          'Content-Type': 'multipart/form-data'
         }
       });
 
-      logger.debug(`Successfully updated profile picture for user: ${username}`);
-      return {
-        success: true,
-        imageUrl: uploadResponse.url
+      logger.debug(`Successfully uploaded profile picture for user: ${username}`);
+      return response || {
+        success: false,
+        error: 'Failed to upload profile picture'
       };
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
