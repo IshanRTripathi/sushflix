@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { logger } from '../../utils/logger';
 import SubmitButton from '../common/SubmitButton';
 import FormField from '../common/FormField';
-import { API_BASE_URL } from '../../config';
+import { API_BASE_URL } from '../../config/index';
 
 interface SignupFormProps {
   onClose: () => void;
@@ -84,7 +84,7 @@ export function SignupForm({ onClose, openLoginModal }: SignupFormProps) {
         isCreator: false
       };
 
-      const response = await fetch(`${API_BASE_URL}signup`, {
+      const response = await fetch(`${API_BASE_URL}auth/signup`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(signupData)

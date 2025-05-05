@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Header } from '../layout/Header'; // Import the Header component
+import { Header } from '../layout/Header';
+import { API_BASE_URL } from '../../config/index';
 
 interface UserProfile {
   username: string;
@@ -10,8 +11,6 @@ interface UserProfile {
   subscribers: number;
   profilePic?: string;
 }
-
-const API_BASE_URL = '/api/auth/'; // assuming this is defined somewhere in your code
 
 export function HomePage() {
     console.log('HomePage loaded');

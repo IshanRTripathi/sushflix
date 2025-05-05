@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { Play, Heart, Share2, BookmarkPlus } from 'lucide-react';
-import { API_BASE_URL } from '../../config';
+import { API_BASE_URL } from '../../config/index';
 
 interface ContentData {
   id: string;

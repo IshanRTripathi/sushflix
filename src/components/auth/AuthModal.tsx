@@ -16,8 +16,7 @@ export const AuthModal = () => {
   React.useEffect(() => {
     if (isAuthModalOpen) {
       logger.debug('Auth modal opened', { 
-        modalType: authModalType,
-        user: null
+        modalType: authModalType
       });
     }
   }, [isAuthModalOpen, authModalType]);

@@ -35,7 +35,7 @@ export const useAuth = () => {
     authMethod: 'password' | 'otp'
   }) => {
     try {
-      const response = await axios.post<AuthResponse>('/api/login', credentials);
+      const response = await axios.post<AuthResponse>('/api/auth/login', credentials);
       const { token, user } = response.data;
 
       localStorage.setItem('token', token);
@@ -61,7 +61,7 @@ export const useAuth = () => {
     profilePic: string;
   }) => {
     try {
-      const response = await axios.post('/api/signup', userData);
+      const response = await axios.post('/api/auth/signup', userData);
       const { token, user } = {
         token: response.data.response.newUser.token || '',
         user: response.data.response.newUser

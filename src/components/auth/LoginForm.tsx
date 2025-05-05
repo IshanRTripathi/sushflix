@@ -232,7 +232,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onClose, openSignupModal }
         <button 
           onClick={() => {
             logger.debug('Switching to signup form');
-            openSignupModal();
+            openSignupModal?.();
           }}
           className="text-indigo-600 font-medium"
           aria-label="Switch to signup form"
