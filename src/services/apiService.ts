@@ -62,8 +62,8 @@ export const loginUser = (data: LoginData) => {
   return apiClient.post('login', data);
 };
 
-export const getProfile = () => {
-  return apiClient.get('me');
+export const getProfile = (userId: string) => {
+  return apiClient.get(`profile/${userId}`);
 };
 
 export const getProfileByUsername = (username: string) => {
