@@ -70,40 +70,54 @@ interface UserDocument {
    - ✅ POST /api/users/:username/follow - Follow/unfollow user
    - ✅ POST /api/posts/:postId/share - Share post
    - ✅ POST /api/posts/:postId/bookmark - Bookmark post
+   - ✅ POST /api/users/:username/profile-picture - Upload profile picture
 
 2. **Services Implementation** (Completed)
-   - ✅ Created `profileService.ts` with centralized API endpoints
-   - ✅ Implemented proper error handling and validation
-   - ✅ Added type safety with TypeScript interfaces
-   - ✅ Implemented request timeout handling
+   - Created `profileService.ts` with centralized API endpoints
+   - Implemented proper error handling and validation
+   - Added type safety with TypeScript interfaces
+   - Implemented request timeout handling
 
-3. **Database Operations** (In Progress)
-   - ✅ Created repository pattern for user operations
-   - ✅ Implemented transaction support for follow/unfollow
-   - ✅ Added Google Cloud Storage integration
-     - ✅ Set up bucket permissions
-     - ✅ Implemented file upload handler
-     - ✅ Added file validation
-     - ✅ Implemented URL generation
-   - ❌ Add proper indexes for performance optimization
+3. **Database Operations** (Completed)
+   - Created repository pattern for user operations
+   - Implemented transaction support for follow/unfollow
+   - Added Google Cloud Storage integration
+     - Set up bucket permissions
+     - Implemented file upload handler
+     - Added file validation
+     - Implemented URL generation
+     - Added proper indexes for performance optimization
+   - Moved StorageService to backend for better security
+   - Implemented proper environment variable management with Secret Manager
 
 ### Phase 2: Frontend Components (In Progress)
 
 1. **Profile Layout** (Completed)
-   - ✅ Created ProfilePage component
-   - ✅ Implemented proper responsive design
-   - ✅ Added loading states and error boundaries
-   - ✅ Implemented skeleton loading for better UX
-   - ✅ Added proper error handling
+   - Created ProfilePage component
+   - Implemented proper responsive design
+   - Added loading states and error boundaries
+   - Implemented skeleton loading for better UX
+   - Added proper error handling
 
-2. **Profile Sections** (In Progress)
-   - ✅ ProfileHeader - Display profile picture, name, bio
-   - ✅ StatsSection - Show followers, following, posts count
-   - ✅ PostsGrid - Display user posts in grid layout
-   - ✅ SocialLinks - Display social media links
-   - ✅ EditProfile - Form for editing profile information
-     - ✅ Username and display name editing
-     - ✅ Bio editing (500 character limit)
+2. **Profile Sections** (Completed)
+   - ProfileHeader - Display profile picture, name, bio
+   - StatsSection - Show followers, following, posts count
+   - ProfilePictureSection - Handle profile picture uploads
+   - BioSection - Edit profile bio
+   - SocialLinksSection - Manage social media links
+   - PrivacySettingsSection - Control profile visibility
+   - PostsGrid - Display user posts in grid layout
+   - SocialLinks - Display social media links
+   - EditProfile - Form for editing profile information
+     - Username and display name editing
+     - Bio editing (500 character limit)
+     - Social links editing (URL validation)
+     - Profile picture upload
+       - Google Cloud Storage integration
+       - File validation (2MB limit, image types)
+       - Progress indicator
+       - Error handling
+     - Creator status toggle
      - ✅ Social links editing (URL validation)
      - ✅ Profile picture upload
        - ✅ Google Cloud Storage integration
