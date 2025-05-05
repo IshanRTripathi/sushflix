@@ -1,13 +1,11 @@
 import { logger } from '../utils/logger';
 import { UserProfile, FeaturedProfileConfig, EditableProfileFields } from '../types/user';
 import { getProfile, getProfileByUsername, updateProfile, uploadProfilePicture } from '../services/apiService';
-import { cacheService } from './cacheService';
 import fs from 'fs/promises';
 import path from 'path';
 
 export class UserProfileService {
   private static instance: UserProfileService;
-  private readonly CACHE_KEY_PREFIX = 'user_profile_';
   private readonly CONFIG_FILE = 'featured-profiles.json';
   private readonly PROFILES_DIR = 'public/profiles';
 
@@ -32,10 +30,6 @@ export class UserProfileService {
     }
   }
 
-  private getCacheKey(userId: string): string {
-    return `${this.CACHE_KEY_PREFIX}${userId}`;
-  }
-
   public async getProfileByUsername(username: string): Promise<UserProfile | null> {
     try {
       const response = await getProfileByUsername(username);
@@ -48,23 +42,8 @@ export class UserProfileService {
 
   public async getProfile(userId: string): Promise<UserProfile | null> {
     try {
-      // Check cache first
-      const cacheKey = this.getCacheKey(userId);
-      const cachedProfile = cacheService.get<UserProfile>(cacheKey);
-      
-      if (cachedProfile) {
-        logger.debug(`Cache hit for profile: ${userId}`);
-        return cachedProfile;
-      }
-
       const response = await getProfile(userId);
-      const profile = response.data;
-
-      // Cache the result
-      cacheService.set(cacheKey, profile);
-      logger.debug(`Cached profile: ${userId}`);
-
-      return profile;
+      return response.data;
     } catch (error) {
       logger.error(`Error getting profile: ${userId}`, { error });
       return null;
@@ -110,10 +89,6 @@ export class UserProfileService {
 
       // Save to database
       await updateProfile(userId, updatedProfile);
-      
-      // Clear cache
-      const cacheKey = this.getCacheKey(userId);
-      cacheService.delete(cacheKey);
       
       logger.info(`Profile updated: ${userId}`);
       return true;

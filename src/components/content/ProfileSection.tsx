@@ -52,7 +52,7 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({ user, isFollowing, onFo
       </div>
 
       {/* Social Links */}
-      {Object.entries(user.socialLinks).length > 0 && (
+      {user.socialLinks && Object.entries(user.socialLinks).length > 0 && (
         <div className="mt-6">
           <h3 className="text-white mb-2">Social Links</h3>
           <div className="flex space-x-4">

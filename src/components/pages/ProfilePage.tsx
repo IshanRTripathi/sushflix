@@ -1,10 +1,29 @@
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { ProfileService } from '../../services/profileService';
 import { logger } from '../../utils/logger';
+import { useLoadingState } from '../../contexts/LoadingStateContext';
+import { useQuery } from '@tanstack/react-query';
+import { UserProfile } from '../../types/user';
+import Loading from '../ui/Loading';
 import ProfileSection from '../content/ProfileSection';
 import PostCard from '../content/PostCard';
+
+interface UserStats {
+  posts: number;
+  followers: number;
+  following: number;
+}
+
+interface Post {
+  id: string;
+  caption: string;
+  mediaUrl: string;
+  likes: number;
+  comments: number;
+  createdAt: string;
+}
 
 const profileService = ProfileService.getInstance();
 
@@ -22,45 +41,67 @@ export default function ProfilePage() {
     return null;
   }
 
-  const [error, setError] = useState<string | null>(null);
-
-  const handleError = (err: Error | string) => {
-    logger.error('Profile page error:', { error: err });
-    setError(err instanceof Error ? err.message : err);
-  };
-
-  // Determine if viewing own profile
-  const isOwnProfile = username === currentUser?.username;
+  const { setLoadingState } = useLoadingState();
 
   // Fetch user's posts
-  const { data: posts, isLoading: postsLoading, error: postsError } = useQuery({
+  const { data: posts, isLoading: postsLoading, error: postsError } = useQuery<Post[]>({
     queryKey: ['userPosts', username],
-    queryFn: () => profileService.getUserPosts(username || ''),
+    queryFn: async () => {
+      setLoadingState({ isLoading: true });
+      try {
+        const data = await profileService.getUserPosts(username || '');
+        setLoadingState({ isLoading: false });
+        return data;
+      } catch (error) {
+        setLoadingState({ isLoading: false });
+        throw error;
+      }
+    },
     enabled: !!username,
+    retry: 3
   });
 
   // Fetch user profile stats
-  const { data: stats, isLoading: statsLoading, error: statsError } = useQuery({
+  const { data: stats, isLoading: statsLoading, error: statsError } = useQuery<UserStats>({
     queryKey: ['userStats', username],
-    queryFn: () => profileService.getUserStats(username || ''),
-    enabled: !!username,
+    queryFn: async () => {
+      setLoadingState({ isLoading: true });
+      try {
+        const data = await profileService.getUserStats(username || '');
+        setLoadingState({ isLoading: false });
+        return data;
+      } catch (error) {
+        setLoadingState({ isLoading: false });
+        throw error;
+      }
+    },
+    enabled: !!username
   });
 
   // Fetch user profile
-  const { data: userProfile, isLoading: isProfileLoading, error: profileError } = useQuery({
+  const { data: userProfile, isLoading: isProfileLoading, error: profileError } = useQuery<UserProfile>({
     queryKey: ['userProfile', username],
-    queryFn: () => profileService.getUserProfile(username || ''),
+    queryFn: async () => {
+      setLoadingState({ isLoading: true });
+      try {
+        const data = await profileService.getUserProfile(username || '');
+        setLoadingState({ isLoading: false });
+        return data;
+      } catch (error) {
+        setLoadingState({ isLoading: false });
+        throw error;
+      }
+    },
     enabled: !!username,
+    retry: 3,
   });
 
-  // Handle errors
-  useEffect(() => {
-    if (postsError || statsError) {
-      setError('Failed to load profile data. Please try again later.');
-    } else {
-      setError(null);
-    }
-  }, [postsError, statsError]);
+  // Handle loading state
+  const isLoading = postsLoading || statsLoading || isProfileLoading;
+  const hasError = postsError || statsError || profileError;
+
+  // Determine if viewing own profile
+  const isOwnProfile = username === currentUser?.username;
 
   // Check follow status on mount
   useEffect(() => {
@@ -84,17 +125,35 @@ export default function ProfilePage() {
     try {
       await profileService.toggleFollow(username || '');
     } catch (error) {
-      setError('Failed to update follow status. Please try again.');
       console.error('Error following user:', error);
     }
   };
 
-  if (postsLoading || statsLoading) {
+  if (isLoading) {
+    return <Loading showSpinner={true} />;
+  }
+
+  if (hasError) {
+    logger.error('Profile page error:', { error: postsError || statsError || profileError });
     return (
-      <div className="flex items-center justify-center h-full">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-red-500 mb-2">Error Loading Profile</h2>
+          <p className="text-gray-400">Please try refreshing the page.</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-4 px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+          >
+            Refresh Page
+          </button>
+        </div>
       </div>
     );
+  }
+
+  // Early return if data is not loaded
+  if (!userProfile || !stats) {
+    return null;
   }
 
   return currentUser ? (
@@ -125,22 +184,6 @@ export default function ProfilePage() {
           />
         ))}
       </div>
-
-      {error && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="bg-black p-6 rounded-lg text-white">
-            <p>{error}</p>
-            <button
-              onClick={() => setError(null)}
-              className="mt-4 bg-red-600 hover:bg-red-700 px-4 py-2 rounded"
-            >
-              Close
-            </button>
-          </div>
-        </div>
-      )}
     </div>
-  ) : null;
+  ): null;
 }
-
-

@@ -1,12 +1,12 @@
 import React from 'react';
 import { useAuth } from '../auth/AuthContext';
-import { useTheme } from '../../context/ThemeContext';
-import { Container, Typography, Box, Button, Switch } from '@mui/material';
+import { Container, Typography, Box, Button } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
+import { ThemeSettings } from '../settings/ThemeSettings';
+
 
 const SettingsPage: React.FC = () => {
   const { user, logout } = useAuth();
-  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -37,20 +37,7 @@ const SettingsPage: React.FC = () => {
         </Typography>
       </Box>
 
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h6" gutterBottom>
-          Theme
-        </Typography>
-        <Switch
-          checked={theme === 'dark'}
-          onChange={toggleTheme}
-          color="primary"
-          name="theme"
-        />
-        <Typography variant="body2" sx={{ ml: 2 }}>
-          Dark Mode
-        </Typography>
-      </Box>
+      <ThemeSettings />
 
       <Button
         variant="contained"
