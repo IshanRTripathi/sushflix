@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import Sidebar from './Sidebar';
-import { Header } from './Header';
+import { Navigation } from './Navigation';
 import MoreMenu from './MoreMenu';
 
 interface AppLayoutProps {
@@ -20,7 +20,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
-        <Header onMoreClick={() => setIsMoreMenuOpen(true)} />
+        <Navigation />
 
         {/* Content */}
         <main className="flex-1 overflow-y-auto p-4">
