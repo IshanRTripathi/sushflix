@@ -2,65 +2,10 @@ steps:
   # Build and push the backend Docker image
   - name: 'gcr.io/cloud-builders/docker'
     args: ['build', '-t', 'gcr.io/$PROJECT_ID/sushflix-backend', './src/server']
-    timeout: '1200s' # Adjust timeout as needed
+    timeout: '1200s'
 
-  # Set up GCP Storage bucket permissions
+  # Deploy backend with required secrets
   - name: 'gcr.io/cloud-builders/gcloud'
-    args: ['storage', 'buckets', 'create', 'gs://user-profile-pictures-sushflix']
-    waitFor: ['-']
-
-  - name: 'gcr.io/cloud-builders/gcloud'
-    args: ['storage', 'buckets', 'get-iam-policy', 'gs://user-profile-pictures-sushflix']
-    waitFor: ['-']
-
-  - name: 'gcr.io/cloud-builders/gcloud'
-    args: ['storage', 'buckets', 'set-iam-policy', 'gs://user-profile-pictures-sushflix', '--member', 'serviceAccount:${_SERVICE_ACCOUNT_EMAIL}', '--role', 'roles/storage.admin']
-    waitFor: ['-']
-
-  # Deploy backend
-  - name: 'gcr.io/cloud-builders/gcloud'
-    args: ['run', 'deploy', 'sushflix-backend',
-           '--image', 'gcr.io/$PROJECT_ID/sushflix-backend',
-           '--platform', 'managed',
-           '--region', 'us-central1',
-           '--allow-unauthenticated']
-    waitFor: ['-']
-
-  # Create service account key for storage access
-  - name: 'gcr.io/cloud-builders/gcloud'
-    id: Create Service Account Key
-    args:
-      [
-        'iam',
-        'service-accounts',
-        'keys',
-        'create',
-        '/workspace/storage-key.json',
-        '--iam-account',
-        '$PROJECT_NUMBER-compute@developer.gserviceaccount.com',
-        '--key-file-type',
-        'json'
-      ]
-
-  # Push the service account key to Secret Manager
-  - name: 'gcr.io/cloud-builders/gcloud'
-    id: Push Storage Key
-    args:
-      [
-        'secrets',
-        'versions',
-        'add',
-        'storage-key',
-        '--data-file',
-        '/workspace/storage-key.json'
-      ]
-
-  - name: 'gcr.io/cloud-builders/docker'
-    args: ['push', 'gcr.io/$PROJECT_ID/sushflix-backend']
-
-  # Deploy the backend FIRST to get its URL
-  - name: 'gcr.io/cloud-builders/gcloud'
-    id: Deploy Backend
     args:
       [
         'run',
@@ -74,17 +19,10 @@ steps:
         'us-central1',
         '--allow-unauthenticated',
         '--set-secrets',
-        'CLIENT_ID=google-oauth-client-id:latest,CLIENT_SECRET=google-oauth-client-secret:latest,MONGO_URI=mongo-uri:latest,JWT_SECRET=jwt-secret:latest,STORAGE_KEY=storage-key:latest'
+        'MONGO_URI=mongo-uri:latest,JWT_SECRET=jwt-secret:latest'
       ]
 
-  # Get the Google OAuth client ID from Secret Manager
-  - name: 'gcr.io/cloud-builders/gcloud'
-    id: Get Client ID
-    args: ['secrets', 'versions', 'access', 'latest', '--secret=google-oauth-client-id']
-    env:
-      - 'CLIENT_ID=$$(gcloud secrets versions access latest --secret=google-oauth-client-id)'
-
-  # Build and push the frontend Docker image, passing the backend URL and client ID as build-args
+  # Build and push the frontend Docker image
   - name: 'gcr.io/cloud-builders/docker'
     args: [
       'build',
@@ -92,18 +30,16 @@ steps:
       'gcr.io/$PROJECT_ID/sushflix-frontend',
       '.',
       '--build-arg',
-      'VITE_BACKEND_URL=https://sushflix-backend-796527544626.us-central1.run.app',
-      '--build-arg',
-      'VITE_CLIENT_ID=$$CLIENT_ID'
+      'VITE_BACKEND_URL=https://sushflix-backend-796527544626.us-central1.run.app'
     ]
     timeout: '1200s'
 
+  # Push frontend image
   - name: 'gcr.io/cloud-builders/docker'
     args: ['push', 'gcr.io/$PROJECT_ID/sushflix-frontend']
 
   # Deploy the frontend
   - name: 'gcr.io/cloud-builders/gcloud'
-    id: Deploy Frontend
     args:
       [
         'run',
