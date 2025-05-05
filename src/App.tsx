@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './components/auth/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
+import { LoadingStateProvider } from './contexts/LoadingStateContext';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
 import ProfileLayout from './components/layout/ProfileLayout';
 import { Footer } from './components/layout/Footer';
@@ -15,8 +16,9 @@ import { AuthModal } from './components/auth/AuthModal';
 function App() {
   return (
     <ThemeProvider>
-      <AuthProvider>
-        <Router>
+      <LoadingStateProvider>
+        <AuthProvider>
+          <Router>
           <div className="min-h-screen flex flex-col">
             <main className="flex-grow">
               <Routes>
@@ -54,8 +56,9 @@ function App() {
             <Footer />
           </div>
           <AuthModal />
-        </Router>
-      </AuthProvider>
+          </Router>
+        </AuthProvider>
+      </LoadingStateProvider>
     </ThemeProvider>
   );
 }

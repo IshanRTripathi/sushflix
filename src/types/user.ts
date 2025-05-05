@@ -9,6 +9,11 @@ export interface UserProfile {
   userId: string;
   username: string;
   createdAt: Date;
+  subscribers: number;
+  posts: number;
+  followers?: number;
+  following?: number;
+  isFollowing?: boolean;
   
   // Editable fields
   displayName: string;
