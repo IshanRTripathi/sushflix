@@ -1,7 +1,14 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { API_BASE_URL } from '../../config';
+import { API_BASE_URL } from '../../config/index';
 import { UserProfile } from '../../types/user';
 import { logger } from '../../utils/logger';
+
+// Centralized endpoint configuration
+const AUTH_ENDPOINTS = {
+  LOGIN: `${API_BASE_URL}auth/login`,
+  LOGOUT: `${API_BASE_URL}auth/logout`,
+  PROFILE: `${API_BASE_URL}auth/me`
+};
 
 interface AuthContextType {
   user: UserProfile | null;
@@ -24,59 +31,124 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [authModalType, setAuthModalType] = useState<'login' | 'signup'>('login');
 
   useEffect(() => {
+    logger.debug('Checking for stored user session');
     const storedUser = localStorage.getItem('user');
     if (storedUser) {
       try {
-        const parsedUser = JSON.parse(storedUser);
+        logger.debug('Found stored user session');
+        const parsedUser = JSON.parse(storedUser) as UserProfile;
         setUser(parsedUser);
+        logger.info('Successfully restored user session from storage');
       } catch (err: unknown) {
-        const errorMessage = err instanceof Error ? err.message : 'Invalid JSON';
-        logger.error('Error parsing stored user', { error: errorMessage });
+        const errorMessage = err instanceof Error ? err.message : 'Invalid user data';
+        logger.error('Failed to parse stored user data', { 
+          error: errorMessage,
+          storedData: storedUser 
+        });
+        localStorage.removeItem('user');
+        localStorage.removeItem('token');
       }
+    } else {
+      logger.debug('No stored user session found');
     }
   }, []);
 
   const login = async (username: string, password: string): Promise<UserProfile> => {
-    logger.debug('Attempting login with credentials');
+    if (!username || !password) {
+      throw new Error('Username and password are required');
+    }
+
     try {
-      const response = await fetch(`${API_BASE_URL}auth/login`, {
+      logger.debug('Attempting login to:', { url: AUTH_ENDPOINTS.LOGIN });
+      
+      const response = await fetch(AUTH_ENDPOINTS.LOGIN, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
+        body: JSON.stringify({ usernameOrEmail: username, password })
       });
 
-      const data = await response.json();
-      const { token, user: userData } = data;
-      logger.info('Login successful');
+      if (!response.ok) {
+        const errorBody = await response.text();
+        logger.error('Login failed with status', {
+          status: response.status,
+          statusText: response.statusText,
+          url: response.url,
+          headers: Object.fromEntries(response.headers.entries()),
+          errorBody: errorBody || 'Empty response body'
+        });
+        throw new Error(errorBody || 'Login failed');
+      }
 
-      // Store token in localStorage
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(userData));
+      const responseText = await response.text();
+      logger.debug('Response content', { responseText });
+      
+      try {
+        const data = responseText ? JSON.parse(responseText) : {};
+        
+        if (!response.ok) {
+          const errorMsg = data.message || `HTTP error! status: ${response.status}`;
+          logger.error('Login request failed', { 
+            status: response.status,
+            error: errorMsg,
+            response: data,
+            requestUrl: AUTH_ENDPOINTS.LOGIN
+          });
+          throw new Error(errorMsg);
+        }
 
-      setUser(userData);
-      return userData;
-    } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Login failed';
-      logger.error('Login failed:', { error: errorMessage });
-      setError(errorMessage);
-      throw new Error(errorMessage);
+        const { token, user: userData } = data;
+        
+        if (!token || !userData) {
+          const errorMsg = 'Invalid response from server';
+          logger.error(errorMsg, { response: data });
+          throw new Error(errorMsg);
+        }
+
+        logger.info('Login successful', { userId: userData.id });
+        localStorage.setItem('token', token);
+        localStorage.setItem('user', JSON.stringify(userData));
+        setUser(userData);
+        setError(null);
+        return userData;
+      } catch (parseError) {
+        logger.error('Failed to parse response', {
+          status: response.status,
+          responseText,
+          error: parseError,
+          requestUrl: AUTH_ENDPOINTS.LOGIN
+        });
+        throw new Error(`Server returned invalid response (status ${response.status})`);
+      }
+    } catch (error) {
+      logger.error('Login process failed', {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+        apiBase: API_BASE_URL,
+        timestamp: new Date().toISOString()
+      });
+      throw error;
     }
   };
 
-  const logout = () => {
-    logger.info('Logging out user');
+  const logout = async () => {
+    logger.info('Logging out user', { userId: user?.userId });
+    await fetch(AUTH_ENDPOINTS.LOGOUT, { method: 'POST' });
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setUser(null);
+    setError(null);
   };
 
   const openAuthModal = (type: 'login' | 'signup') => {
+    logger.debug('Opening auth modal', { modalType: type });
     setAuthModalType(type);
     setIsAuthModalOpen(true);
   };
 
   const closeAuthModal = () => {
+    logger.debug('Closing auth modal');
     setIsAuthModalOpen(false);
+    setError(null);
   };
 
   const value: AuthContextType = {
@@ -97,6 +169,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
+    logger.error('useAuth must be used within an AuthProvider');
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;

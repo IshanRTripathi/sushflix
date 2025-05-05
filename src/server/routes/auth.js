@@ -29,7 +29,7 @@ router.post('/signup', [
         .matches(/[0-9]/)
         .withMessage('Password must contain at least one number')
 ], async (req, res, next) => { // Added next here
-    logger.info(`Executing route: POST /api/auth/signup`); // Corrected log path
+    logger.info(`Executing route: POST /api/signup`); // Corrected log path
     logger.info(`Received registration request body: ${JSON.stringify(req.body)}`); // Log the full body
 
     const errors = validationResult(req);
@@ -102,41 +102,8 @@ router.post('/signup', [
     }
 });
 
-// Route to create a test user (only in development)
-if (process.env.NODE_ENV === 'development') {
-    router.post('/createTestUser', async (req, res) => {
-        logger.info(`Executing route: POST /createTestUser`);
-        try {
-            logger.info('Hashing test user password');
-            // Hash the password
-            const salt = await bcrypt.genSalt(10);
-            const hashedPassword = await bcrypt.hash('test', salt);
-            logger.info('Test user password hashed successfully');
-
-            // Create a new test user
-            logger.info('Creating new test user instance');
-            const newTestUser = new User({
-                username: 'test',
-                email: 'test@test.com',
-                password: hashedPassword,
-                isCreator: false,
-            });
-             logger.info('Attempting to save test user to DB: test');
-
-            await newTestUser.save();
-            logger.info(`Test user created successfully and saved to DB: test@test.com`);
-            res.status(201).json({ message: 'Test user created successfully' });
-        } catch (err) {
-            logger.error(`Error creating test user: ${err.message}`);
-            res.status(500).json({ message: 'Error creating test user' });
-        }
-    });
-}
-
-
-
 router.get('/me', auth(), async (req, res, next) => { // Applying auth middleware
-    logger.info(`Executing route: GET /api/auth/me`); // Corrected log path
+    logger.info(`Executing route: GET /api/me`); // Corrected log path
     // The auth middleware should populate req.user if authenticated
     if (!req.user) {
          // This case should ideally be handled by the auth middleware sending a 401
@@ -169,10 +136,10 @@ router.post('/login', [
       }),
 
     body('password')
-        .isLength({ min: 8 })
-        .withMessage('Password must be at least 8 characters long')
+        .isLength({ min: 5 })
+        .withMessage('Password must be at least 5 characters long')
 ], async (req, res, next) => { // Added next here
-    logger.info(`Executing route: POST /api/auth/login`); // Corrected log path
+    logger.info(`Executing route: POST /api/login`); // Corrected log path
     logger.info(`Received login request body: ${JSON.stringify(req.body)}`); // Log the full body
 
     const errors = validationResult(req);
