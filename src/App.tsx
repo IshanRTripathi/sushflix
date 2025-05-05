@@ -1,7 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './components/auth/AuthContext';
-import { ThemeProvider } from './context/ThemeContext';
+import { ThemeProvider } from './contexts/ThemeContext';
 import { LoadingStateProvider } from './contexts/LoadingStateContext';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
 import ProfileLayout from './components/layout/ProfileLayout';
@@ -12,6 +12,7 @@ import { ContentDetail } from './components/content/ContentDetail';
 import SettingsPage from './components/pages/SettingsPage';
 import ProfilePage from './components/pages/ProfilePage';
 import { AuthModal } from './components/auth/AuthModal';
+import { Navigation } from './components/layout/Navigation';
 
 function App() {
   return (
@@ -20,6 +21,7 @@ function App() {
         <AuthProvider>
           <Router>
           <div className="min-h-screen flex flex-col">
+            <Navigation />
             <main className="flex-grow">
               <Routes>
                 <Route path="/" element={<HomePage />} />

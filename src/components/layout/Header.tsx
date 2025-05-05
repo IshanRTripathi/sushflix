@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
-import ThemeToggle from '../ui/ThemeToggle';
 import { logger } from '../../utils/logger';
 
 export function Header() {
@@ -26,7 +25,6 @@ export function Header() {
         </Link>
 
         <div className="flex items-center space-x-4">
-          <ThemeToggle />
           <button
             onClick={() => setIsMenuOpen(!isMenuOpen)}
             className="text-gray-400 hover:text-white p-2 rounded"

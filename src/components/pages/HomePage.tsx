@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Header } from '../layout/Header';
 import { API_BASE_URL } from '../../config/index';
 import ErrorBoundary from '../ui/ErrorBoundary';
 import Loading from '../ui/Loading';
@@ -124,7 +123,6 @@ export function HomePage() {
   return (
     <ErrorBoundary>
       <div className="flex flex-col min-h-screen bg-white">
-        <Header />
         <main className="flex-grow container mx-auto px-6 md:px-12 py-12">
           {state.isLoading ? (
             <div className="flex items-center justify-center min-h-[50vh]">
