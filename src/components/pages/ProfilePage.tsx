@@ -3,6 +3,26 @@ import { useParams } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { ProfileService } from '../../services/profileService';
 import { logger } from '../../utils/logger';
+import { useLoadingState } from '../../contexts/LoadingStateContext';
+import ErrorBoundary from '../ui/ErrorBoundary';
+import Loading from '../ui/Loading';
+import { useQuery } from '@tanstack/react-query';
+import { UserProfile } from '../../types/user';
+
+interface UserStats {
+  posts: number;
+  followers: number;
+  following: number;
+}
+
+interface Post {
+  id: string;
+  caption: string;
+  mediaUrl: string;
+  likes: number;
+  comments: number;
+  createdAt: string;
+}
 import ProfileSection from '../content/ProfileSection';
 import PostCard from '../content/PostCard';
 
@@ -22,6 +42,7 @@ export default function ProfilePage() {
     return null;
   }
 
+  const { setLoadingState } = useLoadingState();
   const [error, setError] = useState<string | null>(null);
 
   const handleError = (err: Error | string) => {
@@ -33,24 +54,54 @@ export default function ProfilePage() {
   const isOwnProfile = username === currentUser?.username;
 
   // Fetch user's posts
-  const { data: posts, isLoading: postsLoading, error: postsError } = useQuery({
+  const { data: posts, isLoading: postsLoading, error: postsError } = useQuery<Post[]>({
     queryKey: ['userPosts', username],
-    queryFn: () => profileService.getUserPosts(username || ''),
-    enabled: !!username,
+    queryFn: async () => {
+      setLoadingState({ isLoading: true });
+      try {
+        const data = await profileService.getUserPosts(username || '');
+        setLoadingState({ isLoading: false });
+        return data;
+      } catch (error) {
+        setLoadingState({ isLoading: false });
+        throw error;
+      }
+    },
+    enabled: !!username
   });
 
   // Fetch user profile stats
-  const { data: stats, isLoading: statsLoading, error: statsError } = useQuery({
+  const { data: stats, isLoading: statsLoading, error: statsError } = useQuery<UserStats>({
     queryKey: ['userStats', username],
-    queryFn: () => profileService.getUserStats(username || ''),
-    enabled: !!username,
+    queryFn: async () => {
+      setLoadingState({ isLoading: true });
+      try {
+        const data = await profileService.getUserStats(username || '');
+        setLoadingState({ isLoading: false });
+        return data;
+      } catch (error) {
+        setLoadingState({ isLoading: false });
+        throw error;
+      }
+    },
+    enabled: !!username
   });
 
   // Fetch user profile
-  const { data: userProfile, isLoading: isProfileLoading, error: profileError } = useQuery({
+  const { data: userProfile, isLoading: isProfileLoading, error: profileError } = useQuery<UserProfile>({
     queryKey: ['userProfile', username],
-    queryFn: () => profileService.getUserProfile(username || ''),
-    enabled: !!username,
+    queryFn: async () => {
+      setLoadingState({ isLoading: true });
+      try {
+        const data = await profileService.getUserProfile(username || '');
+        setLoadingState({ isLoading: false });
+        return data;
+      } catch (error) {
+        setLoadingState({ isLoading: false });
+        throw error;
+      }
+    },
+    enabled: !!username
   });
 
   // Handle errors
@@ -91,9 +142,7 @@ export default function ProfilePage() {
 
   if (postsLoading || statsLoading) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
-      </div>
+      <Loading showSpinner={true} />
     );
   }
 
@@ -126,19 +175,21 @@ export default function ProfilePage() {
         ))}
       </div>
 
-      {error && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="bg-black p-6 rounded-lg text-white">
-            <p>{error}</p>
-            <button
-              onClick={() => setError(null)}
-              className="mt-4 bg-red-600 hover:bg-red-700 px-4 py-2 rounded"
-            >
-              Close
-            </button>
+      <ErrorBoundary>
+        {error && (
+          <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+            <div className="bg-black p-6 rounded-lg text-white">
+              <p>{error}</p>
+              <button
+                onClick={() => setError(null)}
+                className="mt-4 bg-red-600 hover:bg-red-700 px-4 py-2 rounded"
+              >
+                Close
+              </button>
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </ErrorBoundary>
     </div>
   ) : null;
 }
