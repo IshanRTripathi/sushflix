@@ -2,35 +2,17 @@ import React, { useState } from 'react';
 import { useAuth } from './AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { AlertCircle, X } from 'lucide-react';
+import { logger } from '../../utils/logger';
 
-// Reusable Modal wrapper
-export const Modal: React.FC<{ isOpen: boolean; onClose: () => void; children: React.ReactNode }> = ({ isOpen, onClose, children }) => {
-  if (!isOpen) return null;
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 backdrop-blur-sm p-4"
-      onClick={onClose}
-    >
-      <div
-        className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 relative"
-        onClick={e => e.stopPropagation()}
-      >
-        {children}
-      </div>
-    </div>
-  );
-};
+interface LoginFormProps {
+  onClose: () => void;
+  openSignupModal: () => void;
+}
 
-const countryCodes = [
-  { code: '+91', flag: '🇮🇳' },
-  { code: '+1', flag: '🇺🇸' },
-];
-
-// LoginForm component
-export const LoginForm: React.FC<{ onClose: () => void; openSignupModal: () => void }> = ({ onClose, openSignupModal }) => {
+export const LoginForm: React.FC<LoginFormProps> = ({ onClose, openSignupModal }) => {
   const navigate = useNavigate();
   const [tab, setTab] = useState<'phone' | 'email'>('email');
-  const [countryCode, setCountryCode] = useState(countryCodes[0].code);
+  const [countryCode, setCountryCode] = useState('+91');
   const [phone, setPhone] = useState('');
   const [credentials, setCredentials] = useState('');
   const [password, setPassword] = useState('');
@@ -40,34 +22,67 @@ export const LoginForm: React.FC<{ onClose: () => void; openSignupModal: () => v
   const [emailPasswordMode, setEmailPasswordMode] = useState(true);
   const { login } = useAuth();
 
+  const countryCodes = [
+    { code: '+91', flag: '🇮🇳' },
+    { code: '+1', flag: '🇺🇸' },
+  ];
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
+    logger.debug('Login form submitted', { loginMethod: tab });
 
     try {
       const loginIdentifier = tab === 'phone' ? phone : credentials;
-      const isPasswordMode = tab === 'phone' ? phonePasswordMode : emailPasswordMode;
-
+      
       if (!loginIdentifier.trim()) {
-        setError(tab === 'phone' ? 'Please enter your phone number' : 'Please enter your email or username');
+        const errorMsg = tab === 'phone' 
+          ? 'Please enter your phone number' 
+          : 'Please enter your email or username';
+        logger.warn('Validation failed', { error: errorMsg });
+        setError(errorMsg);
         return;
       }
 
-      if (isPasswordMode) {
-        if (!password.trim()) {
-          setError('Please enter your password');
-          return;
-        }
-
-        await login(loginIdentifier, password);
-        navigate('/explore');
-        onClose();
-      } else {
-        setError(`${tab === 'phone' ? 'Phone' : 'Email'} OTP login coming soon`);
+      if (!password.trim()) {
+        logger.warn('Validation failed', { error: 'Password required' });
+        setError('Please enter your password');
+        return;
       }
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Login failed');
+
+      logger.info('Attempting login', { 
+        identifier: tab === 'phone' 
+          ? `${countryCode}${phone.substring(0, 3)}***` 
+          : credentials.includes('@') 
+            ? credentials.substring(0, 3) + '***@***' 
+            : credentials 
+      });
+
+      await login(loginIdentifier, password);
+      logger.info('Login successful', { 
+        identifier: tab === 'phone' 
+          ? `${countryCode}${phone.substring(0, 3)}***` 
+          : credentials.includes('@') 
+            ? credentials.substring(0, 3) + '***@***' 
+            : credentials,
+        timestamp: new Date().toISOString() 
+      });
+      navigate('/explore');
+      onClose();
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Login failed';
+      logger.error('Login failed details', {
+        error: errorMessage,
+        stack: error instanceof Error ? error.stack : undefined,
+        identifier: tab === 'phone' 
+          ? `${countryCode}${phone.substring(0, 3)}***` 
+          : credentials.includes('@') 
+            ? credentials.substring(0, 3) + '***@***' 
+            : credentials,
+        timestamp: new Date().toISOString()
+      });
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -77,10 +92,14 @@ export const LoginForm: React.FC<{ onClose: () => void; openSignupModal: () => v
     <div className="relative w-full">
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h2 className="text-xl font-bold text-gray-900 mb-1">Welcome to Bingeme.</h2>
-          <p className="text-sm text-gray-500">The future of creator-fan connection.</p>
+          <h1 className="text-xl font-bold text-gray-900 mb-1">Welcome to Sushflix</h1>
+          <p className="text-sm text-gray-500">The future of streaming.</p>
         </div>
-        <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+        <button 
+          onClick={onClose} 
+          className="text-gray-400 hover:text-gray-600"
+          aria-label="Close login modal"
+        >
           <X className="h-5 w-5" />
         </button>
       </div>
@@ -89,27 +108,39 @@ export const LoginForm: React.FC<{ onClose: () => void; openSignupModal: () => v
         <button
           type="button"
           className={`flex-1 py-2 text-sm font-medium ${tab === 'phone' ? 'bg-white text-black' : 'text-gray-500'}`}
-          onClick={() => setTab('phone')}
+          onClick={() => {
+            logger.debug('Switched to phone login tab');
+            setTab('phone');
+          }}
+          aria-pressed={tab === 'phone'}
         >
           Phone
         </button>
         <button
           type="button"
           className={`flex-1 py-2 text-sm font-medium ${tab === 'email' ? 'bg-white text-black' : 'text-gray-500'}`}
-          onClick={() => setTab('email')}
+          onClick={() => {
+            logger.debug('Switched to email login tab');
+            setTab('email');
+          }}
+          aria-pressed={tab === 'email'}
         >
           Email/Username
         </button>
       </div>
 
-      <form onSubmit={handleLogin} className="space-y-4">
+      <form onSubmit={handleLogin} className="space-y-4" noValidate>
         {tab === 'phone' ? (
           <>
             <div className="flex items-center border rounded-lg overflow-hidden bg-gray-50">
               <select
                 className="px-2 py-2 bg-gray-50 text-sm outline-none"
                 value={countryCode}
-                onChange={(e) => setCountryCode(e.target.value)}
+                onChange={(e) => {
+                  logger.debug('Country code changed', { code: e.target.value });
+                  setCountryCode(e.target.value);
+                }}
+                aria-label="Country code"
               >
                 {countryCodes.map((c) => (
                   <option key={c.code} value={c.code}>
@@ -123,6 +154,8 @@ export const LoginForm: React.FC<{ onClose: () => void; openSignupModal: () => v
                 placeholder="Enter phone number"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
+                aria-label="Phone number"
+                aria-invalid={!!error}
               />
             </div>
             {phonePasswordMode && (
@@ -132,15 +165,11 @@ export const LoginForm: React.FC<{ onClose: () => void; openSignupModal: () => v
                 placeholder="Password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                aria-label="Password"
+                aria-invalid={!!error}
+                aria-describedby={error ? 'password-error' : undefined}
               />
             )}
-            <button
-              type="button"
-              className="w-full border border-gray-300 rounded-lg py-2 font-medium hover:bg-gray-50 transition"
-              onClick={() => setPhonePasswordMode(!phonePasswordMode)}
-            >
-              {phonePasswordMode ? 'Login via OTP' : 'Login via password'}
-            </button>
           </>
         ) : (
           <>
@@ -150,6 +179,8 @@ export const LoginForm: React.FC<{ onClose: () => void; openSignupModal: () => v
               placeholder="Username or email"
               value={credentials}
               onChange={(e) => setCredentials(e.target.value)}
+              aria-label="Username or email"
+              aria-invalid={!!error}
             />
             {emailPasswordMode && (
               <input
@@ -158,22 +189,24 @@ export const LoginForm: React.FC<{ onClose: () => void; openSignupModal: () => v
                 placeholder="Password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                aria-label="Password"
+                aria-invalid={!!error}
+                aria-describedby={error ? 'password-error' : undefined}
               />
             )}
-            <button
-              type="button"
-              className="w-full border border-gray-300 rounded-lg py-2 font-medium hover:bg-gray-50 transition"
-              onClick={() => setEmailPasswordMode(!emailPasswordMode)}
-            >
-              {emailPasswordMode ? 'Login via OTP' : 'Login via password'}
-            </button>
           </>
         )}
 
         {error && (
-          <div className="mt-4 p-2 bg-red-50 border border-red-200 rounded flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 text-red-500" />
-            <span className="text-red-700 text-xs">{error}</span>
+          <div 
+            role="alert"
+            aria-live="assertive"
+            className="mt-4 p-2 bg-red-50 border border-red-200 rounded flex items-center gap-2"
+          >
+            <AlertCircle className="w-4 h-4 text-red-500" aria-hidden="true" />
+            <span id="password-error" className="text-red-700 text-xs">
+              {error}
+            </span>
           </div>
         )}
 
@@ -181,29 +214,29 @@ export const LoginForm: React.FC<{ onClose: () => void; openSignupModal: () => v
           type="submit"
           className="w-full bg-black text-white py-2 rounded-lg font-medium hover:bg-gray-900 transition disabled:opacity-50"
           disabled={isLoading}
+          aria-busy={isLoading}
         >
-          {isLoading ? 'Signing in...' : 'Sign in →'}
+          {isLoading ? (
+            <span className="flex items-center justify-center">
+              <span className="animate-spin mr-2">↻</span>
+              Signing in...
+            </span>
+          ) : (
+            'Sign in →'
+          )}
         </button>
       </form>
 
-      <div className="flex items-center my-4">
-        <div className="flex-1 h-px bg-gray-200" />
-        <span className="mx-2 text-xs text-gray-400">Or sign in with</span>
-        <div className="flex-1 h-px bg-gray-200" />
-      </div>
-
-      <button className="w-full flex items-center justify-center border border-gray-300 rounded-lg py-2 font-medium bg-white">
-        <img
-          src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
-          alt="Google"
-          className="w-5 h-5 mr-2"
-        />
-        Continue with Google
-      </button>
-
       <div className="text-center mt-4 text-xs text-gray-500">
         Don't have an account?{' '}
-        <button onClick={openSignupModal} className="text-indigo-600 font-medium">
+        <button 
+          onClick={() => {
+            logger.debug('Switching to signup form');
+            openSignupModal?.();
+          }}
+          className="text-indigo-600 font-medium"
+          aria-label="Switch to signup form"
+        >
           Sign up
         </button>
       </div>

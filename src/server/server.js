@@ -69,17 +69,11 @@ app.use(express.static(distPath));  // Serving the Vite build's static files
 logger.info('Static files middleware applied');
 
 // Routes
-logger.info('Applying auth routes');
+logger.info('Applying routes');
 app.use('/api/auth', authRoutes);
-logger.info('Auth routes applied');
-
-logger.info('Applying content routes');
 app.use('/api/content', contentRoutes);
-logger.info('Content routes applied');
-
-logger.info('Applying subscriptions routes');
 app.use('/api/subscriptions', subscriptionRoutes);
-logger.info('Subscriptions routes applied');
+logger.info('Routes applied');
 
 // Handle other routes by serving the 'index.html' file
 logger.info('Applying catch-all route for index.html');

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Header } from '../layout/Header'; // Import the Header component
+import { Header } from '../layout/Header';
+import { API_BASE_URL } from '../../config/index';
 
 interface UserProfile {
   username: string;
@@ -18,7 +19,7 @@ export function HomePage() {
     useEffect(() => {
       const fetchProfile = async () => {
           try {
-              const response = await fetch('/api/auth/me');
+              const response = await fetch(`${API_BASE_URL}profile`);
               const userData = await response.json()
               if (response.ok) {
                 setProfile(userData);
