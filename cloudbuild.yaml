@@ -4,6 +4,49 @@ steps:
     args: ['build', '-t', 'gcr.io/$PROJECT_ID/sushflix-backend', './src/server']
     timeout: '1200s' # Adjust timeout as needed
 
+  # Set up GCP Storage bucket permissions
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: Setup Storage
+    args:
+      [
+        'storage',
+        'buckets',
+        'update',
+        'gs://user-profile-pictures-sushflix',
+        '--uniform-bucket-level-access',
+        '--location',
+        'us-central1'
+      ]
+
+  # Create service account key for storage access
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: Create Service Account Key
+    args:
+      [
+        'iam',
+        'service-accounts',
+        'keys',
+        'create',
+        '/workspace/storage-key.json',
+        '--iam-account',
+        '$PROJECT_NUMBER-compute@developer.gserviceaccount.com',
+        '--key-file-type',
+        'json'
+      ]
+
+  # Push the service account key to Secret Manager
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: Push Storage Key
+    args:
+      [
+        'secrets',
+        'versions',
+        'add',
+        'storage-key',
+        '--data-file',
+        '/workspace/storage-key.json'
+      ]
+
   - name: 'gcr.io/cloud-builders/docker'
     args: ['push', 'gcr.io/$PROJECT_ID/sushflix-backend']
 
@@ -23,7 +66,7 @@ steps:
         'us-central1',
         '--allow-unauthenticated',
         '--set-secrets',
-        'CLIENT_ID=google-oauth-client-id:latest,CLIENT_SECRET=google-oauth-client-secret:latest,MONGO_URI=mongo-uri:latest,JWT_SECRET=jwt-secret:latest'
+        'CLIENT_ID=google-oauth-client-id:latest,CLIENT_SECRET=google-oauth-client-secret:latest,MONGO_URI=mongo-uri:latest,JWT_SECRET=jwt-secret:latest,STORAGE_KEY=storage-key:latest'
       ]
 
   # Get the Google OAuth client ID from Secret Manager

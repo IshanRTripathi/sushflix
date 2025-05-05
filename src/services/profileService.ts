@@ -2,6 +2,9 @@ import { logger } from '../utils/logger';
 import axios from 'axios';
 import { UserProfile } from '../types/user';
 import { API_BASE_URL } from '../config/index';
+import { StorageService } from './storageService';
+
+const storageService = StorageService.getInstance();
 
 // API Endpoints
 const API_ENDPOINTS = {
@@ -179,5 +182,58 @@ export class ProfileService {
       method: 'POST',
       url: API_ENDPOINTS.POST_BOOKMARK(postId),
     });
+  }
+
+  public async uploadProfilePicture(username: string, file: File): Promise<{ success: boolean; imageUrl?: string; error?: string }> {
+    try {
+      logger.debug(`Uploading profile picture for user: ${username}`);
+
+      // Upload to Google Cloud Storage
+      const uploadResponse = await storageService.uploadFile(username, file);
+      
+      if (!uploadResponse.success) {
+        throw new Error(uploadResponse.error || 'Failed to upload profile picture');
+      }
+
+      // Update user profile with new image URL
+      await this.request({
+        method: 'PUT',
+        url: `${API_BASE_URL}/users/${username}/profile`,
+        data: {
+          profilePicture: uploadResponse.url
+        }
+      });
+
+      logger.debug(`Successfully updated profile picture for user: ${username}`);
+      return {
+        success: true,
+        imageUrl: uploadResponse.url
+      };
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      logger.error(`Error uploading profile picture: ${errorMessage}`);
+      return {
+        success: false,
+        error: errorMessage
+      };
+    }
+  }
+
+  public async updateProfile(username: string, profileData: any): Promise<void> {
+    try {
+      logger.debug(`Updating profile for user: ${username}`);
+
+      await this.request({
+        method: 'PUT',
+        url: `${API_BASE_URL}/users/${username}/profile`,
+        data: profileData
+      });
+
+      logger.debug(`Successfully updated profile for user: ${username}`);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      logger.error(`Error updating profile: ${errorMessage}`);
+      throw new Error(errorMessage);
+    }
   }
 }
