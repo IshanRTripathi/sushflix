@@ -3,9 +3,25 @@ import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 import path from 'path';
 
-const PROD_API_BASE_URL = 'http://localhost:8080';
-
 export default defineConfig({
+  resolve: {
+    alias: {
+      path: 'path-browserify',
+      stream: 'stream-browserify',
+      crypto: 'crypto-browserify',
+      http: 'stream-http',
+      https: 'https-browserify',
+      os: 'os-browserify',
+      url: 'url',
+      querystring: 'querystring-es3',
+      zlib: 'browserify-zlib'
+    }
+  },
+  define: {
+    'process.env': {
+      VITE_BACKEND_URL: process.env.VITE_BACKEND_URL || 'http://localhost:8080'
+    }
+  },
   plugins: [
     react(),
     VitePWA({
