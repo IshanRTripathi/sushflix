@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Button, Dialog, DialogTitle, DialogContent, DialogActions, CircularProgress, Alert } from '@mui/material';
 import { CloudUpload } from '@mui/icons-material';
-import { useAuth } from '../../auth/AuthContext';
+import { useAuth } from '../auth/AuthContext';
 import { ProfileService } from '../../services/profileService';
 import { logger } from '../../utils/logger';
 
