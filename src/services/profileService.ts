@@ -1,5 +1,11 @@
 import axios from 'axios';
-import { API_BASE_URL } from '../config';
+
+// Get API base URL from meta tag
+const API_BASE_URL = document.querySelector('meta[name="api-base-url"]')?.getAttribute('content') || '';
+
+if (!API_BASE_URL) {
+  console.error('API base URL not found in meta tag');
+}
 import { UserProfile } from '../types/user';
 import { logger } from '../utils/logger';
 

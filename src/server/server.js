@@ -14,6 +14,8 @@ const devLogin = require('./devLogin');
 const authRoutes = require('./routes/auth');
 const contentRoutes = require('./routes/content');
 const subscriptionRoutes = require('./routes/subscriptions');
+const userRoutes = require('./routes/user');
+const postRoutes = require('./routes/post');
 
 // Initialize express
 const app = express();
@@ -73,6 +75,8 @@ logger.info('Applying routes');
 app.use('/api/auth', authRoutes);
 app.use('/api/content', contentRoutes);
 app.use('/api/subscriptions', subscriptionRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/posts', postRoutes);
 logger.info('Routes applied');
 
 // Handle other routes by serving the 'index.html' file

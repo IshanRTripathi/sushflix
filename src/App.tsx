@@ -7,6 +7,7 @@ import { LoadingStateProvider } from './contexts/LoadingStateContext';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
 import ProfileLayout from './components/layout/ProfileLayout';
 import { Footer } from './components/layout/Footer';
+import Toast from './components/Toast';
 import { HomePage } from './components/pages/HomePage';
 import { ExplorePage } from './components/content/ExplorePage';
 import { ContentDetail } from './components/content/ContentDetail';
@@ -37,8 +38,12 @@ function App() {
                   <Routes>
                     <Route path="/" element={<HomePage />} />
                     <Route path="/explore" element={<ExplorePage />} />
-                    <Route path="/content/:id" element={<ContentDetail />} />
-                    <Route path="/profile" element={
+                    <Route path="/content/:id" element={
+                      <ProtectedRoute>
+                        <ContentDetail />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/profile/:username" element={
                       <ProtectedRoute>
                         <ProfilePage />
                       </ProtectedRoute>
@@ -49,11 +54,6 @@ function App() {
                       </ProtectedRoute>
                     } />
                     <Route path="/login" element={<Navigate to="/" />} />
-                    <Route path="/content/:id" element={
-                      <ProtectedRoute>
-                        <ContentDetail />
-                      </ProtectedRoute>
-                    } />
                     <Route path="/creator/:username" element={
                       <ProtectedRoute>
                         <ProfileLayout />
@@ -64,6 +64,7 @@ function App() {
                 <Footer />
               </div>
               <AuthModal />
+              <Toast />
             </Router>
           </AuthProvider>
         </QueryClientProvider>

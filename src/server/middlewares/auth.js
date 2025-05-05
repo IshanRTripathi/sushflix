@@ -7,23 +7,28 @@ const auth = (roles = []) => {
   return (req, res, next) => {
     logger.info('Auth middleware executed');
 
-    const token = req.header('Authorization')?.replace('Bearer ', '');
+    // Get token from Authorization header
+    const authHeader = req.headers?.authorization;
+    const token = authHeader ? authHeader.replace('Bearer ', '') : null;
 
     if (!token) {
+      logger.warn('Auth middleware: No token provided');
       return res.status(401).json({ message: 'No token, authorization denied' });
     }
 
     try {
-      
-            const decoded = jwt.verify(token, process.env.JWT_SECRET);
-            req.user = decoded;
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      req.user = decoded;
 
-            if (roles.length > 0 && !roles.some(role => req.user.roles.includes(role))) {
-                return res.status(403).json({ message: 'Access denied' });
-            }
+      // Check roles if provided
+      if (roles.length > 0 && !roles.some(role => req.user.roles.includes(role))) {
+        logger.warn(`Auth middleware: User does not have required roles. Required: ${roles.join(', ')}, User has: ${req.user.roles.join(', ')}`);
+        return res.status(403).json({ message: 'Access denied' });
+      }
 
-            next();
+      next();
     } catch (err) {
+      logger.error('Auth middleware: Token verification failed', err);
       res.status(401).json({ message: 'Token is not valid' });
     }
   };

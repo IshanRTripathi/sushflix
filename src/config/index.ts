@@ -1,4 +1,4 @@
-export const API_BASE_URL = 'https://sushflix-backend-796527544626.us-central1.run.app/api/';
+export const API_BASE_URL = 'http://localhost:8080/api/';
 
 // Theme configuration
 export const DEFAULT_THEME = 'dark';
