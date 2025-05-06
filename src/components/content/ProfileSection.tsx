@@ -1,5 +1,4 @@
 import { UserProfile } from '../../types/user';
-import ProfilePictureUpload from '../profile/ProfilePictureUpload';
 import Card from "@/components/ui/Card"
 import Button from "@/components/ui/Button"
 import { Icons } from "@/components/icons"
@@ -25,12 +24,44 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({ user, isFollowing, onFo
       <Card variant="default" className="bg-black">
         <div className="flex flex-row items-center space-x-4 p-6">
           <div className="relative w-32 h-32">
-            <ProfilePictureUpload
-              currentImage={user.profilePicture || '/default-avatar.png'}
-              onUploadSuccess={(newImageUrl) => {
-                // Update the profile picture URL in the user object
-                // This would typically be handled by your state management
-                console.log('New profile picture URL:', newImageUrl);
+            <label
+              htmlFor="profilePictureInput"
+              className="w-full h-full rounded-full cursor-pointer relative overflow-hidden"
+            >
+              {user.profilePicture ? (
+                <img
+                  src={user.profilePicture}
+                  alt="Profile"
+                  className="w-full h-full rounded-full object-cover"
+                />
+              ) : (
+                <div className="text-2xl flex items-center justify-center w-full h-full rounded-full bg-gray-700 text-white text-2xl font-bold">
+                  {user.displayName?.[0]?.toUpperCase() || 'U'}
+                </div>
+              )}
+              <div className="absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-20 transition-opacity duration-200 flex items-center justify-center">
+                <Icons.cloudUpload className="w-6 h-6 text-white" />
+              </div>
+            </label>
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              id="profilePictureInput"
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  const reader = new FileReader();
+                  reader.onload = (event) => {
+                    if (event.target?.result) {
+                      const img = document.querySelector('img');
+                      if (img) {
+                        img.src = event.target.result as string;
+                      }
+                    }
+                  };
+                  reader.readAsDataURL(file);
+                }
               }}
             />
           </div>
