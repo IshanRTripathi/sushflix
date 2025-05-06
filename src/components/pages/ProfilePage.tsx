@@ -143,7 +143,7 @@ export default function ProfilePage() {
     <div className="max-w-7xl mx-auto px-4">
       {/* Profile Section */}
       <ProfileSection
-        user={currentUser}
+        user={userProfile}
         isFollowing={!isOwnProfile}
         onFollow={handleFollow}
         posts={stats?.posts || 0}

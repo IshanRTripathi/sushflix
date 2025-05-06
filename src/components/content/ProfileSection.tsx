@@ -94,46 +94,38 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({ user, isFollowing, onFo
             </Button>
           </div>
 
-          {user.socialLinks && Object.entries(user.socialLinks).length > 0 && (
-            <div className="mb-6">
-              <h3 className="text-sm font-semibold mb-2">Social Links</h3>
-              <div className="flex flex-wrap gap-4">
-                {user.socialLinks.twitter && (
-                  <a
-                    href={user.socialLinks.twitter}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-400 hover:text-blue-300 flex items-center gap-2"
-                  >
-                    <Icons.twitter className="w-4 h-4" />
-                    Twitter
-                  </a>
-                )}
-                {user.socialLinks.linkedin && (
-                  <a
-                    href={user.socialLinks.linkedin}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-400 hover:text-blue-300 flex items-center gap-2"
-                  >
-                    <Icons.linkedin className="w-4 h-4" />
-                    LinkedIn
-                  </a>
-                )}
-                {user.socialLinks.instagram && (
-                  <a
-                    href={user.socialLinks.instagram}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-400 hover:text-blue-300 flex items-center gap-2"
-                  >
-                    <Icons.instagram className="w-4 h-4" />
-                    Instagram
-                  </a>
-                )}
-              </div>
+          <div className="mb-6">
+            <h3 className="text-sm font-semibold mb-2">Social Links</h3>
+            <div className="flex flex-wrap gap-4">
+              <a
+                href={user.socialLinks?.twitter || 'https://twitter.com/username'}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-400 hover:text-blue-300 flex items-center gap-2"
+              >
+                <Icons.twitter className="w-4 h-4" />
+                Twitter
+              </a>
+              <a
+                href={user.socialLinks?.youtube || 'https://youtube.com/@username'}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-400 hover:text-blue-300 flex items-center gap-2"
+              >
+                <Icons.youtube className="w-4 h-4" />
+                YouTube
+              </a>
+              <a
+                href={user.socialLinks?.instagram || 'https://instagram.com/username'}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-400 hover:text-blue-300 flex items-center gap-2"
+              >
+                <Icons.instagram className="w-4 h-4" />
+                Instagram
+              </a>
             </div>
-          )}
+          </div>
         </div>
       </Card>
     </div>
