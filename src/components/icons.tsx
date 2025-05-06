@@ -1,7 +1,7 @@
 import { LucideIcon } from "lucide-react"
 
 export const Icons = {
-  website: (props: React.ComponentProps<typeof LucideIcon>) => (
+  website: (props: React.ComponentProps<LucideIcon>) => (
     <svg
       {...props}
       width="24"
@@ -16,7 +16,7 @@ export const Icons = {
       />
     </svg>
   ),
-  twitter: (props: React.ComponentProps<typeof LucideIcon>) => (
+  twitter: (props: React.ComponentProps<LucideIcon>) => (
     <svg
       {...props}
       width="24"
@@ -31,7 +31,7 @@ export const Icons = {
       />
     </svg>
   ),
-  linkedin: (props: React.ComponentProps<typeof LucideIcon>) => (
+  linkedin: (props: React.ComponentProps<LucideIcon>) => (
     <svg
       {...props}
       width="24"
@@ -46,7 +46,7 @@ export const Icons = {
       />
     </svg>
   ),
-  instagram: (props: React.ComponentProps<typeof LucideIcon>) => (
+  instagram: (props: React.ComponentProps<LucideIcon>) => (
     <svg
       {...props}
       width="24"

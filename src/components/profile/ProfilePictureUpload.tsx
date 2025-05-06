@@ -76,19 +76,11 @@ const ProfilePictureUpload: React.FC<ProfilePictureUploadProps> = ({ currentImag
 
   return (
     <>
-      <Button
-        variant="outlined"
-        startIcon={<CloudUpload />}
-        onClick={handleOpen}
-      >
-        Change Profile Picture
-      </Button>
-
       <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
         <DialogTitle>Change Profile Picture</DialogTitle>
         <DialogContent>
           <div className="flex flex-col items-center gap-4">
-            <div className="relative w-40 h-40">
+            <div className="relative w-32 h-32">
               <img
                 src={previewUrl || currentImage}
                 alt="Profile"
@@ -96,30 +88,30 @@ const ProfilePictureUpload: React.FC<ProfilePictureUploadProps> = ({ currentImag
               />
               {uploading && (
                 <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-full">
-                  <CircularProgress />
+                  <CircularProgress size={24} color="inherit" />
                 </div>
               )}
+              <label
+                htmlFor="profilePictureInput"
+                className="absolute bottom-0 right-0 p-2 bg-black/50 rounded-full cursor-pointer hover:bg-black/70 transition-colors duration-200"
+              >
+                <CloudUpload className="text-white w-6 h-6" />
+              </label>
+
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                id="profilePictureInput"
+                onChange={handleFileSelect}
+              />
+
+              {error && (
+                <Alert severity="error" className="mt-2">
+                  {error}
+                </Alert>
+              )}
             </div>
-
-            <input
-              type="file"
-              accept="image/*"
-              className="hidden"
-              id="profilePictureInput"
-              onChange={handleFileSelect}
-            />
-            <label
-              htmlFor="profilePictureInput"
-              className="cursor-pointer px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-            >
-              Select Image
-            </label>
-
-            {error && (
-              <Alert severity="error" className="mt-4">
-                {error}
-              </Alert>
-            )}
           </div>
         </DialogContent>
         <DialogActions>
