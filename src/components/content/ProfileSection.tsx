@@ -2,7 +2,6 @@ import { UserProfile } from '../../types/user';
 import Card from "@/components/ui/Card"
 import Button from "@/components/ui/Button"
 import { Icons } from "@/components/icons"
-import Link from "next/link"
 
 interface ProfileSectionProps {
   user: UserProfile;
@@ -13,132 +12,128 @@ interface ProfileSectionProps {
   following: number;
 }
 
-
-
 const ProfileSection: React.FC<ProfileSectionProps> = ({ user, isFollowing, onFollow, posts, followers, following }) => {
-
+  const handleProfilePictureChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        if (event.target?.result) {
+          const img = document.querySelector('img');
+          if (img) {
+            img.src = event.target.result as string;
+          }
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   return (
-    <div className="bg-black rounded-lg p-6">
-      {/* Profile Header */}
-      <Card variant="default" className="bg-black">
-        <div className="flex flex-row items-center space-x-4 p-6">
-          <div className="relative w-32 h-32">
+    <div className="w-full max-w-md mx-auto">
+      <Card className="bg-black text-white">
+        <div className="p-6 pb-0 flex flex-col items-center">
+          <div className="relative">
+            {user.profilePicture ? (
+              <img
+                src={user.profilePicture}
+                alt={user.displayName || 'Profile'}
+                className="w-24 h-24 rounded-full object-cover"
+              />
+            ) : (
+              <div className="w-24 h-24 rounded-full bg-gray-700 flex items-center justify-center">
+                <span className="text-white text-3xl font-bold">
+                  {user.username?.[0]?.toUpperCase() || 'U'}
+                </span>
+              </div>
+            )}
             <label
               htmlFor="profilePictureInput"
-              className="w-full h-full rounded-full cursor-pointer relative overflow-hidden"
+              className="absolute bottom-0 right-0 p-2 bg-black/50 rounded-full cursor-pointer hover:bg-black/70 transition-colors duration-200"
             >
-              {user.profilePicture ? (
-                <img
-                  src={user.profilePicture}
-                  alt="Profile"
-                  className="w-full h-full rounded-full object-cover"
-                />
-              ) : (
-                <div className="text-2xl flex items-center justify-center w-full h-full rounded-full bg-gray-700 text-white text-2xl font-bold">
-                  {user.displayName?.[0]?.toUpperCase() || 'U'}
-                </div>
-              )}
-              <div className="absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-20 transition-opacity duration-200 flex items-center justify-center">
-                <Icons.cloudUpload className="w-6 h-6 text-white" />
-              </div>
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                id="profilePictureInput"
+                onChange={handleProfilePictureChange}
+              />
+              <Icons.cloudUpload className="text-white w-6 h-6" />
             </label>
-            <input
-              type="file"
-              accept="image/*"
-              className="hidden"
-              id="profilePictureInput"
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                const file = e.target.files?.[0];
-                if (file) {
-                  const reader = new FileReader();
-                  reader.onload = (event) => {
-                    if (event.target?.result) {
-                      const img = document.querySelector('img');
-                      if (img) {
-                        img.src = event.target.result as string;
-                      }
-                    }
-                  };
-                  reader.readAsDataURL(file);
-                }
-              }}
-            />
           </div>
-          <div className="flex flex-col">
-            <h1 className="text-2xl font-bold text-white">{user.displayName}</h1>
-            <p className="text-gray-400 mt-2">{user.bio || 'No bio yet'}</p>
+          <div className="text-center">
+            <h2 className="text-xl font-bold">{user.displayName}</h2>
+            <p className="text-sm text-gray-400">@{user.username}</p>
           </div>
         </div>
         <div className="p-6">
-          <div className="flex flex-col space-y-4">
-            <div className="flex flex-wrap gap-4">
-              <Button
-                variant={isFollowing ? "outline" : "primary"}
-                onClick={onFollow}
-                className="text-white"
-              >
-                {isFollowing ? 'Following' : 'Follow'}
-              </Button>
+          <p className="text-sm text-center text-gray-400 mb-6">{user.bio || 'No bio yet'}</p>
+          
+          <div className="grid grid-cols-3 gap-4 mb-6">
+            <div className="flex flex-col items-center">
+              <span className="text-3xl font-bold">{posts}</span>
+              <span className="text-sm text-gray-400">Posts</span>
             </div>
-            <div className="flex justify-around border-t border-gray-800 pt-6">
-              <div className="text-center">
-                <h3 className="text-2xl font-bold text-white">{posts}</h3>
-                <p className="text-gray-400">Posts</p>
-              </div>
-              <div className="text-center">
-                <h3 className="text-2xl font-bold text-white">{followers}</h3>
-                <p className="text-gray-400">Followers</p>
-              </div>
-              <div className="text-center">
-                <h3 className="text-2xl font-bold text-white">{following}</h3>
-                <p className="text-gray-400">Following</p>
-              </div>
+            <div className="flex flex-col items-center">
+              <span className="text-3xl font-bold">{followers}</span>
+              <span className="text-sm text-gray-400">Followers</span>
+            </div>
+            <div className="flex flex-col items-center">
+              <span className="text-3xl font-bold">{following}</span>
+              <span className="text-sm text-gray-400">Following</span>
             </div>
           </div>
-        </div>
-        <div className="p-6">
-          <div className="flex flex-wrap gap-4">
-            {/* Social Links */}
-            <div className="flex items-center gap-4">
-              <Link
-                href={user.socialLinks?.website || '#'}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-400 hover:text-blue-300 flex items-center gap-2"
-              >
-                <Icons.website className="w-4 h-4" />
-                <span>Website</span>
-              </Link>
-              <Link
-                href={user.socialLinks?.twitter || '#'}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-400 hover:text-blue-300 flex items-center gap-2"
-              >
-                <Icons.twitter className="w-4 h-4" />
-                <span>Twitter</span>
-              </Link>
-              <Link
-                href={user.socialLinks?.linkedin || '#'}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-400 hover:text-blue-300 flex items-center gap-2"
-              >
-                <Icons.linkedin className="w-4 h-4" />
-                <span>LinkedIn</span>
-              </Link>
-              <Link
-                href={user.socialLinks?.instagram || '#'}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-400 hover:text-blue-300 flex items-center gap-2"
-              >
-                <Icons.instagram className="w-4 h-4" />
-                <span>Instagram</span>
-              </Link>
-            </div>
+
+          <div className="flex justify-center gap-4 mb-6">
+            <Button
+              variant={isFollowing ? "outline" : "primary"}
+              onClick={onFollow}
+              className="text-white"
+            >
+              {isFollowing ? 'Following' : 'Follow'}
+            </Button>
           </div>
+
+          {user.socialLinks && Object.entries(user.socialLinks).length > 0 && (
+            <div className="mb-6">
+              <h3 className="text-sm font-semibold mb-2">Social Links</h3>
+              <div className="flex flex-wrap gap-4">
+                {user.socialLinks.twitter && (
+                  <a
+                    href={user.socialLinks.twitter}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-400 hover:text-blue-300 flex items-center gap-2"
+                  >
+                    <Icons.twitter className="w-4 h-4" />
+                    Twitter
+                  </a>
+                )}
+                {user.socialLinks.linkedin && (
+                  <a
+                    href={user.socialLinks.linkedin}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-400 hover:text-blue-300 flex items-center gap-2"
+                  >
+                    <Icons.linkedin className="w-4 h-4" />
+                    LinkedIn
+                  </a>
+                )}
+                {user.socialLinks.instagram && (
+                  <a
+                    href={user.socialLinks.instagram}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-400 hover:text-blue-300 flex items-center gap-2"
+                  >
+                    <Icons.instagram className="w-4 h-4" />
+                    Instagram
+                  </a>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </Card>
     </div>
