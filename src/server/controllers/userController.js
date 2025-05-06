@@ -26,7 +26,7 @@ const getUserProfile = async (req, res) => {
     const userProfile = {
       username: user.username,
       displayName: user.displayName || user.username,
-      profilePic: user.profilePic || '/default-profile-pic.png',
+      profilePicture: user.profilePicture || '/default-profile-pic.png',
       isCreator: user.isCreator || false,
       email: user.email,
       stats: {
