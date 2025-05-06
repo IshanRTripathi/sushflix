@@ -31,6 +31,13 @@ export interface UserStats {
 export interface ApiResponse<T> {
   data?: T;
   error?: string;
+  success?: boolean;
+}
+
+export interface UploadResponse {
+  success: boolean;
+  imageUrl?: string;
+  error?: string;
 }
 
 export class ProfileService {
@@ -49,17 +56,38 @@ export class ProfileService {
     return ProfileService.instance;
   }
 
+  public async uploadProfilePicture(username: string, file: File): Promise<UploadResponse> {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await axios.post<UploadResponse>(
+        `${API_BASE_URL}users/${username}/profile-picture`,
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data'
+          }
+        }
+      );
+
+      return response.data;
+    } catch (error: unknown) {
+      logger.error('Error uploading profile picture:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to upload profile picture'
+      };
+    }
+  }
+
   private async request<T>(config: any): Promise<T> {
     try {
       const response = await axios(config);
-      // Check if response is an error object
-      if (response.data && response.data.error) {
-        throw new Error(response.data.error);
-      }
       return response.data;
-    } catch (error: any) {
-      logger.error('API request failed', { error });
-      throw new Error(error.response?.data?.error || 'Failed to fetch data');
+    } catch (error: unknown) {
+      logger.error('API request failed:', { error });
+      throw error instanceof Error ? error : new Error('API request failed');
     }
   }
 
@@ -181,37 +209,7 @@ export class ProfileService {
     });
   }
 
-  public async uploadProfilePicture(username: string, file: File): Promise<{ success: boolean; imageUrl?: string; error?: string }> {
-    try {
-      logger.debug(`Uploading profile picture for user: ${username}`);
 
-      // Send file to backend for storage upload
-      const formData = new FormData();
-      formData.append('file', file);
-
-      const response = await this.request<{ success: boolean; imageUrl?: string; error?: string }>({
-        method: 'POST',
-        url: `${API_BASE_URL}/users/${username}/profile-picture`,
-        data: formData,
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
-      });
-
-      logger.debug(`Successfully uploaded profile picture for user: ${username}`);
-      return response || {
-        success: false,
-        error: 'Failed to upload profile picture'
-      };
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      logger.error(`Error uploading profile picture: ${errorMessage}`);
-      return {
-        success: false,
-        error: errorMessage
-      };
-    }
-  }
 
   public async updateProfile(username: string, profileData: any): Promise<void> {
     try {

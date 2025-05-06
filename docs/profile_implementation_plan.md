@@ -64,13 +64,24 @@ interface UserDocument {
 ### Phase 1: Backend Setup (Completed)
 
 1. **API Endpoints** (Completed)
-   - ✅ GET /api/users/:username - Get user profile
-   - ✅ GET /api/posts/:username - Get user posts
-   - ✅ GET /api/users/:username/stats - Get user statistics
-   - ✅ POST /api/users/:username/follow - Follow/unfollow user
-   - ✅ POST /api/posts/:postId/share - Share post
-   - ✅ POST /api/posts/:postId/bookmark - Bookmark post
-   - ✅ POST /api/users/:username/profile-picture - Upload profile picture
+   - GET /api/users/:username - Get user profile
+   - GET /api/posts/:username - Get user posts
+   - GET /api/users/:username/stats - Get user statistics
+   - POST /api/users/:username/follow - Follow/unfollow user
+   - POST /api/posts/:postId/share - Share post
+   - POST /api/posts/:postId/bookmark - Bookmark post
+   - POST /api/users/:username/profile-picture - Upload profile picture
+     - Google Cloud Storage integration
+     - File validation
+     - Error handling
+     - Response format:
+       ```typescript
+       interface UploadResponse {
+         success: boolean;
+         imageUrl?: string;
+         error?: string;
+       }
+       ```
 
 2. **Services Implementation** (Completed)
    - Created `profileService.ts` with centralized API endpoints
@@ -98,11 +109,19 @@ interface UserDocument {
    - Added loading states and error boundaries
    - Implemented skeleton loading for better UX
    - Added proper error handling
+   - Added click-to-upload profile picture functionality
+   - Added file validation and error feedback
 
 2. **Profile Sections** (Completed)
    - ProfileHeader - Display profile picture, name, bio
    - StatsSection - Show followers, following, posts count
    - ProfilePictureSection - Handle profile picture uploads
+     - Click-to-upload functionality
+     - File size validation (2MB limit)
+     - File type validation (JPEG, PNG, WebP)
+     - Loading states and progress indicator
+     - Error handling and feedback
+     - Google Cloud Storage integration
    - BioSection - Edit profile bio
    - SocialLinksSection - Manage social media links
    - PrivacySettingsSection - Control profile visibility
@@ -118,11 +137,12 @@ interface UserDocument {
        - Progress indicator
        - Error handling
      - Creator status toggle
-     - ✅ Social links editing (URL validation)
-     - ✅ Profile picture upload
-       - ✅ Google Cloud Storage integration
-       - ✅ File validation (2MB limit, image types)
-       - ✅ Progress indicator
+   - Social links editing (URL validation)
+   - Profile picture upload
+     - Google Cloud Storage integration
+     - File validation (2MB limit, image types)
+     - Progress indicator
+     - Error handling
        - ✅ Error handling
      - ✅ Creator status toggle
    - ❌ Settings - Additional profile settings

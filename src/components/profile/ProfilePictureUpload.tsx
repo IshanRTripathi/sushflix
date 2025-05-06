@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Button, Dialog, DialogTitle, DialogContent, DialogActions, CircularProgress, Alert } from '@mui/material';
+import { CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, Button, Alert } from '@mui/material';
 import { CloudUpload } from '@mui/icons-material';
 import { useAuth } from '../auth/AuthContext';
 import { ProfileService } from '../../services/profileService';
@@ -11,18 +11,29 @@ interface ProfilePictureUploadProps {
 }
 
 const ProfilePictureUpload: React.FC<ProfilePictureUploadProps> = ({ currentImage, onUploadSuccess }) => {
-  const [open, setOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [open, setOpen] = useState(false);
   const { user } = useAuth();
   const profileService = ProfileService.getInstance();
 
-  // Early return if user is not logged in
-  if (!user?.username) {
-    return null;
-  }
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        setError('File size must be less than 2MB');
+        return;
+      }
+      if (!file.type.startsWith('image/')) {
+        setError('Please select an image file');
+        return;
+      }
+      setSelectedFile(file);
+      setPreviewUrl(URL.createObjectURL(file));
+    }
+  };
 
   const handleOpen = () => setOpen(true);
   const handleClose = () => {
@@ -32,45 +43,36 @@ const ProfilePictureUpload: React.FC<ProfilePictureUploadProps> = ({ currentImag
     setError(null);
   };
 
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      if (file.size > 2 * 1024 * 1024) { // 2MB limit
-        setError('File size must be less than 2MB');
-        return;
-      }
-      setSelectedFile(file);
-      setPreviewUrl(URL.createObjectURL(file));
-    }
-  };
-
   const handleUpload = async () => {
     if (!selectedFile || !user?.username) return;
 
     try {
       setUploading(true);
-      setError(null);
-
-      // Upload to Google Cloud Storage (assuming this is implemented in ProfileService)
-      const response = await profileService.uploadProfilePicture(user.username, selectedFile);
+      logger.info('Uploading profile picture', { username: user.username, displayName: user.displayName });
       
-      if (response.success && response.imageUrl) {
-        // Update the profile picture URL
+      const response = await profileService.uploadProfilePicture(user.username, selectedFile);
+      if (response?.success && response?.imageUrl) {
+        logger.info('Profile picture uploaded successfully', { imageUrl: response.imageUrl });
         if (onUploadSuccess) {
           onUploadSuccess(response.imageUrl);
         }
         handleClose();
       } else {
-        setError(response.error || 'Failed to upload profile picture');
+        throw new Error(response?.error || 'Failed to upload profile picture');
       }
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      logger.error('Profile picture upload failed:', { error });
+      const errorMessage = error instanceof Error ? error.message : 'Failed to upload profile picture';
       setError(errorMessage);
+      logger.error('Error uploading profile picture', { error });
     } finally {
       setUploading(false);
     }
   };
+
+  // Early return if user is not logged in
+  if (!user?.username) {
+    return null;
+  }
 
   return (
     <>

@@ -1,6 +1,5 @@
 import { UserProfile } from '../../types/user';
 import ProfilePictureUpload from '../profile/ProfilePictureUpload';
-import { CloudUpload } from '@mui/icons-material';
 
 interface ProfileSectionProps {
   user: UserProfile;
@@ -21,26 +20,15 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({ user, isFollowing, onFo
       {/* Profile Header */}
       <div className="flex items-center mb-6">
         <div className="relative w-32 h-32">
-          <img
-            src={user.profilePicture || '/default-avatar.png'}
-            alt={user.displayName}
-            className="w-32 h-32 rounded-full cursor-pointer"
-            onClick={handleOpen}
+          <ProfilePictureUpload
+            currentImage={user.profilePicture || '/default-avatar.png'}
+            onUploadSuccess={(newImageUrl) => {
+              // Update the profile picture URL in the user object
+              // This would typically be handled by your state management
+              console.log('New profile picture URL:', newImageUrl);
+            }}
           />
-          <div className="absolute bottom-0 right-0 bg-black bg-opacity-75 rounded-full p-1">
-            <CloudUpload className="w-4 h-4 text-white" />
-          </div>
         </div>
-
-        <ProfilePictureUpload
-          currentImage={user.profilePicture || '/default-avatar.png'}
-          onUploadSuccess={(newImageUrl) => {
-            // Update the profile picture in the user object
-            // This would typically be handled by your state management
-            // For now, we'll just log it
-            console.log('New profile picture URL:', newImageUrl);
-          }}
-        />
         <div className="ml-6">
           <h1 className="text-2xl font-bold text-white">{user.displayName}</h1>
           <p className="text-gray-400 mt-2">{user.bio || 'No bio yet'}</p>
