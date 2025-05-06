@@ -149,6 +149,18 @@ export default function ProfilePage() {
         posts={stats?.posts || 0}
         followers={stats?.followers || 0}
         following={stats?.following || 0}
+        onProfilePictureUpdate={(newImageUrl) => {
+          // Refresh the profile data after successful upload
+          if (username) {
+            profileService.getUserProfile(username).then((updatedProfile) => {
+              // Update the profile data
+              if (updatedProfile) {
+                // Force a re-render with the updated profile
+                window.location.reload();
+              }
+            });
+          }
+        }}
       />
 
       {/* Posts Grid */}

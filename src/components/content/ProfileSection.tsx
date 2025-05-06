@@ -2,6 +2,7 @@ import { UserProfile } from '../../types/user';
 import Card from "@/components/ui/Card"
 import Button from "@/components/ui/Button"
 import { Icons } from "@/components/icons"
+import ProfilePictureUpload from '../profile/ProfilePictureUpload'
 
 interface ProfileSectionProps {
   user: UserProfile;
@@ -10,22 +11,24 @@ interface ProfileSectionProps {
   posts: number;
   followers: number;
   following: number;
+  onProfilePictureUpdate?: (newImageUrl: string) => void;
 }
 
-const ProfileSection: React.FC<ProfileSectionProps> = ({ user, isFollowing, onFollow, posts, followers, following }) => {
-  const handleProfilePictureChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        if (event.target?.result) {
-          const img = document.querySelector('img');
-          if (img) {
-            img.src = event.target.result as string;
-          }
-        }
-      };
-      reader.readAsDataURL(file);
+const ProfileSection: React.FC<ProfileSectionProps> = ({ user, isFollowing, onFollow, posts, followers, following, onProfilePictureUpdate }) => {
+
+
+  const handleUploadSuccess = (newImageUrl: string) => {
+    if (onProfilePictureUpdate) {
+      onProfilePictureUpdate(newImageUrl);
+    }
+    // Update the local preview
+    const img = document.querySelector<HTMLImageElement>('img');
+    if (img) {
+      try {
+        img.src = newImageUrl;
+      } catch (error) {
+        console.error('Error updating profile picture preview:', error);
+      }
     }
   };
 
@@ -47,19 +50,11 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({ user, isFollowing, onFo
                 </span>
               </div>
             )}
-            <label
-              htmlFor="profilePictureInput"
-              className="absolute bottom-0 right-0 p-2 bg-black/50 rounded-full cursor-pointer hover:bg-black/70 transition-colors duration-200"
-            >
-              <input
-                type="file"
-                accept="image/*"
-                className="hidden"
-                id="profilePictureInput"
-                onChange={handleProfilePictureChange}
-              />
-              <Icons.cloudUpload className="text-white w-6 h-6" />
-            </label>
+            <ProfilePictureUpload
+              currentImage={user.profilePicture || ''}
+              username={user.username || 'default'}
+              onUploadSuccess={handleUploadSuccess}
+            />
           </div>
           <div className="text-center">
             <h2 className="text-xl font-bold">{user.displayName}</h2>

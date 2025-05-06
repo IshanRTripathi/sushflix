@@ -111,6 +111,9 @@ interface UserDocument {
    - Added proper error handling
    - Added click-to-upload profile picture functionality
    - Added file validation and error feedback
+   - Updated social links to use YouTube instead of LinkedIn
+   - Added placeholder URLs for social links when not provided
+   - Added ProfilePictureUpload component for proper upload flow
 
 2. **Profile Sections** (Completed)
    - ProfileHeader - Display profile picture, name, bio
@@ -153,8 +156,9 @@ interface UserDocument {
      - ✅ Image selection and preview
      - ✅ Size validation (2MB max)
      - ✅ Upload to Google Cloud Storage
-     - ❌ Progress indicator
-     - ❌ Error handling
+     - ✅ Progress indicator
+     - ✅ Error handling
+   - ❌ Social links editing
    - ❌ Social links editing
 
 ### Next Steps

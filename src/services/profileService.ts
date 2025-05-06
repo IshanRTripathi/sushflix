@@ -40,6 +40,8 @@ export interface UploadResponse {
   error?: string;
 }
 
+import { useQueryClient } from '@tanstack/react-query';
+
 export class ProfileService {
   private static instance: ProfileService;
   private static readonly DEFAULT_TIMEOUT = 10000;
@@ -54,6 +56,11 @@ export class ProfileService {
       ProfileService.instance = new ProfileService();
     }
     return ProfileService.instance;
+  }
+
+  public static invalidateQueries(queryKey: string[]) {
+    const queryClient = useQueryClient();
+    queryClient.invalidateQueries(queryKey);
   }
 
   public async uploadProfilePicture(username: string, file: File): Promise<UploadResponse> {

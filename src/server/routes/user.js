@@ -19,13 +19,8 @@ const upload = multer({
   }
 });
 
-// Get user profile - public endpoint
-router.get('/:username', userController.getUserProfile);
-
-// Get user stats - public endpoint
 router.get('/:username/stats', userController.getUserStats);
-
-// Upload profile picture
 router.post('/:username/profile-picture', upload.single('file'), userController.uploadProfilePicture);
+router.get('/:username', userController.getUserProfile);
 
 module.exports = router;
