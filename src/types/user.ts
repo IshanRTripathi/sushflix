@@ -5,6 +5,16 @@ export interface SocialLinks {
   instagram?: string;
 }
 
+// User roles
+export const USER_ROLES = {
+  ADMIN: 'admin',
+  USER: 'user',
+  MODERATOR: 'moderator'
+} as const;
+
+// Type for user roles
+export type UserRole = typeof USER_ROLES[keyof typeof USER_ROLES];
+
 export interface UserProfile {
   // Non-editable fields
   userId: string;
@@ -15,6 +25,7 @@ export interface UserProfile {
   followers?: number;
   following?: number;
   isFollowing?: boolean;
+  role: UserRole;
   
   // Editable fields
   displayName: string;
