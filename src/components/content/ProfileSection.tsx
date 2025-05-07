@@ -14,8 +14,15 @@ interface ProfileSectionProps {
   onProfilePictureUpdate?: (newImageUrl: string) => void;
 }
 
-const ProfileSection: React.FC<ProfileSectionProps> = ({ user, isFollowing, onFollow, posts, followers, following, onProfilePictureUpdate }) => {
-
+const ProfileSection: React.FC<ProfileSectionProps> = ({
+  user,
+  isFollowing,
+  onFollow,
+  posts,
+  followers,
+  following,
+  onProfilePictureUpdate,
+}) => {
 
   const handleUploadSuccess = (newImageUrl: string) => {
     if (onProfilePictureUpdate) {
@@ -63,7 +70,7 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({ user, isFollowing, onFo
         </div>
         <div className="p-6">
           <p className="text-sm text-center text-gray-400 mb-6">{user.bio || 'No bio yet'}</p>
-          
+
           <div className="grid grid-cols-3 gap-4 mb-6">
             <div className="flex flex-col items-center">
               <span className="text-3xl font-bold">{posts}</span>

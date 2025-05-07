@@ -10,10 +10,9 @@ interface UserProfile {
   email: string;
   posts: number;
   subscribers: number;
-  profilePic?: string;
+  profilePicture?: string;
   name?: string;
   bio?: string;
-  profilePicture?: string;
   followers?: number;
   following?: number;
   isFollowing?: boolean;
@@ -52,7 +51,7 @@ export function HomePage() {
   const fetchProfile = async () => {
     try {
       setLoadingState({ isLoading: true });
-      const response = await fetch(`${API_BASE_URL}profile`);
+      const response = await fetch(`${API_BASE_URL}/profile`);
       if (!response.ok) {
         throw new Error('Failed to fetch profile');
       }
@@ -77,9 +76,9 @@ export function HomePage() {
   };
 
   const fetchFeaturedProfiles = async () => {
-    setLoadingState({ isLoading: true });
     try {
-      const response = await fetch(`${API_BASE_URL}/profiles/featured`);
+      setLoadingState({ isLoading: true });
+      const response = await fetch(`${API_BASE_URL}/api/profiles/featured`);
       if (!response.ok) {
         throw new Error('Failed to fetch featured profiles');
       }
@@ -95,7 +94,7 @@ export function HomePage() {
   useEffect(() => {
     fetchProfile();
     fetchFeaturedProfiles();
-  }, [API_BASE_URL, setLoadingState]);
+  }, []);
 
   const handleRetry = () => {
     if (state.retryCount < state.maxRetries) {
@@ -170,7 +169,7 @@ export function HomePage() {
                   <div className="flex items-center space-x-4 mb-4">
                     <div className="w-16 h-16 rounded-full overflow-hidden">
                       <img
-                        src={state.profile?.profilePic || "/images/profile_pic.png"}
+                        src={state.profile?.profilePicture || "/images/profile_pic.png"}
                         alt="Profile"
                         className="w-full h-full object-cover"
                       />
