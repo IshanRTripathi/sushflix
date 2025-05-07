@@ -1,18 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, Button, Alert } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Alert } from '@mui/material';
 import { ProfileService } from '../../services/profileService';
 import { logger } from '../../utils/logger';
 import { CloudUpload as CloudUploadIcon } from '@mui/icons-material';
 
 interface ProfilePictureUploadProps {
-  currentImage: string;
   username: string;
   onUploadSuccess: (imageUrl: string) => void;
 }
 
-export const ProfilePictureUpload: React.FC<ProfilePictureUploadProps> = ({ currentImage, username, onUploadSuccess }) => {
+export const ProfilePictureUpload: React.FC<ProfilePictureUploadProps> = ({ username, onUploadSuccess }) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>('');
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string>('');
+  const [open, setOpen] = useState(false);
+  const profileService = ProfileService.getInstance();
 
   useEffect(() => {
     return () => {
@@ -21,25 +24,22 @@ export const ProfilePictureUpload: React.FC<ProfilePictureUploadProps> = ({ curr
       }
     };
   }, [previewUrl]);
-  const [uploading, setUploading] = useState(false);
-  const [error, setError] = useState<string>('');
-  const [open, setOpen] = useState(false);
-  const profileService = ProfileService.getInstance();
 
   useEffect(() => {
     const handleExternalFileSelect = (event: Event) => {
       console.log('Received external file selection event');
-      const file = (event as CustomEvent).detail?.file;
+      const customEvent = event as CustomEvent<{ file: File }>;
+      const file = customEvent.detail?.file;
       if (file) {
         console.log('External file selected:', file.name);
-        setSelectedFile(file);
-        setPreviewUrl(URL.createObjectURL(file));
-        setOpen(true);
+        handleFile(file);
       }
     };
 
-    window.addEventListener('externalFileSelect', handleExternalFileSelect);
-    return () => window.removeEventListener('externalFileSelect', handleExternalFileSelect);
+    window.addEventListener('externalFileSelect', handleExternalFileSelect as EventListener);
+    return () => {
+      window.removeEventListener('externalFileSelect', handleExternalFileSelect as EventListener);
+    };
   }, []);
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -58,7 +58,10 @@ export const ProfilePictureUpload: React.FC<ProfilePictureUploadProps> = ({ curr
       size: file.size,
       type: file.type
     });
+    
+    // Validate file size (2MB limit)
     if (file.size > 2 * 1024 * 1024) {
+      setError('File size exceeds maximum limit of 2MB');
       return;
     }
 
@@ -69,38 +72,12 @@ export const ProfilePictureUpload: React.FC<ProfilePictureUploadProps> = ({ curr
       return;
     }
 
-    // Validate file size (5MB limit)
-    const maxSize = 5 * 1024 * 1024; // 5MB
-    if (file.size > maxSize) {
-      setError('File size too large. Maximum allowed size is 5MB.');
-      return;
-    }
-
     setSelectedFile(file);
     const preview = URL.createObjectURL(file);
     setPreviewUrl(preview);
-    console.log('File selected successfully, preview URL:', preview);
     setError('');
     setOpen(true);
   };
-
-  // Handle external file selection
-  useEffect(() => {
-    const handleExternalFileSelect = (event: Event) => {
-      console.log('Received external file selection event');
-      const customEvent = event as CustomEvent<{ file: File }>;
-      const file = customEvent.detail?.file;
-      if (file) {
-        console.log('External file selected:', file.name);
-        handleFile(file);
-      }
-    };
-
-    window.addEventListener('externalFileSelect', handleExternalFileSelect as EventListener);
-    return () => {
-      window.removeEventListener('externalFileSelect', handleExternalFileSelect as EventListener);
-    };
-  }, []);
 
   const handleClose = () => {
     setOpen(false);
@@ -116,48 +93,34 @@ export const ProfilePictureUpload: React.FC<ProfilePictureUploadProps> = ({ curr
     }
 
     try {
-      console.log('Starting upload process');
-      logger.info('Uploading profile picture');
-      
-      console.log('Using username:', username);
-      console.log('File to upload:', {
-        name: selectedFile.name,
-        size: selectedFile.size,
-        type: selectedFile.type
-      });
-
-      const formData = new FormData();
-      formData.append('file', selectedFile);
-
-      logger.info('Sending upload request to server');
+      setUploading(true);
       const response = await profileService.uploadProfilePicture(username, selectedFile);
-      logger.info('Received server response', { response });
 
       if (response.success && response.imageUrl) {
         logger.info('Upload successful', { imageUrl: response.imageUrl });
         onUploadSuccess(response.imageUrl);
         setOpen(false);
-        setUploading(false);
         setError('');
       } else {
         const errorMessage = response.error || 'Upload failed. Please try again.';
         logger.error('Upload failed', { error: errorMessage });
         setError(errorMessage);
       }
-    } catch (error) {
-      const errorMessage = error instanceof Error 
-        ? error.message 
-        : typeof error === 'string' 
-          ? error 
-          : 'An unexpected error occurred during upload';
-      
-      logger.error('Error uploading profile picture', { error });
+    } catch (error: unknown) {
+      let errorMessage = 'An unexpected error occurred during upload';
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (typeof error === 'object' && error !== null) {
+        errorMessage = (error as { message?: string; error?: string }).message || 
+                       (error as { message?: string; error?: string }).error || 
+                       errorMessage;
+      }
+      logger.error('Upload error', { error: errorMessage });
       setError(errorMessage);
+    } finally {
       setUploading(false);
     }
   };
-
-
 
   return (
     <div className="relative">

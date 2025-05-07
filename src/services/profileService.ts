@@ -68,9 +68,9 @@ export class ProfileService {
       }
 
       // Validate file size and type
-      const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+      const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB
       if (file.size > MAX_FILE_SIZE) {
-        throw new Error('File size exceeds maximum limit of 5MB');
+        throw new Error('File size exceeds maximum limit of 2MB');
       }
 
       const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
@@ -78,38 +78,35 @@ export class ProfileService {
         throw new Error('Invalid file type. Only JPEG, PNG, and WebP images are allowed.');
       }
 
+      // Create FormData and append the file
       const formData = new FormData();
       formData.append('file', file);
 
-      logger.info('Uploading profile picture', {
-        url: `${API_BASE_URL}users/${username}/profile-picture`,
-        file: {
-          name: file.name,
-          size: file.size,
-          type: file.type,
-          lastModified: file.lastModified
-        }
-      });
-
-      // Create a controller to handle request cancellation
+      // Set up request controller for timeout
       const controller = new AbortController();
       const signal = controller.signal;
-
-      // Set a timeout for the request
       const timeoutId = setTimeout(() => {
-        logger.warn('Upload request timed out after 30 seconds');
         controller.abort();
       }, 30000);
 
       try {
-        const response = await axios.post<UploadResponse>(
+        logger.info('Uploading profile picture', {
+          url: `${API_BASE_URL}users/${username}/profile-picture`,
+          file: {
+            name: file.name,
+            size: file.size,
+            type: file.type,
+            lastModified: file.lastModified
+          }
+        });
+
+        const response = await axios.post(
           `${API_BASE_URL}users/${username}/profile-picture`,
           formData,
           {
             headers: {
               'Content-Type': 'multipart/form-data'
             },
-            validateStatus: (status) => status >= 200 && status < 300,
             signal,
             timeout: 30000
           }
@@ -117,14 +114,16 @@ export class ProfileService {
 
         logger.info('Upload completed successfully', {
           response: {
-            success: response.data.success,
-            imageUrl: response.data.imageUrl,
-            error: response.data.error
+            success: true,
+            imageUrl: response.data.url
           }
         });
 
         clearTimeout(timeoutId);
-        return response.data;
+        return {
+          success: true,
+          imageUrl: response.data.url
+        };
       } catch (axiosError: any) {
         clearTimeout(timeoutId);
 

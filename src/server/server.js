@@ -83,6 +83,9 @@ app.use('/api/subscriptions', subscriptionRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/posts', postRoutes);
 
+// Error handling middleware
+app.use(errorHandler);
+
 // Serve frontend for non-API routes
 app.get('*', (req, res, next) => {
   if (!req.url.startsWith('/api')) {

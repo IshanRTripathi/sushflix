@@ -17,7 +17,10 @@ const upload = multer({
   fileFilter: (req, file, cb) => {
     // Check file type
     const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
-    if (allowedTypes.includes(file.mimetype)) {
+    const fileExt = path.extname(file.originalname).toLowerCase();
+    const validExt = ['.jpg', '.jpeg', '.png', '.webp'];
+    
+    if (allowedTypes.includes(file.mimetype) || validExt.includes(fileExt)) {
       cb(null, true);
     } else {
       cb(new Error('Invalid file type. Only JPEG, JPG, PNG, and WebP images are allowed.'));
@@ -31,23 +34,25 @@ router.post(
   upload.single('file'),
   asyncHandler(async (req, res, next) => {
     try {
-      // Check if request was cancelled
-      if (req.aborted) {
-        logger.warn('Request cancelled before processing', {
-          username: req.params.username,
-          path: req.path,
-          method: req.method
+      const { username } = req.params;
+      const file = req.file;
+
+      // Validate request parameters
+      if (!username || typeof username !== 'string') {
+        logger.error('Invalid username parameter', {
+          username,
+          params: req.params
         });
-        return res.status(499).json({
+        return res.status(400).json({
           success: false,
-          error: 'Request cancelled'
+          error: 'Invalid username parameter'
         });
       }
 
-      // Check if file was uploaded
-      if (!req.file) {
+      if (!file) {
         logger.error('No file uploaded in request', {
-          headers: req.headers
+          headers: req.headers,
+          body: req.body
         });
         return res.status(400).json({
           success: false,
@@ -55,9 +60,7 @@ router.post(
         });
       }
 
-      // Proceed with the controller
-      const username = req.params.username;
-      const file = req.file;
+      // Call the controller function
       await userController.uploadProfilePicture(username, file, req, res);
     } catch (error) {
       logger.error('Profile picture upload error', {
@@ -73,9 +76,9 @@ router.post(
         });
       }
 
-      res.status(500).json({
+      return res.status(500).json({
         success: false,
-        error: 'Internal server error'
+        error: error.message || 'Failed to upload profile picture'
       });
     }
   })

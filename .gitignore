@@ -52,3 +52,6 @@ Thumbs.db
 /dist
 /node_modules/
 .idea/*
+/config/gcp/*
+
+src/server/config/gcp/gcp-key.json
