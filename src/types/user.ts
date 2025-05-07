@@ -1,7 +1,8 @@
 export interface SocialLinks {
   website?: string;
   twitter?: string;
-  linkedin?: string;
+  youtube?: string;
+  instagram?: string;
 }
 
 export interface UserProfile {

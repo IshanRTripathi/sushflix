@@ -102,7 +102,7 @@ router.post('/signup', [
     }
 });
 
-router.get('/me', auth(), async (req, res, next) => { // Applying auth middleware
+router.get('/me', auth(), async (req, res) => { // Applying auth middleware
     logger.info(`Executing route: GET /api/me`); // Corrected log path
     // The auth middleware should populate req.user if authenticated
     if (!req.user) {

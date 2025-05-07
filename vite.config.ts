@@ -3,9 +3,18 @@ import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 import path from 'path';
 
-const PROD_API_BASE_URL = 'http://localhost:8080';
-
 export default defineConfig({
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, 'src')
+      // Removed unnecessary Node polyfills
+    }
+  },
+  define: {
+    'process.env': {
+      VITE_BACKEND_URL: process.env.VITE_BACKEND_URL || 'http://localhost:8080'
+    }
+  },
   plugins: [
     react(),
     VitePWA({
@@ -49,11 +58,6 @@ export default defineConfig({
         secure: false
       }
     }
-  },
-  resolve: {
-    alias: {
-      '@': path.resolve(__dirname, 'src'),
-    },
   },
   publicDir: 'public',
 });

@@ -16,6 +16,7 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.525.0",
     "@aws-sdk/s3-request-presigner": "^3.682.0",
+    "@google-cloud/storage": "^7.16.0",
     "aws-sdk": "^2.1691.0",
     "axios": "^1.9.0",
     "bcryptjs": "^2.4.3",
@@ -35,6 +36,7 @@
     "nodemailer": "^6.9.11",
     "socket.io": "^4.7.4",
     "stripe": "^14.19.0",
+    "uuid": "^11.1.0",
     "winston": "^3.11.0",
     "xss": "^1.0.14"
   }

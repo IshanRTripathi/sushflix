@@ -35,7 +35,6 @@ export default function ProfilePage() {
     logger.info(`ProfilePage mounted for user: ${username}`);
   }, [username]);
 
-  // Early return if user is not authenticated
   if (!currentUser) {
     logger.warn('Unauthenticated user trying to access profile page');
     return null;
@@ -43,7 +42,6 @@ export default function ProfilePage() {
 
   const { setLoadingState } = useLoadingState();
 
-  // Fetch user's posts
   const { data: posts, isLoading: postsLoading, error: postsError } = useQuery<Post[]>({
     queryKey: ['userPosts', username],
     queryFn: async () => {
@@ -61,7 +59,6 @@ export default function ProfilePage() {
     retry: 3
   });
 
-  // Fetch user profile stats
   const { data: stats, isLoading: statsLoading, error: statsError } = useQuery<UserStats>({
     queryKey: ['userStats', username],
     queryFn: async () => {
@@ -78,7 +75,6 @@ export default function ProfilePage() {
     enabled: !!username
   });
 
-  // Fetch user profile
   const { data: userProfile, isLoading: isProfileLoading, error: profileError } = useQuery<UserProfile>({
     queryKey: ['userProfile', username],
     queryFn: async () => {
@@ -93,34 +89,14 @@ export default function ProfilePage() {
       }
     },
     enabled: !!username,
-    retry: 3,
+    retry: 3
   });
 
-  // Handle loading state
   const isLoading = postsLoading || statsLoading || isProfileLoading;
   const hasError = postsError || statsError || profileError;
 
-  // Determine if viewing own profile
   const isOwnProfile = username === currentUser?.username;
 
-  // Check follow status on mount
-  useEffect(() => {
-    const checkFollowStatus = async () => {
-      try {
-        const isFollowing = await profileService.toggleFollow(username || '');
-        // Update local state
-        // setIsFollowing(isFollowing);
-      } catch (error) {
-        console.error('Error checking follow status:', error);
-      }
-    };
-
-    if (username && !isOwnProfile) {
-      checkFollowStatus();
-    }
-  }, [username, isOwnProfile]);
-
-  // Handle follow/unfollow
   const handleFollow = async () => {
     try {
       await profileService.toggleFollow(username || '');
@@ -151,24 +127,30 @@ export default function ProfilePage() {
     );
   }
 
-  // Early return if data is not loaded
   if (!userProfile || !stats) {
     return null;
   }
 
   return currentUser ? (
     <div className="max-w-7xl mx-auto px-4">
-      {/* Profile Section */}
       <ProfileSection
-        user={currentUser}
+        user={userProfile}
         isFollowing={!isOwnProfile}
         onFollow={handleFollow}
         posts={stats?.posts || 0}
         followers={stats?.followers || 0}
         following={stats?.following || 0}
+        onProfilePictureUpdate={(newImageUrl) => {
+          if (username) {
+            profileService.getUserProfile(username).then((updatedProfile) => {
+              if (updatedProfile) {
+                window.location.reload();
+              }
+            });
+          }
+        }}
       />
 
-      {/* Posts Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-8">
         {posts?.map((post) => (
           <PostCard
@@ -185,5 +167,5 @@ export default function ProfilePage() {
         ))}
       </div>
     </div>
-  ): null;
+  ) : null;
 }

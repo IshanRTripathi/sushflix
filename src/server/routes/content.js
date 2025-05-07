@@ -1,11 +1,11 @@
 const express = require('express');
 const Content = require('../models/Content');
-const auth = require('../middlewares/auth');
+const authMiddleware = require('../middlewares/auth');
 const logger = require('../config/logger');
 const router = express.Router();
 
 // Upload content with an image
-router.post('/upload', auth(['creator']), async (req, res) => {
+router.post('/upload', authMiddleware(['creator']), async (req, res) => {
   logger.info(`Route /upload POST called`);
   try {
     const { title, description, mediaType, creator, isExclusive, requiredLevel, mediaUrl, thumbnailUrl } = req.body;
@@ -47,7 +47,7 @@ router.get('/', async (req, res) => {
 });
 
 // Create content
-router.post('/', auth(['creator']), async (req, res) => {
+router.post('/', authMiddleware(['creator']), async (req, res) => {
   logger.info(`Route / POST called`);
   try {
     const content = new Content({
@@ -106,13 +106,13 @@ router.get('/:id', async (req, res) => {
     res.json(content);
   } catch (error) {
         logger.error(`Content fetch error: ${error.message}`);
-    res.status(500).json({ message: err.message });
+    res.status(500).json({ message: error.message });
   }
 });
 
 // Update content
-router.patch('/:id', auth(['creator']), async (req, res) => {
-  logger.info(`Route /:id PATCH called`);
+router.put('/:id', authMiddleware(['creator']), async (req, res) => {
+  logger.info(`Route /:id PUT called`);
   try {
     const content = await Content.findOne({
       _id: req.params.id,
@@ -138,7 +138,7 @@ router.patch('/:id', auth(['creator']), async (req, res) => {
 });
 
 // Delete content
-router.delete('/:id', auth(['creator']), async (req, res) => {
+router.delete('/:id', authMiddleware(['creator']), async (req, res) => {
   logger.info(`Route /:id DELETE called`);
   try {
     const content = await Content.findOneAndDelete({

@@ -14,103 +14,123 @@ const devLogin = require('./devLogin');
 const authRoutes = require('./routes/auth');
 const contentRoutes = require('./routes/content');
 const subscriptionRoutes = require('./routes/subscriptions');
+const userRoutes = require('./routes/user');
+const postRoutes = require('./routes/post');
 
 // Initialize express
 const app = express();
 
-// Add a very early log to see if requests reach here
+// Basic request logging
 app.use((req, res, next) => {
-    logger.info(`Request received: ${req.method} ${req.url}`);
-    next();
+  logger.info(`Incoming Request: ${req.method} ${req.url}`);
+  next();
 });
 
-// Middleware
-logger.info('Applying CORS middleware');
+// Core Middlewares
 app.use(cors());
-logger.info('CORS middleware applied');
-
-logger.info('Applying devLogin middleware');
-app.use(devLogin);
-logger.info('devLogin middleware applied');
-
-logger.info('Applying express.json middleware');
 app.use(express.json());
-logger.info('express.json middleware applied');
-
-logger.info('Applying requestLogger middleware');
+app.use(devLogin);
 app.use(requestLogger);
-logger.info('requestLogger middleware applied');
-
-logger.info('Applying morgan middleware');
 app.use(morgan('dev'));
-logger.info('morgan middleware applied');
 
-// Performance monitoring
-logger.info('Applying performance monitoring middleware');
+// Request duration/performance monitor
 app.use((req, res, next) => {
-    const start = Date.now();
-    res.on('finish', () => {
-        const duration = Date.now() - start;
-        logger.info({
-            method: req.method,
-            path: req.path,
-            duration: `${duration}ms`,
-            status: res.statusCode
-        });
+  const start = Date.now();
+  res.on('finish', () => {
+    const duration = Date.now() - start;
+    logger.info({
+      type: 'performance',
+      method: req.method,
+      path: req.originalUrl,
+      duration: `${duration}ms`,
+      status: res.statusCode
     });
-    next();
+  });
+  next();
 });
-logger.info('Performance monitoring middleware applied');
 
-// Serve static files from the 'dist' directory
-const distPath = path.join(__dirname, 'dist');  // Updated to ensure it's within the current directory after build
-logger.info(`Serving static files from: ${distPath}`);
-app.use(express.static(distPath));  // Serving the Vite build's static files
-logger.info('Static files middleware applied');
+// Static files
+const distPath = path.join(__dirname, 'dist');
+app.use(express.static(distPath));
 
-// Routes
-logger.info('Applying routes');
+// Health check
+app.get('/health', (req, res) => {
+  logger.info('Health check hit');
+  res.json({
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development'
+  });
+});
+
+// API Routes
+app.use('/api', (req, res, next) => {
+  logger.info(`API Hit: ${req.method} ${req.url}`);
+  logger.debug('Headers:', req.headers);
+  logger.debug('Body:', req.body);
+
+  // Set timeout but don't handle response here
+  req.setTimeout(30000, () => {
+    logger.warn(`Request timeout: ${req.method} ${req.url}`);
+  });
+
+  next();
+});
+
 app.use('/api/auth', authRoutes);
 app.use('/api/content', contentRoutes);
 app.use('/api/subscriptions', subscriptionRoutes);
-logger.info('Routes applied');
+app.use('/api/users', userRoutes);
+app.use('/api/posts', postRoutes);
 
-// Handle other routes by serving the 'index.html' file
-logger.info('Applying catch-all route for index.html');
-app.get('*', (req, res) => {
-    logger.info(`Catch-all route serving index.html for path: ${req.path}`);
-    res.sendFile(path.join(distPath, 'index.html'));  // Ensure this serves the built index.html
-});
-logger.info('Catch-all route applied');
-
-// Error handling (Consolidated)
-logger.info('Applying error handling middleware');
+// Error handling middleware
 app.use(errorHandler);
-logger.info('Error handling middleware applied');
 
+// Serve frontend for non-API routes
+app.get('*', (req, res, next) => {
+  if (!req.url.startsWith('/api')) {
+    res.sendFile(path.join(distPath, 'index.html'));
+  } else {
+    next();
+  }
+});
+
+// Centralized error handler
+app.use(errorHandler);
+
+// Global error handlers
+process.on('uncaughtException', (err) => {
+  logger.error('UNCAUGHT EXCEPTION', {
+    message: err.message,
+    stack: err.stack
+  });
+  process.exit(1); // Crash fast if critical
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+    logger.error('UNHANDLED PROMISE REJECTION', {
+      message: reason?.message || reason,
+      stack: reason?.stack || 'No stack trace',
+      reason
+    });
+  });
+  
+
+// Server bootstrap
 const PORT = process.env.PORT || 8080;
 
-// Add uncaught exception handler
-process.on('uncaughtException', (err) => {
-    logger.error('UNCAUGHT EXCEPTION:', err);
-    // Consider graceful shutdown here if needed
-    // process.exit(1); // Exit the process after logging
-});
-
 const startServer = async () => {
-    logger.info('Starting server initialization...'); // Added log
-    try {
-        logger.info('Attempting to connect to database...'); // Added log
-        await connectDB();
-        logger.info('Database connected successfully');
-        logger.info(`Attempting to start server listener on port ${PORT}...`); // Added log
-        app.listen(PORT, '0.0.0.0', () => {
-            logger.info(`Server running on port ${PORT}`);
-        });
-    } catch (err) {
-        logger.error('Failed to start server:', err);
-        // process.exit(1); // Keep the process alive for further inspection unless critical
-    }
+  logger.info('Initializing server...');
+  try {
+    await connectDB();
+    logger.info('Database connected');
+    app.listen(PORT, '0.0.0.0', () => {
+      logger.info(`Server running on port ${PORT}`);
+    });
+  } catch (err) {
+    logger.error('Startup Error', err);
+    process.exit(1);
+  }
 };
 
 startServer();

@@ -28,7 +28,7 @@ export function Navigation() {
             <div className="hidden md:flex space-x-4">
               <Link to="/" className="text-gray-400 hover:text-gray-500 px-3 py-2 rounded-md text-sm font-medium">Home</Link>
               <Link to="/explore" className="text-gray-400 hover:text-gray-500 px-3 py-2 rounded-md text-sm font-medium">Explore</Link>
-              <Link to="/profile" className="text-gray-400 hover:text-gray-500 px-3 py-2 rounded-md text-sm font-medium">Profile</Link>
+              <Link to={`/profile/${user?.username}`} className="text-gray-400 hover:text-gray-500 px-3 py-2 rounded-md text-sm font-medium">Profile</Link>
               <Link to="/settings" className="text-gray-400 hover:text-gray-500 px-3 py-2 rounded-md text-sm font-medium">Settings</Link>
             </div>
 
@@ -62,7 +62,7 @@ export function Navigation() {
                   >
                     <div className="py-1" role="none">
                       <Link
-                        to="/profile"
+                        to={`/profile/${user?.username}`}
                         className={`block px-4 py-2 text-sm ${theme === 'dark' ? 'text-gray-400 hover:text-white hover:bg-gray-800' : 'text-gray-700 hover:bg-gray-100'}`}
                         role="menuitem"
                         onClick={() => setIsMenuOpen(false)}
@@ -143,7 +143,7 @@ export function Navigation() {
               </div>
               <div className="mt-3 px-2 space-y-1">
                 <Link
-                  to="/profile"
+                  to={`/profile/${user?.username}`}
                   className={`block px-3 py-2 rounded-md text-base font-medium ${theme === 'dark' ? 'text-gray-400 hover:text-white hover:bg-gray-800' : 'text-gray-900 hover:text-gray-700 hover:bg-gray-50'}`}
                 >
                   Profile
