@@ -1,5 +1,9 @@
    ### Register a New User
-POST http://localhost:8080/api/register
+### Base URL
+@baseUrl=http://localhost:8080/api
+
+### Register a New User
+POST {{baseUrl}}/register
 Content-Type: application/json
 
 {
@@ -9,7 +13,8 @@ Content-Type: application/json
 }
 
 ### Log In with the New User
-POST http://localhost:8080/api/login
+### Log In with the New User
+POST {{baseUrl}}/login
 Content-Type: application/json
 
 {
@@ -18,5 +23,6 @@ Content-Type: application/json
 }
 
 ### Access a Protected Route
-GET http://localhost:8080/api/me
+### Access a Protected Route
+GET {{baseUrl}}/me
 Authorization: Bearer your.jwt.token

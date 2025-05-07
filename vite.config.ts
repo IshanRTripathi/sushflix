@@ -7,12 +7,11 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, 'src')
-      // Removed unnecessary Node polyfills
     }
   },
   define: {
     'process.env': {
-      VITE_BACKEND_URL: process.env.VITE_BACKEND_URL || 'http://localhost:8080'
+      VITE_API_URL: process.env.VITE_API_URL || 'https://sushflix-backend-796527544626.us-central1.run.app/api'
     }
   },
   plugins: [
@@ -53,7 +52,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'http://localhost:8080',
+        target: 'https://sushflix-backend-796527544626.us-central1.run.app/api',
         changeOrigin: true,
         secure: false
       }
