@@ -59,18 +59,28 @@ export const ProfilePictureUpload: React.FC<ProfilePictureUploadProps> = ({ curr
       type: file.type
     });
     if (file.size > 2 * 1024 * 1024) {
-      setError('File size must be less than 2MB');
-      console.log('File size validation failed');
       return;
     }
-    if (!file.type.startsWith('image/')) {
-      setError('Please select an image file');
-      console.log('File type validation failed');
+
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      setError('Invalid file type. Only JPEG, PNG, and WebP images are allowed.');
       return;
     }
+
+    // Validate file size (5MB limit)
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    if (file.size > maxSize) {
+      setError('File size too large. Maximum allowed size is 5MB.');
+      return;
+    }
+
     setSelectedFile(file);
-    setPreviewUrl(URL.createObjectURL(file));
-    console.log('File selected successfully, preview URL:', previewUrl);
+    const preview = URL.createObjectURL(file);
+    setPreviewUrl(preview);
+    console.log('File selected successfully, preview URL:', preview);
+    setError('');
     setOpen(true);
   };
 
@@ -107,30 +117,42 @@ export const ProfilePictureUpload: React.FC<ProfilePictureUploadProps> = ({ curr
 
     try {
       console.log('Starting upload process');
-      console.log('Current image URL:', currentImage);
       logger.info('Uploading profile picture');
       
       console.log('Using username:', username);
+      console.log('File to upload:', {
+        name: selectedFile.name,
+        size: selectedFile.size,
+        type: selectedFile.type
+      });
 
       const formData = new FormData();
       formData.append('file', selectedFile);
 
+      logger.info('Sending upload request to server');
       const response = await profileService.uploadProfilePicture(username, selectedFile);
-      console.log('Server response:', response);
+      logger.info('Received server response', { response });
 
       if (response.success && response.imageUrl) {
+        logger.info('Upload successful', { imageUrl: response.imageUrl });
         onUploadSuccess(response.imageUrl);
         setOpen(false);
         setUploading(false);
         setError('');
-        logger.info('Profile picture uploaded successfully');
       } else {
-        throw new Error(response.error || 'Upload failed');
+        const errorMessage = response.error || 'Upload failed. Please try again.';
+        logger.error('Upload failed', { error: errorMessage });
+        setError(errorMessage);
       }
     } catch (error) {
-      console.error('Upload error:', error);
-      setError('Upload failed: ' + (error instanceof Error ? error.message : 'Unknown error'));
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : typeof error === 'string' 
+          ? error 
+          : 'An unexpected error occurred during upload';
+      
       logger.error('Error uploading profile picture', { error });
+      setError(errorMessage);
       setUploading(false);
     }
   };

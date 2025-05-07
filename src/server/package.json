@@ -16,6 +16,7 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.525.0",
     "@aws-sdk/s3-request-presigner": "^3.682.0",
+    "@google-cloud/storage": "^7.16.0",
     "aws-sdk": "^2.1691.0",
     "axios": "^1.9.0",
     "bcryptjs": "^2.4.3",

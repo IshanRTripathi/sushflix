@@ -28,7 +28,17 @@ if (process.env.NODE_ENV !== 'production') {
     }));
   }
 
-  logger.info = (message) => logger.log('info', `INFO: ${message}`);
-  logger.error = (message) => logger.log('error', `ERROR: ${message}`);
-  logger.warn = (message) => logger.log('warn', `WARN: ${message}`);
+  // Add custom logging methods
+logger.info = (message, meta = {}) => {
+    logger.log('info', message, meta);
+};
+
+logger.error = (message, meta = {}) => {
+    logger.log('error', message, meta);
+};
+
+logger.warn = (message, meta = {}) => {
+    logger.log('warn', message, meta);
+};
+
 module.exports = logger;

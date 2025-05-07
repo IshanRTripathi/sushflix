@@ -1,6 +1,7 @@
 const User = require('../models/User');
 const Post = require('../models/Post');
 const StorageService = require('../services/StorageService');
+const logger = require('../config/logger');
 
 // Get user profile
 const getUserProfile = async (req, res) => {
@@ -115,54 +116,80 @@ const getUserStats = async (req, res) => {
   }
 };
 
-const storageService = StorageService.getInstance();
+const storageService = require('../services/StorageService');
 
 // Upload profile picture
-const uploadProfilePicture = async (req, res) => {
-  try {
-    const { username } = req.params;
-    const file = req.file;
+const uploadProfilePicture = async (username, file, req, res) => {
+    try {
+    // Validate request parameters
+    if (!username || typeof username !== 'string') {
+      logger.error('Invalid username parameter', {
+        username,
+        params: req.params
+      });
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid username parameter'
+      });
+    }
 
+    const file = req.file;
     if (!file) {
+      logger.error('No file uploaded in request', {
+        headers: req.headers,
+        body: req.body
+      });
       return res.status(400).json({
         success: false,
         error: 'No file uploaded'
       });
     }
 
-    // Upload to GCS
+    // Upload to Google Cloud Storage
     const uploadResponse = await storageService.uploadFile(username, file);
-
+    
     if (!uploadResponse.success) {
-      return res.status(400).json({
+      logger.error('Failed to upload to storage', {
+        error: uploadResponse.error,
+        response: uploadResponse
+      });
+      return res.status(500).json({
         success: false,
-        error: uploadResponse.error
+        error: uploadResponse.error || 'Failed to upload file'
       });
     }
 
     // Update user profile with new image URL
-    const user = await User.findOneAndUpdate(
-      { username },
-      { profilePic: uploadResponse.url },
-      { new: true }
-    );
-
+    const user = await User.findOne({ username });
     if (!user) {
+      logger.error('User not found', { username });
       return res.status(404).json({
         success: false,
         error: 'User not found'
       });
     }
 
-    res.status(200).json({
+    user.profilePicture = uploadResponse.url;
+    await user.save();
+    logger.info('Profile picture updated successfully', {
+      username,
+      newUrl: uploadResponse.url
+    });
+
+    res.json({
       success: true,
-      imageUrl: uploadResponse.url
+      url: uploadResponse.url
     });
   } catch (error) {
-    logger.error('Error uploading profile picture', { error });
-    res.status(500).json({
+    logger.error('Profile picture upload error', {
+      error: error.message,
+      stack: error.stack,
+      username: req.params.username
+    });
+    
+    return res.status(500).json({
       success: false,
-      error: 'Failed to upload profile picture'
+      error: error.message || 'Failed to upload profile picture'
     });
   }
 };

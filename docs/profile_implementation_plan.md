@@ -152,12 +152,13 @@ interface UserDocument {
 
 3. **Interactive Features** (In Progress)
    - ✅ Follow/Unfollow button with proper state management
-   - ❌ Profile picture upload with preview (using Google Cloud Storage)
+   - ✅ Profile picture upload with preview (using Google Cloud Storage)
      - ✅ Image selection and preview
      - ✅ Size validation (2MB max)
      - ✅ Upload to Google Cloud Storage
      - ✅ Progress indicator
      - ✅ Error handling
+     - ✅ Bucket-level permissions handling
    - ❌ Social links editing
    - ❌ Social links editing
 

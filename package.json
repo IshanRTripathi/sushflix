@@ -16,7 +16,9 @@
     "start": "concurrently \"npm run server:dev\" \"npm run dev\"",
     "test": "jest",
     "test:e2e": "cypress run",
-    "test:integration": "jest --config jest.integration.config.js"
+    "test:integration": "jest --config jest.integration.config.js",
+    "deploy:server": "gcloud run deploy sushflix-backend --source . --region us-central1 --allow-unauthenticated --quiet --dockerfile Dockerfile.server",
+    "deploy": "npm run build && npm run deploy:server"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
@@ -30,6 +32,7 @@
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.21.1",
+    "express-async-handler": "^1.2.0",
     "jsonwebtoken": "^9.0.2",
     "lucide-react": "^0.344.0",
     "mongoose": "^8.2.0",

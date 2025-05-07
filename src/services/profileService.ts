@@ -40,8 +40,6 @@ export interface UploadResponse {
   error?: string;
 }
 
-import { useQueryClient } from '@tanstack/react-query';
-
 export class ProfileService {
   private static instance: ProfileService;
   private static readonly DEFAULT_TIMEOUT = 10000;
@@ -58,32 +56,168 @@ export class ProfileService {
     return ProfileService.instance;
   }
 
-  public static invalidateQueries(queryKey: string[]) {
-    const queryClient = useQueryClient();
-    queryClient.invalidateQueries(queryKey);
-  }
-
   public async uploadProfilePicture(username: string, file: File): Promise<UploadResponse> {
     try {
+      // Validate file parameters
+      if (!username || typeof username !== 'string') {
+        throw new Error('Invalid username provided');
+      }
+
+      if (!file || !(file instanceof File)) {
+        throw new Error('Invalid file object provided');
+      }
+
+      // Validate file size and type
+      const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+      if (file.size > MAX_FILE_SIZE) {
+        throw new Error('File size exceeds maximum limit of 5MB');
+      }
+
+      const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+      if (!ALLOWED_TYPES.includes(file.type)) {
+        throw new Error('Invalid file type. Only JPEG, PNG, and WebP images are allowed.');
+      }
+
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await axios.post<UploadResponse>(
-        `${API_BASE_URL}users/${username}/profile-picture`,
-        formData,
-        {
-          headers: {
-            'Content-Type': 'multipart/form-data'
-          }
+      logger.info('Uploading profile picture', {
+        url: `${API_BASE_URL}users/${username}/profile-picture`,
+        file: {
+          name: file.name,
+          size: file.size,
+          type: file.type,
+          lastModified: file.lastModified
         }
-      );
+      });
 
-      return response.data;
+      // Create a controller to handle request cancellation
+      const controller = new AbortController();
+      const signal = controller.signal;
+
+      // Set a timeout for the request
+      const timeoutId = setTimeout(() => {
+        logger.warn('Upload request timed out after 30 seconds');
+        controller.abort();
+      }, 30000);
+
+      try {
+        const response = await axios.post<UploadResponse>(
+          `${API_BASE_URL}users/${username}/profile-picture`,
+          formData,
+          {
+            headers: {
+              'Content-Type': 'multipart/form-data'
+            },
+            validateStatus: (status) => status >= 200 && status < 300,
+            signal,
+            timeout: 30000
+          }
+        );
+
+        logger.info('Upload completed successfully', {
+          response: {
+            success: response.data.success,
+            imageUrl: response.data.imageUrl,
+            error: response.data.error
+          }
+        });
+
+        clearTimeout(timeoutId);
+        return response.data;
+      } catch (axiosError: any) {
+        clearTimeout(timeoutId);
+
+        // Handle different types of errors
+        if (axiosError.code === 'ERR_CANCELED') {
+          logger.warn('Upload request was canceled');
+          return {
+            success: false,
+            error: 'Upload request was canceled'
+          };
+        }
+
+        if (axiosError.response) {
+          // Server responded with an error
+          logger.error('Server error response', {
+            status: axiosError.response.status,
+            data: axiosError.response.data,
+            headers: axiosError.response.headers
+          });
+
+          if (axiosError.response.status === 408) {
+            return {
+              success: false,
+              error: 'Request timeout. Please try again.'
+            };
+          }
+
+          if (axiosError.response.status === 499) {
+            return {
+              success: false,
+              error: 'Request was aborted by client'
+            };
+          }
+
+          return {
+            success: false,
+            error: axiosError.response.data?.error || 'Server error occurred'
+          };
+        } else if (axiosError.request) {
+          // Request was made but no response
+          logger.error('No response from server', {
+            config: axiosError.config
+          });
+          return {
+            success: false,
+            error: 'No response from server. Please check your network connection.'
+          };
+        } else {
+          // Something happened in setting up the request
+          logger.error('Request setup error', {
+            message: axiosError.message,
+            stack: axiosError.stack
+          });
+          return {
+            success: false,
+            error: 'Error setting up request. Please try again.'
+          };
+        }
+      }
     } catch (error: unknown) {
-      logger.error('Error uploading profile picture:', error);
+      logger.error('Upload failed', {
+        error: {
+          message: error instanceof Error ? error.message : 'Unknown error',
+          name: error instanceof Error ? error.name : 'Unknown',
+          stack: error instanceof Error ? error.stack : undefined
+        },
+        username,
+        timestamp: new Date().toISOString()
+      });
+
+      // Map error messages based on error type
+      const errorType = error instanceof Error ? error.name : 'Unknown';
+      type ErrorMessages = {
+        [key: string]: string;
+      };
+      
+      const errorMessages: ErrorMessages = {
+        'Invalid username': 'Invalid username provided',
+        'Invalid file': 'Invalid file object provided',
+        'File size': 'File size exceeds maximum limit',
+        'File type': 'Invalid file type',
+        'Timeout': 'Request timeout. Please try again.',
+        'Canceled': 'Upload request was canceled',
+        'Network': 'No response from server. Please check your network connection.',
+        'Request': 'Error setting up request. Please try again.',
+        'Unknown': 'Failed to upload profile picture'
+      };
+
+      const errorMessage = errorMessages[errorType] || (error instanceof Error ? error.message : 'Unknown error');
+
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to upload profile picture'
+        error: errorMessage
       };
     }
   }
@@ -184,7 +318,7 @@ export class ProfileService {
       logger.debug(`Attempting to like post: ${postId}`);
       await this.request({
         method: 'POST',
-        url: `${API_BASE_URL}/posts/${postId}/like`,
+        url: `${API_BASE_URL}posts/${postId}/like`,
       });
       logger.info(`Successfully liked post: ${postId}`);
     } catch (error: unknown) {
@@ -197,7 +331,7 @@ export class ProfileService {
   public async commentOnPost(postId: string, comment: string): Promise<void> {
     await this.request({
       method: 'POST',
-      url: `${API_BASE_URL}/posts/${postId}/comment`,
+      url: `${API_BASE_URL}posts/${postId}/comment`,
       data: { comment },
     });
   }
@@ -224,7 +358,7 @@ export class ProfileService {
 
       await this.request({
         method: 'PUT',
-        url: `${API_BASE_URL}/users/${username}/profile`,
+        url: `${API_BASE_URL}users/${username}/profile`,
         data: profileData
       });
 
