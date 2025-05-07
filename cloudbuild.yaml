@@ -31,7 +31,9 @@ steps:
         'us-central1',
         '--allow-unauthenticated',
         '--set-secrets',
-        'MONGO_URI=mongo-uri:latest,JWT_SECRET=jwt-secret:latest'
+        'MONGO_URI=mongo-uri:latest,JWT_SECRET=jwt-secret:latest',
+        '--set-env-vars',
+        'GCS_BUCKET_NAME=user-profile-pictures-sushflix'
       ]
 
   # Build and push the frontend Docker image
@@ -39,10 +41,12 @@ steps:
     args: [
       'build',
       '-t',
-      'us-central1-docker.pkg.dev/$PROJECT_ID/sushflix-repo/sushflix-frontend',
+      'us-central1-docker.pkg.dev/$PROJECT_ID/sushflix-repo/sushflix',
       '.',
       '--build-arg',
-      'VITE_BACKEND_URL=https://sushflix-backend-796527544626.us-central1.run.app'
+      'VITE_BACKEND_URL=https://sushflix-backend-796527544626.us-central1.run.app',
+      '--build-arg',
+      'VITE_GCS_BUCKET_NAME=user-profile-pictures-sushflix'
     ]
     timeout: '1200s'
 
@@ -50,7 +54,7 @@ steps:
   - name: 'gcr.io/cloud-builders/docker'
     args: [
       'push',
-      'us-central1-docker.pkg.dev/$PROJECT_ID/sushflix-repo/sushflix-frontend'
+      'us-central1-docker.pkg.dev/$PROJECT_ID/sushflix-repo/sushflix'
     ]
 
   # Deploy the frontend
@@ -59,9 +63,9 @@ steps:
       [
         'run',
         'deploy',
-        'sushflix-frontend',
+        'sushflix',
         '--image',
-        'us-central1-docker.pkg.dev/$PROJECT_ID/sushflix-repo/sushflix-frontend',
+        'us-central1-docker.pkg.dev/$PROJECT_ID/sushflix-repo/sushflix',
         '--platform',
         'managed',
         '--region',

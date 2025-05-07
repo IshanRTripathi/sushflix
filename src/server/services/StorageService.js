@@ -2,7 +2,6 @@ const { Storage } = require('@google-cloud/storage');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 const logger = require('../config/logger');
-require('dotenv').config();
 
 const ALLOWED_FILE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB
@@ -17,7 +16,8 @@ class StorageService {
   static instance = null;
 
   constructor() {
-    this.bucketName = process.env.GCS_BUCKET_NAME;
+    // Get bucket name from environment variable
+    this.bucketName = process.env.GCS_BUCKET_NAME || 'user-profile-pictures-sushflix';
     this.bucket = storage.bucket(this.bucketName);
     logger.info('StorageService initialized with bucket:', { bucket: this.bucketName });
   }
