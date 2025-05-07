@@ -30,7 +30,7 @@ steps:
       'gcr.io/$PROJECT_ID/sushflix-frontend',
       '.',
       '--build-arg',
-      'VITE_BACKEND_URL=https://sushflix-backend-796527544626.us-central1.run.app'
+      'VITE_BACKEND_URL=https://sushflix-backend-796527544626.us-central1.run.app/api/'
     ]
     timeout: '1200s'
 
