@@ -24,7 +24,7 @@ export function ContentDetail() {
   useEffect(() => {
     const fetchContent = async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}content/${id}`, {
+        const response = await fetch(`${API_BASE_URL}/api/content/${id}`, {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`
           }

@@ -51,7 +51,7 @@ export function HomePage() {
   const fetchProfile = async () => {
     try {
       setLoadingState({ isLoading: true });
-      const response = await fetch(`${API_BASE_URL}/profile`);
+      const response = await fetch(`${API_BASE_URL}/api//profile`);
       if (!response.ok) {
         throw new Error('Failed to fetch profile');
       }
@@ -78,7 +78,7 @@ export function HomePage() {
   const fetchFeaturedProfiles = async () => {
     try {
       setLoadingState({ isLoading: true });
-      const response = await fetch(`${API_BASE_URL}/api/profiles/featured`);
+      const response = await fetch(`${API_BASE_URL}/api//api/profiles/featured`);
       if (!response.ok) {
         throw new Error('Failed to fetch featured profiles');
       }

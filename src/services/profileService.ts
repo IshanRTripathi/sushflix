@@ -5,12 +5,12 @@ import { API_BASE_URL } from '../config/index';
 
 // API Endpoints
 const API_ENDPOINTS = {
-  USER_PROFILE: (username: string) => `${API_BASE_URL}users/${username}`,
-  USER_POSTS: (username: string) => `${API_BASE_URL}posts/${username}`,
-  USER_STATS: (username: string) => `${API_BASE_URL}users/${username}/stats`,
-  TOGGLE_FOLLOW: (username: string) => `${API_BASE_URL}users/${username}/follow`,
-  POST_SHARE: (postId: string) => `${API_BASE_URL}posts/${postId}/share`,
-  POST_BOOKMARK: (postId: string) => `${API_BASE_URL}posts/${postId}/bookmark`
+  USER_PROFILE: (username: string) => `${API_BASE_URL}/api/users/${username}`,
+  USER_POSTS: (username: string) => `${API_BASE_URL}/api/posts/${username}`,
+  USER_STATS: (username: string) => `${API_BASE_URL}/api/users/${username}/stats`,
+  TOGGLE_FOLLOW: (username: string) => `${API_BASE_URL}/api/users/${username}/follow`,
+  POST_SHARE: (postId: string) => `${API_BASE_URL}/api/posts/${postId}/share`,
+  POST_BOOKMARK: (postId: string) => `${API_BASE_URL}/api/posts/${postId}/bookmark`
 } as const;
 
 export interface Post {
@@ -91,7 +91,7 @@ export class ProfileService {
 
       try {
         logger.info('Uploading profile picture', {
-          url: `${API_BASE_URL}users/${username}/profile-picture`,
+          url: `${API_BASE_URL}/api/users/${username}/profile-picture`,
           file: {
             name: file.name,
             size: file.size,
@@ -101,7 +101,7 @@ export class ProfileService {
         });
 
         const response = await axios.post(
-          `${API_BASE_URL}users/${username}/profile-picture`,
+          `${API_BASE_URL}/api/users/${username}/profile-picture`,
           formData,
           {
             headers: {
@@ -317,7 +317,7 @@ export class ProfileService {
       logger.debug(`Attempting to like post: ${postId}`);
       await this.request({
         method: 'POST',
-        url: `${API_BASE_URL}posts/${postId}/like`,
+        url: `${API_BASE_URL}/api/posts/${postId}/like`,
       });
       logger.info(`Successfully liked post: ${postId}`);
     } catch (error: unknown) {
@@ -330,7 +330,7 @@ export class ProfileService {
   public async commentOnPost(postId: string, comment: string): Promise<void> {
     await this.request({
       method: 'POST',
-      url: `${API_BASE_URL}posts/${postId}/comment`,
+      url: `${API_BASE_URL}/api/posts/${postId}/comment`,
       data: { comment },
     });
   }
@@ -357,7 +357,7 @@ export class ProfileService {
 
       await this.request({
         method: 'PUT',
-        url: `${API_BASE_URL}users/${username}/profile`,
+        url: `${API_BASE_URL}/api/users/${username}/profile`,
         data: profileData
       });
 

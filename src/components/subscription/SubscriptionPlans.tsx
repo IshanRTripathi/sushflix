@@ -66,7 +66,7 @@ export function SubscriptionPlans() {
     }
 
     try {
-      const response = await fetch(`${API_BASE_URL}subscriptions/create`, {
+      const response = await fetch(`${API_BASE_URL}/api/subscriptions/create`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

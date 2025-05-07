@@ -5,9 +5,9 @@ import { logger } from '../../utils/logger';
 
 // Centralized endpoint configuration
 const AUTH_ENDPOINTS = {
-  LOGIN: `${API_BASE_URL}auth/login`,
-  LOGOUT: `${API_BASE_URL}auth/logout`,
-  PROFILE: `${API_BASE_URL}auth/me`
+  LOGIN: `${API_BASE_URL}/api/auth/login`,
+  LOGOUT: `${API_BASE_URL}/api/auth/logout`,
+  PROFILE: `${API_BASE_URL}/api/auth/me`
 };
 
 interface AuthContextType {
