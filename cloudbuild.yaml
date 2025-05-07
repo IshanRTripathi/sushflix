@@ -27,16 +27,16 @@ steps:
     args: [
       'build',
       '-t',
-      'gcr.io/$PROJECT_ID/sushflix-frontend',
+      'gcr.io/sushflix-frontend',
       '.',
       '--build-arg',
-      'VITE_BACKEND_URL=https://sushflix-backend-796527544626.us-central1.run.app/api/'
+      'VITE_BACKEND_URL=https://sushflix-backend-796527544626.us-central1.run.app'
     ]
     timeout: '1200s'
 
   # Push frontend image
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['push', 'gcr.io/$PROJECT_ID/sushflix-frontend']
+    args: ['push', 'gcr.io/sushflix-frontend']
 
   # Deploy the frontend
   - name: 'gcr.io/cloud-builders/gcloud'
@@ -46,7 +46,7 @@ steps:
         'deploy',
         'sushflix-frontend',
         '--image',
-        'gcr.io/$PROJECT_ID/sushflix-frontend',
+        'gcr.io/sushflix-frontend',
         '--platform',
         'managed',
         '--region',

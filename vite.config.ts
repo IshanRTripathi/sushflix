@@ -11,7 +11,7 @@ export default defineConfig({
   },
   define: {
     'process.env': {
-      VITE_API_URL: process.env.VITE_API_URL || 'https://sushflix-backend-796527544626.us-central1.run.app/api/'
+      VITE_API_URL: process.env.VITE_API_URL || 'https://sushflix-backend-796527544626.us-central1.run.app'
     }
   },
   plugins: [
@@ -52,7 +52,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'https://sushflix-backend-796527544626.us-central1.run.app/api/',
+        target: 'https://sushflix-backend-796527544626.us-central1.run.app',
         changeOrigin: true,
         secure: false
       }
