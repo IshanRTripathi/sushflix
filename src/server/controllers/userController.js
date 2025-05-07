@@ -1,6 +1,6 @@
 const User = require('../models/User');
 const Post = require('../models/Post');
-const StorageService = require('../services/StorageService');
+const { uploadFile, deleteFile } = require('../services/StorageService');
 const logger = require('../config/logger');
 
 // Get user profile
@@ -116,8 +116,6 @@ const getUserStats = async (req, res) => {
   }
 };
 
-const storageService = require('../services/StorageService');
-
 // Upload profile picture
 const uploadProfilePicture = async (username, file, req, res) => {
     try {
@@ -146,7 +144,7 @@ const uploadProfilePicture = async (username, file, req, res) => {
     }
 
     // Upload to Google Cloud Storage
-    const uploadResponse = await storageService.uploadFile(username, file);
+    const uploadResponse = await uploadFile(username, file);
     
     if (!uploadResponse.success) {
       logger.error('Failed to upload to storage', {
