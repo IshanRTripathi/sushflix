@@ -1,8 +1,20 @@
 steps:
   # Build and push the backend Docker image
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['build', '-t', 'gcr.io/$PROJECT_ID/sushflix-backend', './src/server']
+    args: [
+      'build',
+      '-t',
+      'us-central1-docker.pkg.dev/$PROJECT_ID/sushflix-repo/sushflix-backend',
+      './src/server'
+    ]
     timeout: '1200s'
+
+  # Push backend image to Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args: [
+      'push',
+      'us-central1-docker.pkg.dev/$PROJECT_ID/sushflix-repo/sushflix-backend'
+    ]
 
   # Deploy backend with required secrets
   - name: 'gcr.io/cloud-builders/gcloud'
@@ -12,7 +24,7 @@ steps:
         'deploy',
         'sushflix-backend',
         '--image',
-        'gcr.io/$PROJECT_ID/sushflix-backend',
+        'us-central1-docker.pkg.dev/$PROJECT_ID/sushflix-repo/sushflix-backend',
         '--platform',
         'managed',
         '--region',
@@ -27,16 +39,19 @@ steps:
     args: [
       'build',
       '-t',
-      'gcr.io/sushflix-frontend',
+      'us-central1-docker.pkg.dev/$PROJECT_ID/sushflix-repo/sushflix-frontend',
       '.',
       '--build-arg',
       'VITE_BACKEND_URL=https://sushflix-backend-796527544626.us-central1.run.app'
     ]
     timeout: '1200s'
 
-  # Push frontend image
+  # Push frontend image to Artifact Registry
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['push', 'gcr.io/sushflix-frontend']
+    args: [
+      'push',
+      'us-central1-docker.pkg.dev/$PROJECT_ID/sushflix-repo/sushflix-frontend'
+    ]
 
   # Deploy the frontend
   - name: 'gcr.io/cloud-builders/gcloud'
@@ -46,7 +61,7 @@ steps:
         'deploy',
         'sushflix-frontend',
         '--image',
-        'gcr.io/sushflix-frontend',
+        'us-central1-docker.pkg.dev/$PROJECT_ID/sushflix-repo/sushflix-frontend',
         '--platform',
         'managed',
         '--region',
