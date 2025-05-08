@@ -53,9 +53,9 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({
     logger.info('Profile picture upload success', { userId: user.id });
     
     try {
-      if (onProfilePictureUpdate) {
-        onProfilePictureUpdate(newImageUrl);
-      }
+      // if (onProfilePictureUpdate) {
+      //   onProfilePictureUpdate(newImageUrl);
+      // }
       
       // Update the local preview
       const img = document.querySelector<HTMLImageElement>('img');
