@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Menu, X, User } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import { DEFAULT_IMAGES } from '../../config/images';
 
 export function Navigation() {
   const { isAuthenticated, logout, user, openAuthModal } = useAuth();
@@ -94,7 +95,7 @@ export function Navigation() {
                 <div className="flex items-center space-x-2">
                   <span className="text-gray-400">{user?.displayName}</span>
                   <img
-                    src={user?.profilePicture || '/default-avatar.png'}
+                    src={user?.profilePicture || DEFAULT_IMAGES.avatar}
                     alt="Profile"
                     className="w-8 h-8 rounded-full"
                   />
@@ -131,7 +132,7 @@ export function Navigation() {
                 <div className="flex-shrink-0">
                   <img
                     className="h-10 w-10 rounded-full"
-                    src={user?.profilePicture || '/default-avatar.png'}
+                    src={user?.profilePicture || DEFAULT_IMAGES.avatar}
                     alt="Profile"
                   />
                 </div>

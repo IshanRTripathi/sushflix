@@ -9,7 +9,8 @@ export interface SocialLinks {
 export const USER_ROLES = {
   ADMIN: 'admin',
   USER: 'user',
-  MODERATOR: 'moderator'
+  MODERATOR: 'moderator',
+  CREATOR: 'creator'
 } as const;
 
 // Type for user roles
@@ -17,6 +18,7 @@ export type UserRole = typeof USER_ROLES[keyof typeof USER_ROLES];
 
 export interface UserProfile {
   // Non-editable fields
+  id: string;
   userId: string;
   username: string;
   createdAt: Date;

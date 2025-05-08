@@ -246,7 +246,15 @@ export const ContentDetail: React.FC<ContentDetailProps> = ({ className = '' }) 
             loading="lazy"
             onError={(e) => {
               const img = e.target as HTMLImageElement;
-              img.src = '/images/default-thumbnail.png';
+              img.src = '';
+              return (
+                <Skeleton
+                  variant="rectangular"
+                  width="100%"
+                  height={400}
+                  sx={{ borderRadius: 1 }}
+                />
+              );
             }}
           />
         )}

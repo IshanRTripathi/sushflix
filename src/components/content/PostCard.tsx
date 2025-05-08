@@ -2,6 +2,8 @@ import React, { useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { UserProfile } from '../../types/user';
 import { logger } from '../../utils/logger';
+import { Skeleton } from '@mui/material';
+import { DEFAULT_IMAGES } from '../../config/images';
 
 // Extend UserProfile type to include ID
 interface ExtendedUserProfile extends UserProfile {
@@ -95,13 +97,20 @@ const PostCard: React.FC<PostCardProps> = ({
       {/* Profile Section */}
       <div className="flex items-center mb-4">
         <img
-          src={user.profilePicture || '/default-avatar.png'}
+          src={user.profilePicture || DEFAULT_IMAGES.avatar}
           alt={user.displayName}
           className="w-10 h-10 rounded-full mr-3"
           onError={(e) => {
             const img = e.target as HTMLImageElement;
-            img.src = '/default-avatar.png';
-            logger.warn('Profile picture failed to load', { userId: user.id });
+            img.src = '';
+            return (
+              <Skeleton
+                variant="circular"
+                width={40}
+                height={40}
+                sx={{ mr: 2 }}
+              />
+            );
           }}
         />
         <div>

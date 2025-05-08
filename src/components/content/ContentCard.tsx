@@ -2,6 +2,7 @@
 import React, { useState, useCallback } from 'react';
 import { useAuth } from '../auth/AuthContext';
 import { logger } from '../../utils/logger';
+import { Skeleton } from '@mui/material';
 
 import { useNavigate } from 'react-router-dom';
 
@@ -261,7 +262,15 @@ export const ContentCard: React.FC<ContentCardProps> = ({
         loading="lazy"
         onError={(e) => {
           const img = e.target as HTMLImageElement;
-          img.src = '/images/default-thumbnail.png';
+          img.src = '';
+          return (
+            <Skeleton
+              variant="rectangular"
+              width={300}
+              height={200}
+              sx={{ borderRadius: 1 }}
+            />
+          );
         }}
       />
 

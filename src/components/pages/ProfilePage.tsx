@@ -5,10 +5,16 @@ import { ProfileService } from '../../services/profileService';
 import { logger } from '../../utils/logger';
 import { useLoadingState } from '../../contexts/LoadingStateContext';
 import { useQuery } from '@tanstack/react-query';
-import { UserProfile } from '../../types/user';
+import { UserProfile, SocialLinks } from '../../types/user';
 import Loading from '../ui/Loading';
 import ProfileSection from '../content/ProfileSection';
 import PostCard from '../content/PostCard';
+
+interface ProfilePageProps {
+  user: UserProfile;
+  isFollowing: boolean;
+  onFollow: () => Promise<void>;
+}
 
 interface UserStats {
   posts: number;
@@ -27,7 +33,7 @@ interface Post {
 
 const profileService = ProfileService.getInstance();
 
-export default function ProfilePage() {
+export default function ProfilePage({ user, isFollowing, onFollow }: ProfilePageProps) {
   const { username } = useParams();
   const { user: currentUser } = useAuth();
 
@@ -59,7 +65,7 @@ export default function ProfilePage() {
     retry: 3
   });
 
-  const { data: stats, isLoading: statsLoading, error: statsError } = useQuery<UserStats>({
+  const { data: statsData, isLoading: statsLoading, error: statsError } = useQuery<UserStats>({
     queryKey: ['userStats', username],
     queryFn: async () => {
       setLoadingState({ isLoading: true });
@@ -127,45 +133,25 @@ export default function ProfilePage() {
     );
   }
 
-  if (!userProfile || !stats) {
+  if (!userProfile || !statsData) {
     return null;
   }
 
-  return currentUser ? (
-    <div className="max-w-7xl mx-auto px-4">
-      <ProfileSection
-        user={userProfile}
-        isFollowing={!isOwnProfile}
-        onFollow={handleFollow}
-        posts={stats?.posts || 0}
-        followers={stats?.followers || 0}
-        following={stats?.following || 0}
-        onProfilePictureUpdate={(newImageUrl) => {
-          if (username) {
-            profileService.getUserProfile(username).then((updatedProfile) => {
-              if (updatedProfile) {
-                window.location.reload();
-              }
-            });
-          }
-        }}
-      />
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-8">
-        {posts?.map((post) => (
-          <PostCard
-            key={post.id}
-            user={currentUser}
-            post={post}
-            isFollowing={!isOwnProfile}
+  return (
+    <div className="container mx-auto px-4 py-8">
+      <div className="flex flex-col md:flex-row gap-8">
+        <div className="flex-1">
+          <ProfileSection
+            user={{ ...userProfile, id: userProfile.userId }}
+            isFollowing={isFollowing}
             onFollow={handleFollow}
-            onLike={() => console.log('Like')}
-            onComment={() => console.log('Comment')}
-            onShare={() => console.log('Share')}
-            onBookmark={() => console.log('Bookmark')}
+            posts={statsData.posts}
+            followers={statsData.followers}
+            following={statsData.following}
+            onProfilePictureUpdate={() => {}}
           />
-        ))}
+        </div>
       </div>
     </div>
-  ) : null;
+  );
 }

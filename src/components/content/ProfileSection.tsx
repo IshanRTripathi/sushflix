@@ -5,6 +5,7 @@ import Button from "@/components/ui/Button";
 import { Icons } from "@/components/icons";
 import ProfilePictureUpload from '../profile/ProfilePictureUpload';
 import { logger } from '../../utils/logger';
+import { Skeleton } from '@mui/material';
 
 /**
  * Interface for social media links
@@ -80,8 +81,14 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({
                 className="w-24 h-24 rounded-full object-cover"
                 onError={(e) => {
                   const img = e.target as HTMLImageElement;
-                  img.src = '/images/default-avatar.png';
-                  logger.warn('Profile picture failed to load', { userId: user.id });
+                  img.src = '';
+                  return (
+                    <Skeleton
+                      variant="circular"
+                      width={96}
+                      height={96}
+                    />
+                  );
                 }}
                 loading="lazy"
                 width={96}
