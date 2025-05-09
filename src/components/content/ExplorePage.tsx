@@ -1,6 +1,5 @@
 import React from 'react';
 import { ContentCard } from './components/ContentCard';
-import { Avatar, Skeleton } from '@mui/material';
 import { Comment } from './components/types';
 
 /**

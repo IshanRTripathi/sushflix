@@ -1,54 +1,84 @@
-import React from 'react';
+/**
+ * Main layout component for user profiles
+ */
+import React, { useCallback, useState } from 'react';
 import { Box, Container } from '@mui/material';
-import { Grid as MuiGrid } from '@mui/material/Grid';
+import Grid from '@mui/material/Grid';
 import ProfileHeader from './ProfileHeader';
 import StatsSection from './StatsSection';
 import PostsGrid from './PostsGrid';
 import SocialLinks from './SocialLinks';
 import EditProfile from './EditProfile';
+import { UserProfile } from '../../types/user';
+import { userProfileService } from '../../services/userProfileService';
 
+/**
+ * Props for ProfileLayout component
+ */
 interface ProfileLayoutProps {
-  user: any;
+  initialUser: UserProfile;
   isOwner: boolean;
   onFollow?: () => void;
   onUnfollow?: () => void;
+  onProfileUpdate?: (updatedUser: UserProfile) => void;
 }
 
 const ProfileLayout: React.FC<ProfileLayoutProps> = ({
-  user,
+  initialUser,
   isOwner,
   onFollow,
   onUnfollow,
+  onProfileUpdate,
 }) => {
+  const [user, setUser] = useState(() => {
+    return {
+      ...initialUser,
+      username: initialUser.username || '',
+      displayName: initialUser.displayName || '',
+      bio: initialUser.bio || '',
+      profilePicture: initialUser.profilePicture || '',
+      socialLinks: initialUser.socialLinks || {},
+      isCreator: initialUser.isCreator || false,
+      following: initialUser.following || 0,
+      followers: initialUser.followers || 0,
+      posts: initialUser.posts || 0
+    } as UserProfile;
+  });
+
+  const handleProfileUpdate = useCallback((updatedUser: UserProfile) => {
+    setUser(updatedUser);
+    if (onProfileUpdate) {
+      onProfileUpdate(updatedUser);
+    }
+  }, [onProfileUpdate]);
+
   return (
     <Container maxWidth="lg" sx={{ mt: 4 }}>
-      <MuiGrid container spacing={4}>
-        {/* Profile Header Section */}
-        <MuiGrid xs={12}>
+      <Grid container spacing={4}>
+        <Grid width="100%">
           <ProfileHeader
             user={user}
             isOwner={isOwner}
             onFollow={onFollow}
             onUnfollow={onUnfollow}
+            onProfileUpdate={handleProfileUpdate}
           />
-        </MuiGrid>
+        </Grid>
 
-        {/* Stats and Social Links Section */}
-        <MuiGrid xs={12} md={4}>
+        <Grid width={{ xs: '100%', md: '33.33%' }}>
           <Box>
             <StatsSection user={user} />
-            <SocialLinks socialLinks={user.socialLinks} />
+            <SocialLinks socialLinks={user.socialLinks || {}} />
           </Box>
-        </MuiGrid>
+        </Grid>
 
-        {/* Posts and Edit Profile Section */}
-        <MuiGrid xs={12} md={8}>
+        <Grid width={{ xs: '100%', md: '66.66%' }}>
           <Box>
             {isOwner && <EditProfile user={user} />}
-            <PostsGrid posts={user.posts} />
+            <PostsGrid posts={user.posts || []} />
           </Box>
-        </MuiGrid>
-      </MuiGrid>
+        </Grid>
+      </Grid>
     </Container>
   );
 };

@@ -59,24 +59,36 @@ export class ProfileService {
   public async uploadProfilePicture(username: string, file: File): Promise<UploadResponse> {
     try {
       // Validate file parameters
+      logger.info('Starting profile picture upload validation', { username });
+      
       if (!username || typeof username !== 'string') {
+        logger.error('Invalid username provided', { username });
         throw new Error('Invalid username provided');
       }
 
       if (!file || !(file instanceof File)) {
+        logger.error('Invalid file object provided', { file });
         throw new Error('Invalid file object provided');
       }
 
       // Validate file size and type
       const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB
       if (file.size > MAX_FILE_SIZE) {
+        logger.error('File size exceeds maximum limit', { size: file.size, limit: MAX_FILE_SIZE });
         throw new Error('File size exceeds maximum limit of 2MB');
       }
 
       const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
       if (!ALLOWED_TYPES.includes(file.type)) {
+        logger.error('Invalid file type', { type: file.type, allowedTypes: ALLOWED_TYPES });
         throw new Error('Invalid file type. Only JPEG, PNG, and WebP images are allowed.');
       }
+
+      logger.info('Profile picture validation successful', { 
+        username,
+        fileSize: file.size,
+        fileType: file.type
+      });
 
       // Create FormData and append the file
       const formData = new FormData();
@@ -351,21 +363,20 @@ export class ProfileService {
 
 
 
-  public async updateProfile(username: string, profileData: any): Promise<void> {
+  public async updateProfile(username: string, profile: UserProfile): Promise<UserProfile> {
     try {
       logger.debug(`Updating profile for user: ${username}`);
-
-      await this.request({
+      const response = await this.request<UserProfile>({
         method: 'PUT',
-        url: `${API_BASE_URL}/api/users/${username}/profile`,
-        data: profileData
+        url: API_ENDPOINTS.USER_PROFILE(username),
+        data: profile
       });
-
       logger.debug(`Successfully updated profile for user: ${username}`);
+      return response || profile;
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       logger.error(`Error updating profile: ${errorMessage}`);
-      throw new Error(errorMessage);
+      throw new Error(`Failed to update profile: ${errorMessage}`);
     }
   }
 }

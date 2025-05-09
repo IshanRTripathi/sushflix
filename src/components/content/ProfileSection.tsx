@@ -5,7 +5,7 @@ import Button from "@/components/ui/Button";
 import { Icons } from "@/components/icons";
 import ProfilePictureUpload from '../profile/ProfilePictureUpload';
 import { logger } from '../../utils/logger';
-import { Skeleton } from '@mui/material';
+
 
 /**
  * Interface for social media links
@@ -22,16 +22,13 @@ interface SocialLinks {
  * @interface ProfileSectionProps
  */
 interface ProfileSectionProps {
-  user: UserProfile & { 
-    socialLinks?: SocialLinks;
-    id: string;
-  };
+  user: UserProfile;
   isFollowing: boolean;
-  onFollow: () => void;
+  onFollow?: () => void;
   posts: number;
   followers: number;
   following: number;
-  onProfilePictureUpdate?: (newImageUrl: string) => void;
+  onProfileUpdate?: (updatedUser: UserProfile) => void;
 }
 
 /**
@@ -46,65 +43,62 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({
   posts,
   followers,
   following,
-  onProfilePictureUpdate,
+  onProfileUpdate,
 }) => {
 
   // Handle profile picture upload with proper error handling
   const handleUploadSuccess = useCallback((newImageUrl: string) => {
-    logger.info('Profile picture upload success', { userId: user.id });
+    logger.info('Profile picture upload success', { userId: user.id, imageUrl: newImageUrl });
     
     try {
-      // if (onProfilePictureUpdate) {
-      //   onProfilePictureUpdate(newImageUrl);
-      // }
-      
-      // Update the local preview
-      const img = document.querySelector<HTMLImageElement>('img');
-      if (img) {
-        img.src = newImageUrl;
+      if (onProfileUpdate) {
+        onProfileUpdate({
+          ...user,
+          profilePicture: newImageUrl,
+          lastUpdated: new Date()
+        });
       }
     } catch (error) {
-      logger.error('Error updating profile picture preview', { error, userId: user.id });
+      logger.error('Error updating profile picture', { error, userId: user.id });
       throw error;
     }
-  }, [onProfilePictureUpdate, user.id]);
+  }, [user, onProfileUpdate]);
 
   return (
     <div className="w-full max-w-md mx-auto" role="region" aria-label="User profile section">
       <Card className="bg-black text-white">
         <div className="p-6 pb-0 flex flex-col items-center">
-          <div className="relative" role="img" aria-label="User profile picture">
-            {user.profilePicture ? (
-              <img
-                src={user.profilePicture}
-                alt={user.displayName || 'Profile'}
-                className="w-24 h-24 rounded-full object-cover"
-                onError={(e) => {
-                  const img = e.target as HTMLImageElement;
-                  img.src = '';
-                  return (
-                    <Skeleton
-                      variant="circular"
-                      width={96}
-                      height={96}
-                    />
-                  );
-                }}
-                loading="lazy"
-                width={96}
-                height={96}
+          <div className="relative w-24 h-24" role="img" aria-label="User profile picture">
+            <div className="w-full h-full rounded-full overflow-hidden">
+              {user.profilePicture ? (
+                <img
+                  src={user.profilePicture}
+                  alt={user.displayName || 'Profile'}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    const img = e.target as HTMLImageElement;
+                    img.src = '';
+                    img.style.display = 'none';
+                  }}
+                  loading="lazy"
+                  width={96}
+                  height={96}
+                />
+              ) : (
+                <div className="w-full h-full bg-gray-700 flex items-center justify-center">
+                  <span className="text-white text-3xl font-bold">
+                    {user.username?.[0]?.toUpperCase() || 'U'}
+                  </span>
+                </div>
+              )}
+            </div>
+            <div className="absolute bottom-0 right-0 -translate-x-1/2 -translate-y-1/2">
+              <ProfilePictureUpload
+                username={user.username || 'default'}
+                onUploadSuccess={handleUploadSuccess}
+                className="bg-black/50 rounded-full p-1 z-10"
               />
-            ) : (
-              <div className="w-24 h-24 rounded-full bg-gray-700 flex items-center justify-center">
-                <span className="text-white text-3xl font-bold">
-                  {user.username?.[0]?.toUpperCase() || 'U'}
-                </span>
-              </div>
-            )}
-            <ProfilePictureUpload
-              username={user.username || 'default'}
-              onUploadSuccess={handleUploadSuccess}
-            />
+            </div>
           </div>
           <div className="text-center">
             <h2 className="text-xl font-bold" aria-label="User display name">{user.displayName}</h2>
@@ -113,7 +107,7 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({
         </div>
         <div className="p-6">
           <p className="text-sm text-center text-gray-400 mb-6" aria-label="User bio">
-            {user.bio || 'No bio yet'}
+            {user.bio || 'I am a funny guy!'}
           </p>
 
           <div className="grid grid-cols-3 gap-4 mb-6" role="list" aria-label="User statistics">

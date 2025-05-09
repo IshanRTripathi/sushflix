@@ -1,15 +1,25 @@
-import React from 'react';
+/**
+ * Profile header component that displays user information
+ */
+import React, { useCallback } from 'react';
 import { Box, Button, Typography, Avatar, Stack } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { LoadingButton } from '@mui/lab';
 import { useLoadingState } from '../../contexts/LoadingStateContext';
 import { Edit as EditIcon } from '@mui/icons-material';
+import { EditProfileProps } from './types';
+import { UserProfile } from '../../types/user';
+import ProfilePictureUpload from '../profile/ProfilePictureUpload';
 
+/**
+ * Props for ProfileHeader component
+ */
 interface ProfileHeaderProps {
-  user: any;
+  user: UserProfile;
   isOwner: boolean;
   onFollow?: () => void;
   onUnfollow?: () => void;
+  onProfileUpdate?: (updatedUser: UserProfile) => void;
 }
 
 const ProfileHeader: React.FC<ProfileHeaderProps> = ({
@@ -17,17 +27,31 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   isOwner,
   onFollow,
   onUnfollow,
+  onProfileUpdate,
 }) => {
   const navigate = useNavigate();
   const { setLoadingState } = useLoadingState();
 
-  const handleEditClick = async () => {
-    try {
-      setLoadingState({ isLoading: true });
-      navigate(`/profile/${user.username}/edit`);
-    } finally {
-      setLoadingState({ isLoading: false });
+  const handleUploadSuccess = useCallback((newImageUrl: string) => {
+    if (onProfileUpdate) {
+      const updatedUser: UserProfile = {
+        ...user,
+        profilePicture: newImageUrl,
+        username: user.username,
+        displayName: user.displayName,
+        bio: user.bio,
+        socialLinks: user.socialLinks,
+        isCreator: user.isCreator,
+        following: user.following,
+        followers: user.followers,
+        posts: user.posts
+      };
+      onProfileUpdate(updatedUser);
     }
+  }, [user, onProfileUpdate]);
+
+  const handleEditClick = () => {
+    navigate(`/profile/${user.username}/edit`);
   };
 
   return (
@@ -36,7 +60,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         src={user.profilePicture}
         sx={{ width: 120, height: 120 }}
       />
-      <Box sx={{ flex: 1 }}>
+      <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
         <Typography variant="h4" component="h1">
           {user.displayName || user.username}
         </Typography>
@@ -57,7 +81,10 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
           </Box>
         )}
       </Box>
-
+      <ProfilePictureUpload
+        username={user.username}
+        onUploadSuccess={handleUploadSuccess}
+      />
       <Stack direction="row" spacing={2}>
         {!isOwner && onFollow && onUnfollow && (
           <LoadingButton

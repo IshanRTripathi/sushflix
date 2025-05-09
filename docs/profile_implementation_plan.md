@@ -35,7 +35,7 @@ interface UserDocument {
   socialLinks: {
     website?: string;
     twitter?: string;
-    linkedin?: string;
+    youtube?: string;
   };
   createdAt: Date;
   updatedAt: Date;

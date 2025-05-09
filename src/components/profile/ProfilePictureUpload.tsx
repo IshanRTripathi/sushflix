@@ -27,11 +27,11 @@ export const ProfilePictureUpload: React.FC<ProfilePictureUploadProps> = ({ user
 
   useEffect(() => {
     const handleExternalFileSelect = (event: Event) => {
-      console.log('Received external file selection event');
+      logger.info('Received external file selection event');
       const customEvent = event as CustomEvent<{ file: File }>;
       const file = customEvent.detail?.file;
       if (file) {
-        console.log('External file selected:', file.name);
+        logger.info('External file selected', { name: file.name });
         handleFile(file);
       }
     };
@@ -43,17 +43,17 @@ export const ProfilePictureUpload: React.FC<ProfilePictureUploadProps> = ({ user
   }, []);
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    console.log('ProfilePictureUpload file picker triggered');
+    logger.info('File picker triggered');
     const file = event.target.files?.[0];
     if (file) {
       handleFile(file);
     } else {
-      console.log('No file selected in ProfilePictureUpload');
+      logger.warn('No file selected');
     }
   };
 
   const handleFile = (file: File) => {
-    console.log('File selected:', {
+    logger.info('File selected', {
       name: file.name,
       size: file.size,
       type: file.type
@@ -101,22 +101,16 @@ export const ProfilePictureUpload: React.FC<ProfilePictureUploadProps> = ({ user
         onUploadSuccess(response.imageUrl);
         setOpen(false);
         setError('');
+      } else if (response.error) {
+        logger.error('Upload failed', { error: response.error });
+        setError(response.error);
       } else {
-        const errorMessage = response.error || 'Upload failed. Please try again.';
-        logger.error('Upload failed', { error: errorMessage });
-        setError(errorMessage);
+        logger.error('Upload failed', { error: 'Unknown error' });
+        setError('Upload failed. Please try again.');
       }
     } catch (error: unknown) {
-      let errorMessage = 'An unexpected error occurred during upload';
-      if (error instanceof Error) {
-        errorMessage = error.message;
-      } else if (typeof error === 'object' && error !== null) {
-        errorMessage = (error as { message?: string; error?: string }).message || 
-                       (error as { message?: string; error?: string }).error || 
-                       errorMessage;
-      }
-      logger.error('Upload error', { error: errorMessage });
-      setError(errorMessage);
+      logger.error('Upload error', { error });
+      setError('An unexpected error occurred during upload');
     } finally {
       setUploading(false);
     }
@@ -124,6 +118,13 @@ export const ProfilePictureUpload: React.FC<ProfilePictureUploadProps> = ({ user
 
   return (
     <div className="relative">
+      {previewUrl && (
+        <img
+          src={previewUrl}
+          alt="Preview"
+          className="w-full h-full rounded-full object-cover absolute inset-0"
+        />
+      )}
       <input
         type="file"
         accept="image/*"
@@ -137,13 +138,6 @@ export const ProfilePictureUpload: React.FC<ProfilePictureUploadProps> = ({ user
       >
         <CloudUploadIcon className="text-white w-6 h-6" />
       </label>
-      {previewUrl && (
-        <img
-          src={previewUrl}
-          alt="Preview"
-          className="w-40 h-40 rounded-full object-cover"
-        />
-      )}
       {error && (
         <Alert severity="error" className="mt-2">
           {error}

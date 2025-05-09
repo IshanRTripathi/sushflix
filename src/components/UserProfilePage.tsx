@@ -20,8 +20,9 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ username }) => {
     socialLinks: {
       website: '',
       twitter: '',
-      linkedin: ''
-    }
+      youtube: ''
+    },
+    isCreator: false
   });
 
   useEffect(() => {
@@ -34,7 +35,8 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ username }) => {
             displayName: profileData.displayName,
             email: profileData.email,
             bio: profileData.bio,
-            socialLinks: profileData.socialLinks
+            socialLinks: profileData.socialLinks,
+            isCreator: false
           });
         } else {
           setError('Profile not found');
@@ -95,11 +97,9 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ username }) => {
       const reader = new FileReader();
       reader.onload = async () => {
         if (reader.result) {
-          const buffer = Buffer.from(reader.result as ArrayBuffer);
           const newPicturePath = await userProfileService.updateProfilePicture(
             profile.userId,
-            buffer,
-            file.name
+            file
           );
           if (newPicturePath) {
             setProfile(prev => prev ? { ...prev, profilePicture: newPicturePath } : null);
@@ -162,9 +162,9 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ username }) => {
                     Twitter
                   </a>
                 )}
-                {profile.socialLinks.linkedin && (
-                  <a href={profile.socialLinks.linkedin} className="text-blue-600 hover:underline">
-                    LinkedIn
+                {profile.socialLinks.youtube && (
+                  <a href={profile.socialLinks.youtube} className="text-blue-600 hover:underline">
+                    YouTube
                   </a>
                 )}
               </div>
@@ -242,11 +242,11 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ username }) => {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm text-gray-600">LinkedIn</label>
+                    <label className="block text-sm text-gray-600">YouTube</label>
                     <input
                       type="url"
-                      name="social.linkedin"
-                      value={formData.socialLinks.linkedin || ''}
+                      name="social.youtube"
+                      value={formData.socialLinks.youtube || ''}
                       onChange={handleInputChange}
                       className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                     />

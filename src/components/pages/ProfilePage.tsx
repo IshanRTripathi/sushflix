@@ -5,13 +5,11 @@ import { ProfileService } from '../../services/profileService';
 import { logger } from '../../utils/logger';
 import { useLoadingState } from '../../contexts/LoadingStateContext';
 import { useQuery } from '@tanstack/react-query';
-import { UserProfile, SocialLinks } from '../../types/user';
+import { UserProfile, USER_ROLES } from '../../types/user';
 import Loading from '../ui/Loading';
 import ProfileSection from '../content/ProfileSection';
-import PostCard from '../content/PostCard';
 
 interface ProfilePageProps {
-  user: UserProfile;
   isFollowing: boolean;
   onFollow: () => Promise<void>;
 }
@@ -33,7 +31,7 @@ interface Post {
 
 const profileService = ProfileService.getInstance();
 
-export default function ProfilePage({ user, isFollowing, onFollow }: ProfilePageProps) {
+export default function ProfilePage({ isFollowing, onFollow }: ProfilePageProps) {
   const { username } = useParams();
   const { user: currentUser } = useAuth();
 
@@ -84,18 +82,17 @@ export default function ProfilePage({ user, isFollowing, onFollow }: ProfilePage
   const { data: userProfile, isLoading: isProfileLoading, error: profileError } = useQuery<UserProfile>({
     queryKey: ['userProfile', username],
     queryFn: async () => {
-      setLoadingState({ isLoading: true });
       try {
         const data = await profileService.getUserProfile(username || '');
-        setLoadingState({ isLoading: false });
         return data;
       } catch (error) {
-        setLoadingState({ isLoading: false });
+        logger.error('Error fetching user profile', { error });
         throw error;
       }
     },
     enabled: !!username,
-    retry: 3
+    retry: 3,
+    retryDelay: 1000
   });
 
   const isLoading = postsLoading || statsLoading || isProfileLoading;
@@ -103,11 +100,32 @@ export default function ProfilePage({ user, isFollowing, onFollow }: ProfilePage
 
   const isOwnProfile = username === currentUser?.username;
 
+  const handleProfileUpdate = async (updatedUser: UserProfile) => {
+    try {
+      setLoadingState({ isLoading: true });
+      const updatedProfile = await profileService.updateProfile(username || '', updatedUser);
+      // Refresh the user profile data
+      await profileService.getUserProfile(username || '');
+      setLoadingState({ isLoading: false });
+      return updatedProfile;
+    } catch (error) {
+      logger.error('Error updating profile', { error });
+      setLoadingState({ isLoading: false });
+      throw error;
+    }
+  };
+
   const handleFollow = async () => {
     try {
+      setLoadingState({ isLoading: true });
       await profileService.toggleFollow(username || '');
+      // Invalidate and refetch follow status
+      await profileService.getUserStats(username || '');
+      setLoadingState({ isLoading: false });
     } catch (error) {
-      console.error('Error following user:', error);
+      logger.error('Error following user', { error });
+      setLoadingState({ isLoading: false });
+      throw error;
     }
   };
 
@@ -142,13 +160,28 @@ export default function ProfilePage({ user, isFollowing, onFollow }: ProfilePage
       <div className="flex flex-col md:flex-row gap-8">
         <div className="flex-1">
           <ProfileSection
-            user={{ ...userProfile, id: userProfile.userId }}
+            user={userProfile || {
+              id: '',
+              userId: '',
+              username: '',
+              createdAt: new Date(),
+              subscribers: 0,
+              posts: 0,
+              role: USER_ROLES.USER,
+              displayName: '',
+              email: '',
+              profilePicture: '',
+              bio: '',
+              socialLinks: {},
+              lastUpdated: new Date(),
+              isCreator: false
+            }}
             isFollowing={isFollowing}
             onFollow={handleFollow}
+            onProfileUpdate={handleProfileUpdate}
             posts={statsData.posts}
             followers={statsData.followers}
             following={statsData.following}
-            onProfilePictureUpdate={() => {}}
           />
         </div>
       </div>
