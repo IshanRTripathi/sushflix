@@ -5,7 +5,7 @@ import { ProfileService } from '../../services/profileService';
 import { logger } from '../../utils/logger';
 import { useLoadingState } from '../../contexts/LoadingStateContext';
 import { useQuery } from '@tanstack/react-query';
-import { UserProfile, USER_ROLES } from '../../types/user';
+import { UserProfile, USER_ROLES, PartialProfileUpdate } from '../../types/user';
 import Loading from '../ui/Loading';
 import ProfileSection from '../content/ProfileSection';
 
@@ -100,12 +100,10 @@ export default function ProfilePage({ isFollowing, onFollow }: ProfilePageProps)
 
   const isOwnProfile = username === currentUser?.username;
 
-  const handleProfileUpdate = async (updatedUser: UserProfile) => {
+  const handleProfileUpdate = async (updates: PartialProfileUpdate) => {
     try {
       setLoadingState({ isLoading: true });
-      const updatedProfile = await profileService.updateProfile(username || '', updatedUser);
-      // Refresh the user profile data
-      await profileService.getUserProfile(username || '');
+      const updatedProfile = await profileService.updateProfile(username || '', updates);
       setLoadingState({ isLoading: false });
       return updatedProfile;
     } catch (error) {

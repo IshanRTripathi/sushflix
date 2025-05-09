@@ -44,8 +44,17 @@ export interface EditableProfileFields {
   email?: string;
   profilePicture?: string;
   bio?: string;
-  socialLinks: SocialLinks;
-  isCreator: boolean;
+  socialLinks?: SocialLinks;
+  isCreator?: boolean;
+}
+
+export interface PartialProfileUpdate {
+  displayName?: string;
+  email?: string;
+  profilePicture?: string;
+  bio?: string;
+  socialLinks?: SocialLinks;
+  isCreator?: boolean;
 }
 
 export interface FeaturedProfile {

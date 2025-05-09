@@ -1,20 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Alert } from '@mui/material';
 import { ProfileService } from '../../services/profileService';
+import { UserProfile, PartialProfileUpdate } from '../../types/user';
 import { logger } from '../../utils/logger';
 import { CloudUpload as CloudUploadIcon } from '@mui/icons-material';
 
 interface ProfilePictureUploadProps {
   username: string;
   onUploadSuccess: (imageUrl: string) => void;
+  onProfileUpdate?: (updates: PartialProfileUpdate) => Promise<void>;
 }
 
-export const ProfilePictureUpload: React.FC<ProfilePictureUploadProps> = ({ username, onUploadSuccess }) => {
+export const ProfilePictureUpload: React.FC<ProfilePictureUploadProps> = ({ username, onUploadSuccess, onProfileUpdate }) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>('');
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string>('');
   const [open, setOpen] = useState(false);
+  const [progress, setProgress] = useState(0);
   const profileService = ProfileService.getInstance();
 
   useEffect(() => {
@@ -87,31 +90,66 @@ export const ProfilePictureUpload: React.FC<ProfilePictureUploadProps> = ({ user
   };
 
   const handleUpload = async () => {
-    if (!selectedFile) {
-      setError('No file selected');
-      return;
-    }
-
     try {
+      if (!selectedFile) {
+        throw new Error('No file selected');
+      }
+
+      // Validate file size and type
+      const maxSize = 5 * 1024 * 1024; // 5MB
+      if (selectedFile.size > maxSize) {
+        throw new Error('File size exceeds 5MB limit');
+      }
+
+      if (!['image/jpeg', 'image/png', 'image/webp'].includes(selectedFile.type)) {
+        throw new Error('Only JPEG, PNG, and WebP files are allowed');
+      }
+
+      const formData = new FormData();
+      formData.append('image', selectedFile);
+
+      logger.debug('Uploading profile picture', {
+        username,
+        filename: selectedFile.name,
+        size: selectedFile.size,
+        type: selectedFile.type
+      });
+
       setUploading(true);
       const response = await profileService.uploadProfilePicture(username, selectedFile);
-
-      if (response.success && response.imageUrl) {
-        logger.info('Upload successful', { imageUrl: response.imageUrl });
-        onUploadSuccess(response.imageUrl);
-        setOpen(false);
-        setError('');
-      } else if (response.error) {
-        logger.error('Upload failed', { error: response.error });
-        setError(response.error);
-      } else {
-        logger.error('Upload failed', { error: 'Unknown error' });
-        setError('Upload failed. Please try again.');
+      
+      if (!response?.imageUrl) {
+        throw new Error('Failed to get image URL from response');
       }
+
+      logger.info('Profile picture uploaded successfully', { 
+        url: response.imageUrl,
+        username,
+        timestamp: new Date().toISOString()
+      });
+
+      // Update profile with new picture URL
+      if (onUploadSuccess) {
+        await onUploadSuccess(response.imageUrl);
+      }
+
     } catch (error: unknown) {
-      logger.error('Upload error', { error });
-      setError('An unexpected error occurred during upload');
+      const errorObj = error instanceof Error ? error : new Error('Unknown error occurred');
+      logger.error('Error uploading profile picture', {
+        error: {
+          message: errorObj.message,
+          name: errorObj.name,
+          stack: errorObj.stack
+        },
+        username,
+        timestamp: new Date().toISOString()
+      });
+
+      setError(errorObj.message);
+      setTimeout(() => setError(''), 3000);
     } finally {
+      setProgress(0);
+      setSelectedFile(null);
       setUploading(false);
     }
   };

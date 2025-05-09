@@ -8,7 +8,7 @@ import { LoadingButton } from '@mui/lab';
 import { useLoadingState } from '../../contexts/LoadingStateContext';
 import { Edit as EditIcon } from '@mui/icons-material';
 import { EditProfileProps } from './types';
-import { UserProfile } from '../../types/user';
+import { UserProfile, PartialProfileUpdate } from '../../types/user';
 import ProfilePictureUpload from '../profile/ProfilePictureUpload';
 
 /**
@@ -19,7 +19,7 @@ interface ProfileHeaderProps {
   isOwner: boolean;
   onFollow?: () => void;
   onUnfollow?: () => void;
-  onProfileUpdate?: (updatedUser: UserProfile) => void;
+  onProfileUpdate?: (updates: PartialProfileUpdate) => Promise<void>;
 }
 
 const ProfileHeader: React.FC<ProfileHeaderProps> = ({
@@ -34,21 +34,9 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
 
   const handleUploadSuccess = useCallback((newImageUrl: string) => {
     if (onProfileUpdate) {
-      const updatedUser: UserProfile = {
-        ...user,
-        profilePicture: newImageUrl,
-        username: user.username,
-        displayName: user.displayName,
-        bio: user.bio,
-        socialLinks: user.socialLinks,
-        isCreator: user.isCreator,
-        following: user.following,
-        followers: user.followers,
-        posts: user.posts
-      };
-      onProfileUpdate(updatedUser);
+      onProfileUpdate({ profilePicture: newImageUrl });
     }
-  }, [user, onProfileUpdate]);
+  }, [onProfileUpdate]);
 
   const handleEditClick = () => {
     navigate(`/profile/${user.username}/edit`);

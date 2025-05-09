@@ -1,6 +1,6 @@
 import { logger } from '../utils/logger';
 import axios from 'axios';
-import { UserProfile } from '../types/user';
+import { UserProfile, PartialProfileUpdate } from '../types/user';
 import { API_BASE_URL } from '../config/index';
 
 // API Endpoints
@@ -363,20 +363,58 @@ export class ProfileService {
 
 
 
-  public async updateProfile(username: string, profile: UserProfile): Promise<UserProfile> {
+  public async updateProfile(username: string, updates: PartialProfileUpdate): Promise<UserProfile> {
     try {
-      logger.debug(`Updating profile for user: ${username}`);
-      const response = await this.request<UserProfile>({
-        method: 'PUT',
-        url: API_ENDPOINTS.USER_PROFILE(username),
-        data: profile
+      logger.debug(`Updating profile for user: ${username}`, { 
+        username,
+        updates,
+        endpoint: API_ENDPOINTS.USER_PROFILE(username)
       });
-      logger.debug(`Successfully updated profile for user: ${username}`);
-      return response || profile;
+
+      // Validate required fields
+      if (!username) {
+        throw new Error('Username is required for profile update');
+      }
+
+      const response = await this.request<UserProfile>({
+        method: 'PATCH',
+        url: API_ENDPOINTS.USER_PROFILE(username),
+        data: updates
+      });
+
+      if (!response) {
+        logger.warn(`No response from profile update for user: ${username}`);
+        const fallback = await this.getUserProfile(username);
+        logger.debug(`Using fallback profile data for user: ${username}`);
+        return fallback;
+      }
+
+      logger.info(`Successfully updated profile for user: ${username}`, { 
+        updatedFields: Object.keys(updates)
+      });
+      return response;
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      logger.error(`Error updating profile: ${errorMessage}`);
-      throw new Error(`Failed to update profile: ${errorMessage}`);
+      const errorObj = error instanceof Error ? error : new Error('Unknown error occurred');
+      logger.error(`Error updating profile for user: ${username}`, {
+        error: {
+          message: errorObj.message,
+          name: errorObj.name,
+          stack: errorObj.stack
+        },
+        updates,
+        timestamp: new Date().toISOString()
+      });
+
+      // Handle specific error cases
+      if (errorObj.message.includes('404')) {
+        throw new Error(`Profile not found for user: ${username}`);
+      } else if (errorObj.message.includes('401')) {
+        throw new Error('Authentication required to update profile');
+      } else if (errorObj.message.includes('403')) {
+        throw new Error('Permission denied to update profile');
+      }
+
+      throw new Error(`Failed to update profile: ${errorObj.message}`);
     }
   }
 }
