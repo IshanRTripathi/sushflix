@@ -1,10 +1,16 @@
-import React, { useCallback } from 'react';
-import { UserProfile } from '../../types/user';
+import React, { useCallback, useState } from 'react';
+import { UserProfile, PartialProfileUpdate } from '../../types/user';
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import { Icons } from "@/components/icons";
-import ProfilePictureUpload from '../profile/ProfilePictureUpload';
+import { ProfilePictureUpload } from '../profile/ProfilePictureUpload';
 import { logger } from '../../utils/logger';
+import Loading from '@/components/ui/Loading';
+import { Alert } from '@mui/material';
+import { LoadingButton } from '@mui/lab';
+import { Edit as EditIcon } from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
+import { Button as MuiButton } from '@mui/material';
 
 
 /**
@@ -24,7 +30,9 @@ interface SocialLinks {
 interface ProfileSectionProps {
   user: UserProfile;
   isFollowing: boolean;
+  isOwner: boolean;
   onFollow?: () => void;
+  onUnfollow?: () => void;
   posts: number;
   followers: number;
   following: number;
@@ -39,30 +47,70 @@ interface ProfileSectionProps {
 const ProfileSection: React.FC<ProfileSectionProps> = ({
   user,
   isFollowing,
+  isOwner,
   onFollow,
+  onUnfollow,
   posts,
   followers,
   following,
   onProfileUpdate,
 }) => {
+  const navigate = useNavigate();
 
-  // Handle profile picture upload with proper error handling
-  const handleUploadSuccess = useCallback((newImageUrl: string) => {
-    logger.info('Profile picture upload success', { userId: user.id, imageUrl: newImageUrl });
-    
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleUploadSuccess = useCallback(async (updates: PartialProfileUpdate) => {
     try {
+      setIsLoading(true);
+      setError(null);
+      logger.info('Profile picture upload success', { userId: user.id, updates });
+      
       if (onProfileUpdate) {
-        onProfileUpdate({
+        await onProfileUpdate({
           ...user,
-          profilePicture: newImageUrl,
+          profilePicture: updates.profilePicture,
           lastUpdated: new Date()
         });
       }
     } catch (error) {
       logger.error('Error updating profile picture', { error, userId: user.id });
+      setError('Failed to update profile picture. Please try again.');
       throw error;
+    } finally {
+      setIsLoading(false);
     }
   }, [user, onProfileUpdate]);
+
+  if (isLoading) {
+    return (
+      <div className="w-full max-w-md mx-auto" role="region" aria-label="User profile section">
+        <Card className="bg-black text-white">
+          <div className="p-6">
+            <Loading showSpinner={true} />
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="w-full max-w-md mx-auto" role="region" aria-label="User profile section">
+        <Card className="bg-black text-white">
+          <div className="p-6">
+            <Alert
+              severity="error"
+              onClose={() => setError(null)}
+              className="text-white bg-red-500"
+            >
+              {error}
+            </Alert>
+          </div>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full max-w-md mx-auto" role="region" aria-label="User profile section">
@@ -94,9 +142,8 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({
             </div>
             <div className="absolute bottom-0 right-0 -translate-x-1/2 -translate-y-1/2">
               <ProfilePictureUpload
-                username={user.username || 'default'}
+                username={user.username!}
                 onUploadSuccess={handleUploadSuccess}
-                className="bg-black/50 rounded-full p-1 z-10"
               />
             </div>
           </div>
@@ -109,6 +156,29 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({
           <p className="text-sm text-center text-gray-400 mb-6" aria-label="User bio">
             {user.bio || 'I am a funny guy!'}
           </p>
+
+          <div className="flex justify-end mb-4">
+            {!isOwner && onFollow && onUnfollow && (
+              <LoadingButton
+                variant="contained"
+                onClick={isFollowing ? onUnfollow : onFollow}
+                loading={false}
+                color={isFollowing ? "error" : "primary"}
+              >
+                {isFollowing ? 'Unfollow' : 'Follow'}
+              </LoadingButton>
+            )}
+            {isOwner && (
+              <MuiButton
+                variant="outlined"
+                onClick={() => navigate(`/profile/${user.username}/edit`)}
+                startIcon={<EditIcon />}
+                color="primary"
+              >
+                Edit Profile
+              </MuiButton>
+            )}
+          </div>
 
           <div className="grid grid-cols-3 gap-4 mb-6" role="list" aria-label="User statistics">
             <div className="flex flex-col items-center" role="listitem">
@@ -138,45 +208,50 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({
 
           <div className="mb-6">
             <h3 className="text-sm font-semibold mb-2" aria-label="Social links section">Social Links</h3>
-            <div className="flex flex-wrap gap-4">
-              {user.socialLinks?.twitter && (
-                <a
-                  href={user.socialLinks.twitter}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-400 hover:text-blue-300 flex items-center gap-2"
-                  aria-label="User's Twitter profile"
-                >
-                  <Icons.twitter className="w-4 h-4" />
-                  Twitter
-                </a>
-              )}
-              {user.socialLinks?.youtube && (
-                <a
-                  href={user.socialLinks.youtube}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-400 hover:text-blue-300 flex items-center gap-2"
-                  aria-label="User's YouTube channel"
-                >
-                  <Icons.youtube className="w-4 h-4" />
-                  YouTube
-                </a>
-              )}
-              {user.socialLinks?.instagram && (
-                <a
-                  href={user.socialLinks.instagram}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-400 hover:text-blue-300 flex items-center gap-2"
-                  aria-label="User's Instagram profile"
-                >
-                  <Icons.instagram className="w-4 h-4" />
-                  Instagram
-                </a>
-              )}
-            </div>
+            {user.socialLinks && (
+              <div className="flex justify-center gap-4">
+                {user.socialLinks.twitter && (
+                  <a
+                    href={`https://twitter.com/${user.socialLinks.twitter}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-400 hover:text-blue-300"
+                    aria-label="Twitter"
+                  >
+                    <Icons.twitter className="w-6 h-6" />
+                  </a>
+                )}
+                {user.socialLinks.youtube && (
+                  <a
+                    href={`https://youtube.com/${user.socialLinks.youtube}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-red-400 hover:text-red-300"
+                    aria-label="YouTube"
+                  >
+                    <Icons.youtube className="w-6 h-6" />
+                  </a>
+                )}
+                {user.socialLinks.instagram && (
+                  <a
+                    href={`https://instagram.com/${user.socialLinks.instagram}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-purple-400 hover:text-purple-300"
+                    aria-label="Instagram"
+                  >
+                    <Icons.instagram className="w-6 h-6" />
+                  </a>
+                )}
+              </div>
+            )}
           </div>
+
+          {user.isCreator && (
+            <div className="mt-4 text-center">
+              <span className="text-blue-400 font-semibold">Creator</span>
+            </div>
+          )}
         </div>
       </Card>
     </div>

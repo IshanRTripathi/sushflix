@@ -29,67 +29,78 @@ const upload = multer({
   }
 });
 
-router.get('/:username/stats', userController.getUserStats);
+// Profile Routes
+router.get('/profile', (req, res) => {
+  const username = req.user?.username;
+  if (!username) {
+    return res.status(401).json({
+      error: 'Unauthorized',
+      message: 'User must be logged in to view profile'
+    });
+  }
+  res.redirect(`/api/users/${username}`);
+});
+
+// User Profile Routes
+router.get('/:username', asyncHandler(userController.getUserProfile));
+router.get('/:username/stats', asyncHandler(userController.getUserStats));
+router.get('/:username/posts', asyncHandler(userController.getUserPosts));
+
+// Profile Picture Routes
 router.post(
   '/:username/profile-picture',
   upload.single('file'),
-  asyncHandler(async (req, res, next) => {
+  asyncHandler(async (req, res) => {
+    const { username } = req.params;
+    const file = req.file;
+    
+    if (!username || !file) {
+      return res.status(400).json({
+        error: 'Invalid request parameters'
+      });
+    }
+
     try {
-      const { username } = req.params;
-      const file = req.file;
-
-      // Validate request parameters
-      if (!username || typeof username !== 'string') {
-        logger.error('Invalid username parameter', {
-          username,
-          params: req.params
-        });
-        return res.status(400).json({
-          success: false,
-          error: 'Invalid username parameter'
+      const uploadResponse = await userController.uploadProfilePicture(username, file, req, res);
+      
+      if (!uploadResponse.success) {
+        return res.status(500).json({
+          error: uploadResponse.error || 'Failed to upload file'
         });
       }
 
-      if (!file) {
-        logger.error('No file uploaded in request', {
-          headers: req.headers,
-          body: req.body
-        });
-        return res.status(400).json({
-          success: false,
-          error: 'No file uploaded'
+      // Update user profile with new image URL
+      const user = await User.findOne({ username });
+      if (!user) {
+        return res.status(404).json({
+          error: 'User not found'
         });
       }
 
-      // Call the controller function
-      await userController.uploadProfilePicture(username, file, req, res);
+      user.profilePicture = uploadResponse.url;
+      await user.save();
+
+      res.json({
+        success: true,
+        url: uploadResponse.url
+      });l
     } catch (error) {
       logger.error('Profile picture upload error', {
         error: error.message,
-        stack: error.stack,
-        username: req.params.username
+        username
       });
-
-      if (error.name === 'MulterError') {
-        return res.status(400).json({
-          success: false,
-          error: error.message
-        });
-      }
-
+      
       return res.status(500).json({
-        success: false,
         error: error.message || 'Failed to upload profile picture'
       });
     }
   })
 );
-router.get('/:username', userController.getUserProfile);
 
 // Update user profile
 router.patch(
   '/:username',
-  asyncHandler(async (req, res, next) => {
+  asyncHandler(async (req, res) => {
     try {
       const { username } = req.params;
       const updates = req.body;
@@ -126,10 +137,10 @@ router.patch(
       ).select('-password -googleId -__v -createdAt -updatedAt');
 
       if (!user) {
-        logger.error('User not found', { username });
+        logger.error('User not found for patch user', { username });
         return res.status(404).json({
           success: false,
-          error: 'User not found'
+          error: 'User not found for patch user'
         });
       }
 

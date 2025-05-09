@@ -7,7 +7,7 @@ import { CloudUpload as CloudUploadIcon } from '@mui/icons-material';
 
 interface ProfilePictureUploadProps {
   username: string;
-  onUploadSuccess: (imageUrl: string) => void;
+  onUploadSuccess: (updates: PartialProfileUpdate) => Promise<void>;
   onProfileUpdate?: (updates: PartialProfileUpdate) => Promise<void>;
 }
 
@@ -128,9 +128,9 @@ export const ProfilePictureUpload: React.FC<ProfilePictureUploadProps> = ({ user
         timestamp: new Date().toISOString()
       });
 
-      // Update profile with new picture URL
+      // Only update the profile picture field
       if (onUploadSuccess) {
-        await onUploadSuccess(response.imageUrl);
+        await onUploadSuccess({ profilePicture: response.imageUrl });
       }
 
     } catch (error: unknown) {

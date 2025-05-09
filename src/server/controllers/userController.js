@@ -3,6 +3,55 @@ const Post = require('../models/Post');
 const { uploadFile, deleteFile } = require('../services/StorageService');
 const logger = require('../config/logger');
 
+// Get current user's profile
+const getCurrentUserProfile = async (req, res) => {
+  try {
+    const user = req.user;
+    
+    if (!user) {
+      return res.status(401).json({ 
+        error: 'Unauthorized',
+        message: 'User must be logged in to view profile'
+      });
+    }
+
+    // Format response with default values
+    const userProfile = {
+      username: user.username,
+      displayName: user.displayName || user.username,
+      profilePicture: user.profilePicture,
+      isCreator: user.isCreator || false,
+      email: user.email,
+      stats: {
+        posts: 0,
+        followers: 0,
+        following: 0
+      }
+    };
+
+    // Get stats
+    const [postsCount, followersCount, followingCount] = await Promise.all([
+      Post.countDocuments({ userId: user._id }),
+      User.countDocuments({ following: user._id }),
+      User.countDocuments({ followers: user._id })
+    ]);
+
+    userProfile.stats = {
+      posts: postsCount,
+      followers: followersCount,
+      following: followingCount
+    };
+
+    res.status(200).json(userProfile);
+  } catch (error) {
+    console.error('Error fetching current user profile:', error);
+    res.status(500).json({ 
+      error: 'Server error',
+      message: 'An error occurred while fetching the current user profile.'
+    });
+  }
+};
+
 // Get user profile
 const getUserProfile = async (req, res) => {
   try {
@@ -27,7 +76,7 @@ const getUserProfile = async (req, res) => {
     const userProfile = {
       username: user.username,
       displayName: user.displayName || user.username,
-      profilePicture: user.profilePicture || '/default-profile-pic.png',
+      profilePicture: user.profilePicture,
       isCreator: user.isCreator || false,
       email: user.email,
       stats: {
@@ -193,6 +242,7 @@ const uploadProfilePicture = async (username, file, req, res) => {
 };
 
 module.exports = {
+  getCurrentUserProfile,
   getUserProfile,
   getUserStats,
   uploadProfilePicture

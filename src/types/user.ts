@@ -24,19 +24,19 @@ export interface UserProfile {
   createdAt: Date;
   subscribers: number;
   posts: number;
-  followers?: number;
-  following?: number;
-  isFollowing?: boolean;
+  followers: number;
+  following: number;
+  isFollowing: boolean;
   role: UserRole;
   
   // Editable fields
-  displayName: string;
-  email: string;
-  profilePicture: string;
-  bio: string;
-  socialLinks: SocialLinks;
-  lastUpdated: Date;
-  isCreator: boolean;
+  displayName?: string;
+  email?: string;
+  profilePicture?: string;
+  bio?: string;
+  socialLinks?: SocialLinks;
+  lastUpdated?: Date;
+  isCreator?: boolean;
 }
 
 export interface EditableProfileFields {
