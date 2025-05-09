@@ -376,10 +376,19 @@ export class ProfileService {
         throw new Error('Username is required for profile update');
       }
 
+      // Filter out undefined values and create a clean updates object
+      const cleanUpdates = Object.entries(updates)
+        .filter(([_, value]) => value !== undefined)
+        .reduce((acc, [key, value]) => ({ ...acc, [key]: value }), {});
+
+      if (Object.keys(cleanUpdates).length === 0) {
+        throw new Error('No valid fields to update');
+      }
+
       const response = await this.request<UserProfile>({
         method: 'PATCH',
         url: API_ENDPOINTS.USER_PROFILE(username),
-        data: updates
+        data: cleanUpdates
       });
 
       if (!response) {
@@ -390,7 +399,7 @@ export class ProfileService {
       }
 
       logger.info(`Successfully updated profile for user: ${username}`, { 
-        updatedFields: Object.keys(updates)
+        updatedFields: Object.keys(cleanUpdates)
       });
       return response;
     } catch (error: unknown) {
@@ -406,7 +415,7 @@ export class ProfileService {
       });
 
       // Handle specific error cases
-      if (errorObj.message.includes('404')) {
+      if (errorObj.message.includes('404')) {        
         throw new Error(`Profile not found for user: ${username}`);
       } else if (errorObj.message.includes('401')) {
         throw new Error('Authentication required to update profile');
