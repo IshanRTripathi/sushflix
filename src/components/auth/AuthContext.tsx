@@ -1,34 +1,57 @@
+/**
+ * @module AuthContext
+ * Authentication context provider for managing user authentication state
+ */
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { API_BASE_URL } from '../../config/index';
 import { UserProfile } from '../../types/user';
 import { logger } from '../../utils/logger';
 
-// Centralized endpoint configuration
+// Authentication endpoints
 const AUTH_ENDPOINTS = {
   LOGIN: `${API_BASE_URL}/api/auth/login`,
-  LOGOUT: `${API_BASE_URL}/api/auth/logout`,
-  PROFILE: `${API_BASE_URL}/api/auth/me`
+  LOGOUT: `${API_BASE_URL}/api/auth/logout`
+} as const;
+
+export type AuthErrorType = {
+  code: string;
+  message: string;
+  details?: Record<string, unknown>;
 };
 
-interface AuthContextType {
+export type AuthModalType = 'login' | 'signup';
+
+export interface AuthContextType {
   user: UserProfile | null;
   isAuthenticated: boolean;
   login: (username: string, password: string) => Promise<UserProfile>;
   logout: () => void;
-  error: string | null;
+  error: AuthErrorType | null;
   isAuthModalOpen: boolean;
-  authModalType: 'login' | 'signup';
-  openAuthModal: (type: 'login' | 'signup') => void;
+  authModalType: AuthModalType;
+  openAuthModal: (type: AuthModalType) => void;
   closeAuthModal: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+/**
+ * Custom hook to use authentication context
+ */
+export const useAuth = (): AuthContextType => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<UserProfile | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<AuthErrorType | null>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const [authModalType, setAuthModalType] = useState<'login' | 'signup'>('login');
+  const [authModalType, setAuthModalType] = useState<AuthModalType>('login');
 
   useEffect(() => {
     logger.debug('Checking for stored user session');
@@ -139,7 +162,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setError(null);
   };
 
-  const openAuthModal = (type: 'login' | 'signup') => {
+  const openAuthModal = (type: AuthModalType) => {
     logger.debug('Opening auth modal', { modalType: type });
     setAuthModalType(type);
     setIsAuthModalOpen(true);
@@ -164,13 +187,4 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-};
-
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    logger.error('useAuth must be used within an AuthProvider');
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
 };

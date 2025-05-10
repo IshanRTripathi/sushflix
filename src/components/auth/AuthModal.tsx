@@ -1,3 +1,4 @@
+// Authentication modal component for login and signup
 import React from 'react';
 import { useAuth } from './AuthContext';
 import { LoginForm } from './LoginForm';
@@ -5,6 +6,9 @@ import { SignupForm } from './SignupForm';
 import { Modal } from '../common/Modal';
 import { logger } from '../../utils/logger';
 
+/**
+ * Authentication modal component
+ */
 export const AuthModal = () => {
   const { 
     isAuthModalOpen, 
@@ -25,19 +29,23 @@ export const AuthModal = () => {
     <Modal 
       isOpen={isAuthModalOpen} 
       onClose={closeAuthModal}
-      aria-labelledby="auth-modal-title"
     >
-      {authModalType === 'login' ? (
-        <LoginForm 
-          onClose={closeAuthModal} 
-          openSignupModal={() => openAuthModal('signup')}
-        />
-      ) : (
-        <SignupForm 
-          onClose={closeAuthModal} 
-          openLoginModal={() => openAuthModal('login')}
-        />
-      )}
+      <div className="auth-modal-content">
+        <h2 id="auth-modal-title" className="sr-only">
+          {authModalType === 'login' ? 'Login' : 'Sign Up'}
+        </h2>
+        {authModalType === 'login' ? (
+          <LoginForm 
+            onClose={closeAuthModal} 
+            openSignupModal={() => openAuthModal('signup')}
+          />
+        ) : (
+          <SignupForm 
+            onClose={closeAuthModal} 
+            openLoginModal={() => openAuthModal('login')}
+          />
+        )}
+      </div>
     </Modal>
   );
 };

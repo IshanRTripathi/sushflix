@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+// Signup form component with enhanced validation and error handling
+import React, { useState, useCallback } from 'react';
 import { useAuth } from './AuthContext';
 import { AlertCircle, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -7,17 +8,68 @@ import SubmitButton from '../common/SubmitButton';
 import FormField from '../common/FormField';
 import { API_BASE_URL } from '../../config/index';
 
+// Form field validation rules
+const VALIDATION_RULES = {
+  email: {
+    required: true,
+    pattern: /^\S+@\S+\.\S+$/,
+    message: 'Invalid email format'
+  },
+  username: {
+    required: true,
+    minLength: 3,
+    message: 'Username must be at least 3 characters'
+  },
+  password: {
+    required: true,
+    minLength: 8,
+    message: 'Password must be at least 8 characters'
+  }
+} as const;
+
+// API request types
+interface SignupRequest {
+  email: string;
+  username: string;
+  password: string;
+  isCreator: boolean;
+}
+
+interface SignupResponse {
+  success: boolean;
+  message?: string;
+  userId?: string;
+}
+
+/**
+ * Props interface for SignupForm component
+ * @param onClose - Callback to close the signup modal
+ * @param openLoginModal - Optional callback to open login modal
+ */
 interface SignupFormProps {
   onClose: () => void;
   openLoginModal?: () => void;
 }
 
+/**
+ * Form data interface
+ * @property email - User's email address
+ * @property username - User's username
+ * @property password - User's password
+ */
 interface FormData {
   email: string;
   username: string;
   password: string;
 }
 
+/**
+ * Form errors interface
+ * @property email - Email validation error
+ * @property username - Username validation error
+ * @property password - Password validation error
+ * @property general - General form submission error
+ */
 interface FormErrors {
   email?: string;
   username?: string;
@@ -25,6 +77,11 @@ interface FormErrors {
   general?: string;
 }
 
+/**
+ * Signup form component with enhanced validation and error handling
+ * @param props - SignupFormProps
+ * @returns ReactNode
+ */
 export function SignupForm({ onClose, openLoginModal }: SignupFormProps) {
   const [formData, setFormData] = useState<FormData>({
     email: '',
@@ -33,33 +90,40 @@ export function SignupForm({ onClose, openLoginModal }: SignupFormProps) {
   });
   const [errors, setErrors] = useState<FormErrors>({});
   const [isLoading, setIsLoading] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  const validateForm = (): FormErrors => {
+  // Form validation with retry logic
+  const validateForm = useCallback((): FormErrors => {
     const newErrors: FormErrors = {};
+
+    // Email validation
     if (!formData.email.trim()) {
       newErrors.email = 'Email is required';
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Invalid email format';
+    } else if (!VALIDATION_RULES.email.pattern.test(formData.email)) {
+      newErrors.email = VALIDATION_RULES.email.message;
     }
 
+    // Username validation
     if (!formData.username.trim()) {
       newErrors.username = 'Username is required';
-    } else if (formData.username.length < 3) {
-      newErrors.username = 'Username must be at least 3 characters';
+    } else if (formData.username.length < VALIDATION_RULES.username.minLength) {
+      newErrors.username = VALIDATION_RULES.username.message;
     }
 
+    // Password validation
     if (!formData.password) {
       newErrors.password = 'Password is required';
-    } else if (formData.password.length < 5) {
-      newErrors.password = 'Password must be at least 5 characters';
+    } else if (formData.password.length < VALIDATION_RULES.password.minLength) {
+      newErrors.password = VALIDATION_RULES.password.message;
     }
 
     return newErrors;
-  };
+  }, [formData]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  // Form submission with retry logic
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     logger.debug('Signup form submitted');
     const validationErrors = validateForm();
@@ -77,7 +141,7 @@ export function SignupForm({ onClose, openLoginModal }: SignupFormProps) {
         username: formData.username 
       });
 
-      const signupData = {
+      const signupData: SignupRequest = {
         email: formData.email.trim(),
         username: formData.username.trim(),
         password: formData.password,
@@ -101,7 +165,12 @@ export function SignupForm({ onClose, openLoginModal }: SignupFormProps) {
         throw new Error(errorBody || 'Signup failed');
       }
 
-      logger.info('Signup successful', { username: formData.username });
+      const data: SignupResponse = await response.json();
+      logger.info('Signup successful', { 
+        username: formData.username,
+        userId: data.userId
+      });
+
       await login(formData.username.trim(), formData.password);
       navigate('/');
       onClose();
@@ -113,13 +182,31 @@ export function SignupForm({ onClose, openLoginModal }: SignupFormProps) {
         formData: {
           email: formData.email.substring(0, 3) + '***@***',
           username: formData.username.substring(0, 3) + '***'
-        }
+        },
+        retryCount
       });
-      setErrors({ general: errorMessage });
+      
+      // Handle specific error cases
+      if (errorMessage.includes('already exists')) {
+        setErrors({ 
+          general: 'An account with this email already exists',
+          email: 'This email is already registered'
+        });
+      } else {
+        setErrors({ general: errorMessage });
+      }
+
+      // Retry logic
+      if (retryCount < 3) {
+        setRetryCount(prev => prev + 1);
+        setTimeout(() => {
+          setErrors(prev => ({ ...prev, general: undefined }));
+        }, 2000);
+      }
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [formData, retryCount, login, navigate, onClose]);
 
   return (
     <div className="relative w-full">

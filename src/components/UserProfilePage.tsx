@@ -3,16 +3,35 @@ import { UserProfile, EditableProfileFields, SocialLinks } from '../types/user';
 import { userProfileService } from '../services/userProfileService';
 import { logger } from '../utils/logger';
 import LoadingSpinner from '../components/LoadingSpinner';
+import { Edit as EditIcon } from '@mui/icons-material';
+import { Button as MuiButton } from '@mui/material';
+import ProfilePictureUpload from './profile/ProfilePictureUpload';
+import { useAuth } from './auth/AuthContext';
 
 interface UserProfilePageProps {
   username: string;
+  isFollowing: boolean;
+  onFollow: () => Promise<void>;
+  statsData: {
+    posts: number;
+    followers: number;
+    following: number;
+  };
 }
 
-const UserProfilePage: React.FC<UserProfilePageProps> = ({ username }) => {
+const UserProfilePage: React.FC<UserProfilePageProps> = ({ 
+  username, 
+  isFollowing, 
+  onFollow, 
+  statsData 
+}) => {
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const { user: currentUser } = useAuth();
+  const isOwnProfile = currentUser?.username === username;
+
   const [formData, setFormData] = useState<EditableProfileFields>({
     displayName: '',
     email: '',
@@ -20,9 +39,59 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ username }) => {
     socialLinks: {
       website: '',
       twitter: '',
-      linkedin: ''
-    }
+      youtube: ''
+    },
+    isCreator: false
   });
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      ...(name.startsWith('social.')
+        ? {
+            socialLinks: {
+              ...(prev.socialLinks || {}),
+              [name.split('.')[1] as keyof SocialLinks]: value
+            }
+          }
+        : {
+            [name]: value
+          })
+    }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!profile || !formData.socialLinks) return;
+
+    try {
+      const updates: EditableProfileFields = {
+        displayName: formData.displayName,
+        bio: formData.bio,
+        socialLinks: {
+          website: formData.socialLinks.website || '',
+          twitter: formData.socialLinks.twitter || '',
+          youtube: formData.socialLinks.youtube || ''
+        }
+      };
+      
+      const success = await userProfileService.updateProfile(profile.userId, updates);
+      if (success) {
+        setProfile(prev => prev && {
+          ...prev,
+          ...formData,
+          lastUpdated: new Date()
+        });
+        setIsEditing(false);
+      } else {
+        setError('Failed to update profile');
+      }
+    } catch (err) {
+      setError('Failed to update profile');
+      logger.error('Error updating profile:', { error: err instanceof Error ? err.message : String(err) });
+    }
+  };
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -30,12 +99,6 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ username }) => {
         const profileData = await userProfileService.getProfileByUsername(username);
         if (profileData) {
           setProfile(profileData);
-          setFormData({
-            displayName: profileData.displayName,
-            email: profileData.email,
-            bio: profileData.bio,
-            socialLinks: profileData.socialLinks
-          });
         } else {
           setError('Profile not found');
         }
@@ -50,151 +113,102 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ username }) => {
     fetchProfile();
   }, [username]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    if (name.startsWith('social.')) {
-      const socialKey = name.split('.')[1] as keyof SocialLinks;
-      setFormData(prev => ({
-        ...prev,
-        socialLinks: {
-          ...prev.socialLinks,
-          [socialKey]: value
-        }
-      }));
-    } else {
-      setFormData(prev => ({
-        ...prev,
-        [name]: value
-      }));
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!profile) return;
-
-    try {
-      const success = await userProfileService.updateProfile(profile.userId, formData);
-      if (success) {
-        setProfile(prev => prev ? { ...prev, ...formData, lastUpdated: new Date() } : null);
-        setIsEditing(false);
-      } else {
-        setError('Failed to update profile');
-      }
-    } catch (err) {
-      setError('Failed to update profile');
-      logger.error('Error updating profile:', { error: err instanceof Error ? err.message : String(err) });
-    }
-  };
-
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files || !e.target.files[0] || !profile) return;
-
-    const file = e.target.files[0];
-    try {
-      const reader = new FileReader();
-      reader.onload = async () => {
-        if (reader.result) {
-          const buffer = Buffer.from(reader.result as ArrayBuffer);
-          const newPicturePath = await userProfileService.updateProfilePicture(
-            profile.userId,
-            buffer,
-            file.name
-          );
-          if (newPicturePath) {
-            setProfile(prev => prev ? { ...prev, profilePicture: newPicturePath } : null);
-            setFormData(prev => ({ ...prev, profilePicture: newPicturePath }));
-          }
-        }
-      };
-      reader.readAsArrayBuffer(file);
-    } catch (err) {
-      setError('Failed to upload profile picture');
-      logger.error('Error uploading profile picture:', { error: err instanceof Error ? err.message : String(err) });
-    }
-  };
-
   if (isLoading) {
-    return <LoadingSpinner />;
+    return (
+      <div className="w-full max-w-md mx-auto" role="region" aria-label="User profile section">
+        <LoadingSpinner />
+      </div>
+    );
   }
 
   if (error) {
-    return <div className="text-red-500">{error}</div>;
+    return (
+      <div className="w-full max-w-md mx-auto" role="region" aria-label="User profile section">
+        <div className="text-red-500">{error}</div>
+      </div>
+    );
   }
 
   if (!profile) {
     return <div>Profile not found</div>;
   }
 
+  useEffect(() => {
+    if (profile) {
+      setFormData({
+        displayName: profile.displayName,
+        email: profile.email,
+        bio: profile.bio,
+        socialLinks: profile.socialLinks,
+        isCreator: profile.isCreator
+      });
+    }
+  }, [profile]);
+
   return (
-    <div className="max-w-4xl mx-auto p-4">
-      <div className="bg-white shadow rounded-lg p-6">
-        {!isEditing ? (
-          <div>
-            <div className="flex items-center space-x-4">
-              <img
-                src={profile.profilePicture}
-                alt={profile.displayName}
-                className="w-24 h-24 rounded-full"
+    <div className="w-full max-w-md mx-auto" role="region" aria-label="User profile section">
+      <div className="bg-black text-white">
+        <div className="p-6 pb-0 flex flex-col items-center">
+          <div className="relative w-24 h-24" role="img" aria-label="User profile picture">
+            <div className="w-full h-full rounded-full overflow-hidden">
+              {profile.profilePicture ? (
+                <img
+                  src={profile.profilePicture}
+                  alt={profile.displayName || 'Profile'}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    const img = e.target as HTMLImageElement;
+                    img.src = '';
+                    img.style.display = 'none';
+                  }}
+                  loading="lazy"
+                  width={96}
+                  height={96}
+                />
+              ) : (
+                <div className="w-full h-full bg-gray-700 flex items-center justify-center">
+                  <span className="text-white text-3xl font-bold">
+                    {profile.username?.[0]?.toUpperCase() || 'U'}
+                  </span>
+                </div>
+              )}
+            </div>
+            <div className="absolute bottom-0 right-0 -translate-x-1/2 -translate-y-1/2">
+              <ProfilePictureUpload
+                username={username}
+                onUploadSuccess={async (updates) => {
+                  if (!profile) return;
+                  
+                  // Update profile with new picture
+                  const success = await userProfileService.updateProfile(profile.userId, {
+                    ...updates,
+                    profilePicture: updates.profilePicture as string
+                  });
+                  
+                  if (success) {
+                    setProfile(prev => prev && {
+                      ...prev,
+                      profilePicture: updates.profilePicture as string
+                    });
+                  }
+                }}
               />
-              <div>
-                <h1 className="text-2xl font-bold">{profile.displayName}</h1>
-                <p className="text-gray-600">@{profile.username}</p>
-              </div>
             </div>
-            <div className="mt-4">
-              <p className="text-gray-700">{profile.bio}</p>
-            </div>
-            <div className="mt-4">
-              <h2 className="text-lg font-semibold">Contact</h2>
-              <p className="text-gray-600">{profile.email}</p>
-            </div>
-            <div className="mt-4">
-              <h2 className="text-lg font-semibold">Social Links</h2>
-              <div className="space-y-2">
-                {profile.socialLinks.website && (
-                  <a href={profile.socialLinks.website} className="text-blue-600 hover:underline">
-                    Website
-                  </a>
-                )}
-                {profile.socialLinks.twitter && (
-                  <a href={profile.socialLinks.twitter} className="text-blue-600 hover:underline">
-                    Twitter
-                  </a>
-                )}
-                {profile.socialLinks.linkedin && (
-                  <a href={profile.socialLinks.linkedin} className="text-blue-600 hover:underline">
-                    LinkedIn
-                  </a>
-                )}
-              </div>
-            </div>
-            <button
-              onClick={() => setIsEditing(true)}
-              className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-            >
-              Edit Profile
-            </button>
           </div>
-        ) : (
-          <form onSubmit={handleSubmit}>
-            <div className="space-y-4">
+          <div className="text-center">
+            <h2 className="text-xl font-bold" aria-label="User display name">{profile.displayName}</h2>
+            <p className="text-sm text-gray-400" aria-label="User username">@{profile.username}</p>
+          </div>
+        </div>
+        <div className="p-6">
+          {isEditing ? (
+            <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700">Display Name</label>
                 <input
                   type="text"
                   name="displayName"
                   value={formData.displayName}
-                  onChange={handleInputChange}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Email</label>
-                <input
-                  type="email"
-                  name="email"
-                  value={formData.email}
                   onChange={handleInputChange}
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                 />
@@ -210,15 +224,6 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ username }) => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">Profile Picture</label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFileUpload}
-                  className="mt-1 block w-full"
-                />
-              </div>
-              <div>
                 <h3 className="text-sm font-medium text-gray-700">Social Links</h3>
                 <div className="space-y-2">
                   <div>
@@ -226,7 +231,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ username }) => {
                     <input
                       type="url"
                       name="social.website"
-                      value={formData.socialLinks.website || ''}
+                      value={(formData.socialLinks?.website || '')}
                       onChange={handleInputChange}
                       className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                     />
@@ -236,44 +241,105 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({ username }) => {
                     <input
                       type="url"
                       name="social.twitter"
-                      value={formData.socialLinks.twitter || ''}
+                      value={(formData.socialLinks?.twitter || '')}
                       onChange={handleInputChange}
                       className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm text-gray-600">LinkedIn</label>
+                    <label className="block text-sm text-gray-600">YouTube</label>
                     <input
                       type="url"
-                      name="social.linkedin"
-                      value={formData.socialLinks.linkedin || ''}
+                      name="social.youtube"
+                      value={(formData.socialLinks?.youtube || '')}
                       onChange={handleInputChange}
                       className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                     />
                   </div>
                 </div>
               </div>
-            </div>
-            <div className="mt-6 flex space-x-4">
-              <button
-                type="submit"
-                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+              <div className="flex justify-end space-x-4">
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                >
+                  Save Changes
+                </button>
+              </div>
+            </form>
+          ) : (
+            <p className="text-sm text-center text-gray-400 mb-6" aria-label="User bio">
+              {profile.bio || 'I am a funny guy!'}
+            </p>
+          )}
+
+          <div className="flex justify-end mb-4">
+            {!isOwnProfile && (
+              <MuiButton
+                variant="contained"
+                onClick={onFollow}
+                loading={false}
+                color={isFollowing ? "error" : "primary"}
               >
-                Save Changes
-              </button>
-              <button
-                type="button"
-                onClick={() => setIsEditing(false)}
-                className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
+                {isFollowing ? 'Unfollow' : 'Follow'}
+              </MuiButton>
+            )}
+            {isOwnProfile && (
+              <MuiButton
+                variant="outlined"
+                onClick={() => setIsEditing(!isEditing)}
+                startIcon={<EditIcon />}
+                color="primary"
               >
-                Cancel
-              </button>
+                {isEditing ? 'Cancel' : 'Edit Profile'}
+              </MuiButton>
+            )}
+          </div>
+
+          <div className="grid grid-cols-3 gap-4 mb-6" role="list" aria-label="User statistics">
+            <div className="flex flex-col items-center" role="listitem">
+              <span className="text-3xl font-bold" aria-label="Number of posts">{statsData?.posts}</span>
+              <span className="text-sm text-gray-400" aria-label="Posts">Posts</span>
             </div>
-          </form>
-        )}
+            <div className="flex flex-col items-center" role="listitem">
+              <span className="text-3xl font-bold" aria-label="Number of followers">{statsData?.followers}</span>
+              <span className="text-sm text-gray-400" aria-label="Followers">Followers</span>
+            </div>
+            <div className="flex flex-col items-center" role="listitem">
+              <span className="text-3xl font-bold" aria-label="Number of following">{statsData?.following}</span>
+              <span className="text-sm text-gray-400" aria-label="Following">Following</span>
+            </div>
+          </div>
+
+          {profile.isCreator && (
+            <div className="mt-4 text-center">
+              <span className="text-blue-400 font-semibold">Creator</span>
+            </div>
+          )}
+
+          {profile.socialLinks && (
+            <div className="flex items-center space-x-4">
+              {profile?.socialLinks?.website && (
+                <a href={profile.socialLinks.website} target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-blue-500">
+                  <EditIcon /> Website
+                </a>
+              )}
+              {profile?.socialLinks?.twitter && (
+                <a href={profile.socialLinks.twitter} target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-blue-500">
+                  <EditIcon /> Twitter
+                </a>
+              )}
+              {profile?.socialLinks?.youtube && (
+                <a href={profile.socialLinks.youtube} target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-blue-500">
+                  <EditIcon /> YouTube
+                </a>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
 };
 
-export default UserProfilePage; 
+export default UserProfilePage;

@@ -6,7 +6,7 @@ interface SocialLinksProps {
   socialLinks: {
     website?: string;
     twitter?: string;
-    linkedin?: string;
+    youtube?: string;
   };
 }
 
@@ -34,7 +34,7 @@ const SocialLinks: React.FC<SocialLinksProps> = ({ socialLinks }) => {
         <CardContent>
           {renderSocialLink('Website', socialLinks.website)}
           {renderSocialLink('Twitter', socialLinks.twitter)}
-          {renderSocialLink('LinkedIn', socialLinks.linkedin)}
+          {renderSocialLink('YouTube', socialLinks.youtube)}
         </CardContent>
       </StyledCard>
     </Box>

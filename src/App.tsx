@@ -7,9 +7,9 @@ import { ProtectedRoute } from './components/auth/ProtectedRoute';
 import ProfileLayout from './components/layout/ProfileLayout';
 import { Footer } from './components/layout/Footer';
 import Toast from './components/Toast';
-import { HomePage } from './components/pages/HomePage';
+import { HomePageModern as HomePage} from './components/pages/HomePageModern';
 import { ExplorePage } from './components/content/ExplorePage';
-import { ContentDetail } from './components/content/ContentDetail';
+import { ContentDetail } from './components/content/components/ContentDetail';
 import SettingsPage from './components/pages/SettingsPage';
 import ProfilePage from './components/pages/ProfilePage';
 import { AuthModal } from './components/auth/AuthModal';
@@ -44,7 +44,31 @@ function App() {
                     } />
                     <Route path="/profile/:username" element={
                       <ProtectedRoute>
-                        <ProfilePage />
+                        <ProfilePage
+                          user={{ 
+                            id: '', 
+                            userId: '', 
+                            username: '', 
+                            createdAt: new Date(),
+                            lastUpdated: new Date(),
+                            subscribers: 0,
+                            posts: 0,
+                            displayName: '',
+                            email: '',
+                            profilePicture: '',
+                            bio: '',
+                            role: 'user' as const,
+                            socialLinks: { 
+                              website: '', 
+                              twitter: '', 
+                              youtube: '', 
+                              instagram: '' 
+                            },
+                            isCreator: false
+                          }}
+                          isFollowing={false}
+                          onFollow={async () => {}}
+                        />
                       </ProtectedRoute>
                     } />
                     <Route path="/settings" element={

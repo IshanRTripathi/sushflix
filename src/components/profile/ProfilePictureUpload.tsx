@@ -1,20 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Alert } from '@mui/material';
 import { ProfileService } from '../../services/profileService';
+import { UserProfile, PartialProfileUpdate } from '../../types/user';
 import { logger } from '../../utils/logger';
 import { CloudUpload as CloudUploadIcon } from '@mui/icons-material';
 
 interface ProfilePictureUploadProps {
   username: string;
-  onUploadSuccess: (imageUrl: string) => void;
+  onUploadSuccess: (updates: PartialProfileUpdate) => Promise<void>;
+  onProfileUpdate?: (updates: PartialProfileUpdate) => Promise<void>;
 }
 
-export const ProfilePictureUpload: React.FC<ProfilePictureUploadProps> = ({ username, onUploadSuccess }) => {
+export const ProfilePictureUpload: React.FC<ProfilePictureUploadProps> = ({ username, onUploadSuccess, onProfileUpdate }) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>('');
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string>('');
   const [open, setOpen] = useState(false);
+  const [progress, setProgress] = useState(0);
   const profileService = ProfileService.getInstance();
 
   useEffect(() => {
@@ -27,11 +30,11 @@ export const ProfilePictureUpload: React.FC<ProfilePictureUploadProps> = ({ user
 
   useEffect(() => {
     const handleExternalFileSelect = (event: Event) => {
-      console.log('Received external file selection event');
+      logger.info('Received external file selection event');
       const customEvent = event as CustomEvent<{ file: File }>;
       const file = customEvent.detail?.file;
       if (file) {
-        console.log('External file selected:', file.name);
+        logger.info('External file selected', { name: file.name });
         handleFile(file);
       }
     };
@@ -43,17 +46,17 @@ export const ProfilePictureUpload: React.FC<ProfilePictureUploadProps> = ({ user
   }, []);
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    console.log('ProfilePictureUpload file picker triggered');
+    logger.info('File picker triggered');
     const file = event.target.files?.[0];
     if (file) {
       handleFile(file);
     } else {
-      console.log('No file selected in ProfilePictureUpload');
+      logger.warn('No file selected');
     }
   };
 
   const handleFile = (file: File) => {
-    console.log('File selected:', {
+    logger.info('File selected', {
       name: file.name,
       size: file.size,
       type: file.type
@@ -87,43 +90,79 @@ export const ProfilePictureUpload: React.FC<ProfilePictureUploadProps> = ({ user
   };
 
   const handleUpload = async () => {
-    if (!selectedFile) {
-      setError('No file selected');
-      return;
-    }
-
     try {
+      if (!selectedFile) {
+        throw new Error('No file selected');
+      }
+
+      // Validate file size and type
+      const maxSize = 5 * 1024 * 1024; // 5MB
+      if (selectedFile.size > maxSize) {
+        throw new Error('File size exceeds 5MB limit');
+      }
+
+      if (!['image/jpeg', 'image/png', 'image/webp'].includes(selectedFile.type)) {
+        throw new Error('Only JPEG, PNG, and WebP files are allowed');
+      }
+
+      const formData = new FormData();
+      formData.append('image', selectedFile);
+
+      logger.debug('Uploading profile picture', {
+        username,
+        filename: selectedFile.name,
+        size: selectedFile.size,
+        type: selectedFile.type
+      });
+
       setUploading(true);
       const response = await profileService.uploadProfilePicture(username, selectedFile);
+      
+      if (!response?.imageUrl) {
+        throw new Error('Failed to get image URL from response');
+      }
 
-      if (response.success && response.imageUrl) {
-        logger.info('Upload successful', { imageUrl: response.imageUrl });
-        onUploadSuccess(response.imageUrl);
-        setOpen(false);
-        setError('');
-      } else {
-        const errorMessage = response.error || 'Upload failed. Please try again.';
-        logger.error('Upload failed', { error: errorMessage });
-        setError(errorMessage);
+      logger.info('Profile picture uploaded successfully', { 
+        url: response.imageUrl,
+        username,
+        timestamp: new Date().toISOString()
+      });
+
+      // Only update the profile picture field
+      if (onUploadSuccess) {
+        await onUploadSuccess({ profilePicture: response.imageUrl });
       }
+
     } catch (error: unknown) {
-      let errorMessage = 'An unexpected error occurred during upload';
-      if (error instanceof Error) {
-        errorMessage = error.message;
-      } else if (typeof error === 'object' && error !== null) {
-        errorMessage = (error as { message?: string; error?: string }).message || 
-                       (error as { message?: string; error?: string }).error || 
-                       errorMessage;
-      }
-      logger.error('Upload error', { error: errorMessage });
-      setError(errorMessage);
+      const errorObj = error instanceof Error ? error : new Error('Unknown error occurred');
+      logger.error('Error uploading profile picture', {
+        error: {
+          message: errorObj.message,
+          name: errorObj.name,
+          stack: errorObj.stack
+        },
+        username,
+        timestamp: new Date().toISOString()
+      });
+
+      setError(errorObj.message);
+      setTimeout(() => setError(''), 3000);
     } finally {
+      setProgress(0);
+      setSelectedFile(null);
       setUploading(false);
     }
   };
 
   return (
     <div className="relative">
+      {previewUrl && (
+        <img
+          src={previewUrl}
+          alt="Preview"
+          className="w-full h-full rounded-full object-cover absolute inset-0"
+        />
+      )}
       <input
         type="file"
         accept="image/*"
@@ -137,13 +176,6 @@ export const ProfilePictureUpload: React.FC<ProfilePictureUploadProps> = ({ user
       >
         <CloudUploadIcon className="text-white w-6 h-6" />
       </label>
-      {previewUrl && (
-        <img
-          src={previewUrl}
-          alt="Preview"
-          className="w-40 h-40 rounded-full object-cover"
-        />
-      )}
       {error && (
         <Alert severity="error" className="mt-2">
           {error}

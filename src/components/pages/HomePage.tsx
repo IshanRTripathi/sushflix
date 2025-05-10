@@ -56,6 +56,7 @@ export function HomePage() {
         throw new Error('Failed to fetch profile');
       }
       const userData = await response.json();
+      console.log('Fetch Profile API response:', userData);
       setState(prev => ({
         ...prev,
         profile: userData,
@@ -83,7 +84,8 @@ export function HomePage() {
         throw new Error('Failed to fetch featured profiles');
       }
       const data = await response.json();
-      setState(prev => ({ ...prev, featuredProfiles: data }));
+      console.log('Featured profiles API response:', data);
+      setState(prev => ({ ...prev, featuredProfiles: data.profiles || [] }));
     } catch (err) {
       setState(prev => ({ ...prev, error: err instanceof Error ? err.message : 'An error occurred' }));
     } finally {
@@ -160,23 +162,18 @@ export function HomePage() {
               </div>
               {/* Right: Profile Card */}
               <div className="relative">
-                <img
-                  src="/images/yellow_stroke.png"
-                  alt="Yellow Stroke"
-                  className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[650px] hidden md:block"
-                />
                 <div className="bg-white rounded-2xl shadow-lg p-6 relative z-10">
                   <div className="flex items-center space-x-4 mb-4">
                     <div className="w-16 h-16 rounded-full overflow-hidden">
                       <img
-                        src={state.profile?.profilePicture || "/images/profile_pic.png"}
+                        src={state.profile?.profilePicture || "/static/images/profile.jpeg"}
                         alt="Profile"
                         className="w-full h-full object-cover"
                       />
                     </div>
                     <div>
-                      <div className="font-semibold text-lg">{state.profile?.username || "Loading..."}</div>
-                      <div className="text-gray-600 text-sm">{state.profile?.email}</div>
+                      <div className="font-semibold text-lg">{state.featuredProfiles[0]?.username || "Loading..."}</div>
+                      <div className="text-gray-600 text-sm">{state.featuredProfiles[0]?.bio || "Loading..."}</div>
                     </div>
                   </div>
                   <div className="grid grid-cols-3 gap-4 mb-6 text-center text-sm sm:text-base">

@@ -1,87 +1,196 @@
-import { UserProfile } from '../../types/user';
-import Card from "@/components/ui/Card"
-import Button from "@/components/ui/Button"
-import { Icons } from "@/components/icons"
-import ProfilePictureUpload from '../profile/ProfilePictureUpload'
+import React, { useCallback, useState } from 'react';
+import { UserProfile, PartialProfileUpdate } from '../../types/user';
+import Card from "@/components/ui/Card";
+import Button from "@/components/ui/Button";
+import { Icons } from "@/components/icons";
+import { ProfilePictureUpload } from '../profile/ProfilePictureUpload';
+import { logger } from '../../utils/logger';
+import Loading from '@/components/ui/Loading';
+import { Alert } from '@mui/material';
+import { LoadingButton } from '@mui/lab';
+import { Edit as EditIcon } from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
+import { Button as MuiButton } from '@mui/material';
 
+
+/**
+ * Interface for social media links
+ * @interface SocialLinks
+ */
+interface SocialLinks {
+  twitter?: string;
+  youtube?: string;
+  instagram?: string;
+}
+
+/**
+ * Props interface for ProfileSection component
+ * @interface ProfileSectionProps
+ */
 interface ProfileSectionProps {
   user: UserProfile;
   isFollowing: boolean;
-  onFollow: () => void;
+  isOwner: boolean;
+  onFollow?: () => void;
+  onUnfollow?: () => void;
   posts: number;
   followers: number;
   following: number;
-  onProfilePictureUpdate?: (newImageUrl: string) => void;
+  onProfileUpdate?: (updatedUser: UserProfile) => void;
 }
 
+/**
+ * ProfileSection component for displaying user profile information
+ * @param {ProfileSectionProps} props - Component props
+ * @returns {ReactNode}
+ */
 const ProfileSection: React.FC<ProfileSectionProps> = ({
   user,
   isFollowing,
+  isOwner,
   onFollow,
+  onUnfollow,
   posts,
   followers,
   following,
-  onProfilePictureUpdate,
+  onProfileUpdate,
 }) => {
+  const navigate = useNavigate();
 
-  const handleUploadSuccess = (newImageUrl: string) => {
-    if (onProfilePictureUpdate) {
-      onProfilePictureUpdate(newImageUrl);
-    }
-    // Update the local preview
-    const img = document.querySelector<HTMLImageElement>('img');
-    if (img) {
-      try {
-        img.src = newImageUrl;
-      } catch (error) {
-        console.error('Error updating profile picture preview:', error);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleUploadSuccess = useCallback(async (updates: PartialProfileUpdate) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      logger.info('Profile picture upload success', { userId: user.id, updates });
+      
+      if (onProfileUpdate) {
+        await onProfileUpdate({
+          ...user,
+          profilePicture: updates.profilePicture,
+          lastUpdated: new Date()
+        });
       }
+    } catch (error) {
+      logger.error('Error updating profile picture', { error, userId: user.id });
+      setError('Failed to update profile picture. Please try again.');
+      throw error;
+    } finally {
+      setIsLoading(false);
     }
-  };
+  }, [user, onProfileUpdate]);
+
+  if (isLoading) {
+    return (
+      <div className="w-full max-w-md mx-auto" role="region" aria-label="User profile section">
+        <Card className="bg-black text-white">
+          <div className="p-6">
+            <Loading showSpinner={true} />
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="w-full max-w-md mx-auto" role="region" aria-label="User profile section">
+        <Card className="bg-black text-white">
+          <div className="p-6">
+            <Alert
+              severity="error"
+              onClose={() => setError(null)}
+              className="text-white bg-red-500"
+            >
+              {error}
+            </Alert>
+          </div>
+        </Card>
+      </div>
+    );
+  }
 
   return (
-    <div className="w-full max-w-md mx-auto">
+    <div className="w-full max-w-md mx-auto" role="region" aria-label="User profile section">
       <Card className="bg-black text-white">
         <div className="p-6 pb-0 flex flex-col items-center">
-          <div className="relative">
-            {user.profilePicture ? (
-              <img
-                src={user.profilePicture}
-                alt={user.displayName || 'Profile'}
-                className="w-24 h-24 rounded-full object-cover"
+          <div className="relative w-24 h-24" role="img" aria-label="User profile picture">
+            <div className="w-full h-full rounded-full overflow-hidden">
+              {user.profilePicture ? (
+                <img
+                  src={user.profilePicture}
+                  alt={user.displayName || 'Profile'}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    const img = e.target as HTMLImageElement;
+                    img.src = '';
+                    img.style.display = 'none';
+                  }}
+                  loading="lazy"
+                  width={96}
+                  height={96}
+                />
+              ) : (
+                <div className="w-full h-full bg-gray-700 flex items-center justify-center">
+                  <span className="text-white text-3xl font-bold">
+                    {user.username?.[0]?.toUpperCase() || 'U'}
+                  </span>
+                </div>
+              )}
+            </div>
+            <div className="absolute bottom-0 right-0 -translate-x-1/2 -translate-y-1/2">
+              <ProfilePictureUpload
+                username={user.username!}
+                onUploadSuccess={handleUploadSuccess}
               />
-            ) : (
-              <div className="w-24 h-24 rounded-full bg-gray-700 flex items-center justify-center">
-                <span className="text-white text-3xl font-bold">
-                  {user.username?.[0]?.toUpperCase() || 'U'}
-                </span>
-              </div>
-            )}
-            <ProfilePictureUpload
-              currentImage={user.profilePicture || ''}
-              username={user.username || 'default'}
-              onUploadSuccess={handleUploadSuccess}
-            />
+            </div>
           </div>
           <div className="text-center">
-            <h2 className="text-xl font-bold">{user.displayName}</h2>
-            <p className="text-sm text-gray-400">@{user.username}</p>
+            <h2 className="text-xl font-bold" aria-label="User display name">{user.displayName}</h2>
+            <p className="text-sm text-gray-400" aria-label="User username">@{user.username}</p>
           </div>
         </div>
         <div className="p-6">
-          <p className="text-sm text-center text-gray-400 mb-6">{user.bio || 'No bio yet'}</p>
+          <p className="text-sm text-center text-gray-400 mb-6" aria-label="User bio">
+            {user.bio || 'I am a funny guy!'}
+          </p>
 
-          <div className="grid grid-cols-3 gap-4 mb-6">
-            <div className="flex flex-col items-center">
-              <span className="text-3xl font-bold">{posts}</span>
+          <div className="flex justify-end mb-4">
+            {!isOwner && onFollow && onUnfollow && (
+              <LoadingButton
+                variant="contained"
+                onClick={isFollowing ? onUnfollow : onFollow}
+                loading={false}
+                color={isFollowing ? "error" : "primary"}
+              >
+                {isFollowing ? 'Unfollow' : 'Follow'}
+              </LoadingButton>
+            )}
+            {isOwner && (
+              <MuiButton
+                variant="outlined"
+                onClick={() => navigate(`/profile/${user.username}/edit`)}
+                startIcon={<EditIcon />}
+                color="primary"
+              >
+                Edit Profile
+              </MuiButton>
+            )}
+          </div>
+
+          <div className="grid grid-cols-3 gap-4 mb-6" role="list" aria-label="User statistics">
+            <div className="flex flex-col items-center" role="listitem">
+              <span className="text-3xl font-bold" aria-label="Number of posts">{posts}</span>
               <span className="text-sm text-gray-400">Posts</span>
             </div>
-            <div className="flex flex-col items-center">
-              <span className="text-3xl font-bold">{followers}</span>
+            <div className="flex flex-col items-center" role="listitem">
+              <span className="text-3xl font-bold" aria-label="Number of followers">{followers}</span>
               <span className="text-sm text-gray-400">Followers</span>
             </div>
-            <div className="flex flex-col items-center">
-              <span className="text-3xl font-bold">{following}</span>
+            <div className="flex flex-col items-center" role="listitem">
+              <span className="text-3xl font-bold" aria-label="Number of following">{following}</span>
               <span className="text-sm text-gray-400">Following</span>
             </div>
           </div>
@@ -91,43 +200,58 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({
               variant={isFollowing ? "outline" : "primary"}
               onClick={onFollow}
               className="text-white"
+              aria-label={isFollowing ? 'Unfollow user' : 'Follow user'}
             >
               {isFollowing ? 'Following' : 'Follow'}
             </Button>
           </div>
 
           <div className="mb-6">
-            <h3 className="text-sm font-semibold mb-2">Social Links</h3>
-            <div className="flex flex-wrap gap-4">
-              <a
-                href={user.socialLinks?.twitter || 'https://twitter.com/username'}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-400 hover:text-blue-300 flex items-center gap-2"
-              >
-                <Icons.twitter className="w-4 h-4" />
-                Twitter
-              </a>
-              <a
-                href={user.socialLinks?.youtube || 'https://youtube.com/@username'}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-400 hover:text-blue-300 flex items-center gap-2"
-              >
-                <Icons.youtube className="w-4 h-4" />
-                YouTube
-              </a>
-              <a
-                href={user.socialLinks?.instagram || 'https://instagram.com/username'}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-400 hover:text-blue-300 flex items-center gap-2"
-              >
-                <Icons.instagram className="w-4 h-4" />
-                Instagram
-              </a>
-            </div>
+            <h3 className="text-sm font-semibold mb-2" aria-label="Social links section">Social Links</h3>
+            {user.socialLinks && (
+              <div className="flex justify-center gap-4">
+                {user.socialLinks.twitter && (
+                  <a
+                    href={`https://twitter.com/${user.socialLinks.twitter}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-400 hover:text-blue-300"
+                    aria-label="Twitter"
+                  >
+                    <Icons.twitter className="w-6 h-6" />
+                  </a>
+                )}
+                {user.socialLinks.youtube && (
+                  <a
+                    href={`https://youtube.com/${user.socialLinks.youtube}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-red-400 hover:text-red-300"
+                    aria-label="YouTube"
+                  >
+                    <Icons.youtube className="w-6 h-6" />
+                  </a>
+                )}
+                {user.socialLinks.instagram && (
+                  <a
+                    href={`https://instagram.com/${user.socialLinks.instagram}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-purple-400 hover:text-purple-300"
+                    aria-label="Instagram"
+                  >
+                    <Icons.instagram className="w-6 h-6" />
+                  </a>
+                )}
+              </div>
+            )}
           </div>
+
+          {user.isCreator && (
+            <div className="mt-4 text-center">
+              <span className="text-blue-400 font-semibold">Creator</span>
+            </div>
+          )}
         </div>
       </Card>
     </div>

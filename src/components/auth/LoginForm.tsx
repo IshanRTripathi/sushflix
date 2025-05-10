@@ -1,35 +1,65 @@
-import React, { useState } from 'react';
+// Login form component with phone and email authentication options
+import React, { useState, useCallback } from 'react';
 import { useAuth } from './AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { AlertCircle, X } from 'lucide-react';
 import { logger } from '../../utils/logger';
 
+// Configuration constants
+const DEFAULT_COUNTRY_CODE = '+91';
+
+// Country codes interface
+interface CountryCode {
+  code: string;
+  flag: string;
+  name: string;
+}
+
+const COUNTRY_CODES: readonly CountryCode[] = [
+  { code: '+91', flag: '🇮🇳', name: 'India' },
+  { code: '+1', flag: '🇺🇸', name: 'United States' },
+] as const;
+
+// Error messages
+const ERROR_MESSAGES = {
+  PHONE_REQUIRED: 'Please enter your phone number',
+  CREDENTIALS_REQUIRED: 'Please enter your email or username',
+  PASSWORD_REQUIRED: 'Please enter your password',
+} as const;
+
+// Component props interface
 interface LoginFormProps {
   onClose: () => void;
   openSignupModal: () => void;
 }
 
+// Login modes
+type LoginMode = 'phone' | 'email';
+
+/**
+ * Login form component with phone and email authentication options
+ * @param onClose - Callback to close the modal
+ * @param openSignupModal - Callback to open signup modal
+ */
 export const LoginForm: React.FC<LoginFormProps> = ({ onClose, openSignupModal }) => {
   const navigate = useNavigate();
-  const [tab, setTab] = useState<'phone' | 'email'>('email');
-  const [countryCode, setCountryCode] = useState('+91');
+  const { login } = useAuth();
+
+  // State management
+  const [tab, setTab] = useState<LoginMode>('email');
+  const [countryCode, setCountryCode] = useState(DEFAULT_COUNTRY_CODE);
   const [phone, setPhone] = useState('');
   const [credentials, setCredentials] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [phonePasswordMode, setPhonePasswordMode] = useState(true);
   const [emailPasswordMode, setEmailPasswordMode] = useState(true);
-  const { login } = useAuth();
 
-  const countryCodes = [
-    { code: '+91', flag: '🇮🇳' },
-    { code: '+1', flag: '🇺🇸' },
-  ];
-
-  const handleLogin = async (e: React.FormEvent) => {
+  // Form handlers
+  const handleLogin = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setError(null);
     setIsLoading(true);
     logger.debug('Login form submitted', { loginMethod: tab });
 
@@ -38,41 +68,35 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onClose, openSignupModal }
       
       if (!loginIdentifier.trim()) {
         const errorMsg = tab === 'phone' 
-          ? 'Please enter your phone number' 
-          : 'Please enter your email or username';
+          ? ERROR_MESSAGES.PHONE_REQUIRED 
+          : ERROR_MESSAGES.CREDENTIALS_REQUIRED;
         logger.warn('Validation failed', { error: errorMsg });
         setError(errorMsg);
         return;
       }
 
       if (!password.trim()) {
-        logger.warn('Validation failed', { error: 'Password required' });
-        setError('Please enter your password');
+        logger.warn('Validation failed', { error: ERROR_MESSAGES.PASSWORD_REQUIRED });
+        setError(ERROR_MESSAGES.PASSWORD_REQUIRED);
         return;
       }
 
-      logger.info('Attempting login', { 
-        identifier: tab === 'phone' 
-          ? `${countryCode}${phone.substring(0, 3)}***` 
-          : credentials.includes('@') 
-            ? credentials.substring(0, 3) + '***@***' 
-            : credentials 
-      });
+      // Mask sensitive information for logging
+      const maskedIdentifier = tab === 'phone' 
+        ? `${countryCode}${phone.substring(0, 3)}***` 
+        : credentials.includes('@') 
+          ? credentials.substring(0, 3) + '***@***' 
+          : credentials;
+
+      logger.info('Attempting login', { identifier: maskedIdentifier });
 
       await login(loginIdentifier, password);
-      logger.info('Login successful', { 
-        identifier: tab === 'phone' 
-          ? `${countryCode}${phone.substring(0, 3)}***` 
-          : credentials.includes('@') 
-            ? credentials.substring(0, 3) + '***@***' 
-            : credentials,
-        timestamp: new Date().toISOString() 
-      });
+      logger.info('Login successful', { identifier: maskedIdentifier });
       navigate('/explore');
       onClose();
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Login failed';
-      logger.error('Login failed details', {
+      logger.error('Login failed', {
         error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined,
         identifier: tab === 'phone' 
@@ -80,13 +104,12 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onClose, openSignupModal }
           : credentials.includes('@') 
             ? credentials.substring(0, 3) + '***@***' 
             : credentials,
-        timestamp: new Date().toISOString()
       });
       setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [tab, phone, credentials, password, countryCode, login, navigate, onClose]);
 
   return (
     <div className="relative w-full">
@@ -142,8 +165,8 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onClose, openSignupModal }
                 }}
                 aria-label="Country code"
               >
-                {countryCodes.map((c) => (
-                  <option key={c.code} value={c.code}>
+                {COUNTRY_CODES.map((c) => (
+                  <option key={c.code} value={c.code} aria-label={`${c.name} (${c.code})`}>
                     {c.flag} {c.code}
                   </option>
                 ))}

@@ -1,4 +1,5 @@
 import React from 'react';
+import { DEFAULT_IMAGES } from '../../config/images';
 
 interface AvatarProps {
   src?: string;
@@ -23,7 +24,7 @@ const Avatar: React.FC<AvatarProps> = ({
 
   return (
     <img
-      src={src || '/default-avatar.png'}
+      src={src || DEFAULT_IMAGES.avatar}
       alt={alt}
       className={`${sizeStyles} rounded-full object-cover ${className}`}
     />
