@@ -7,7 +7,7 @@ import { ProtectedRoute } from './components/auth/ProtectedRoute';
 import ProfileLayout from './components/layout/ProfileLayout';
 import { Footer } from './components/layout/Footer';
 import Toast from './components/Toast';
-import { HomePage } from './components/pages/HomePage';
+import { HomePageModern as HomePage} from './components/pages/HomePageModern';
 import { ExplorePage } from './components/content/ExplorePage';
 import { ContentDetail } from './components/content/components/ContentDetail';
 import SettingsPage from './components/pages/SettingsPage';

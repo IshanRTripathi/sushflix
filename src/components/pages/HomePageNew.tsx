@@ -4,6 +4,11 @@ import { API_BASE_URL } from '../../config/index';
 import ErrorBoundary from '../ui/ErrorBoundary';
 import Loading from '../ui/Loading';
 import { useLoadingState } from '../../contexts/LoadingStateContext';
+import Card from "@/components/ui/Card";
+import { CardHeader } from "@/components/ui/CardHeader";
+import { CardContent } from "@/components/ui/CardContent";
+import { CardTitle } from "@/components/ui/CardTitle";
+import { CardDescription } from "@/components/ui/CardDescription";
 
 interface UserProfile {
   username: string;
@@ -36,7 +41,7 @@ interface HomePageState {
   maxRetries: number;
 }
 
-export function HomePage() {
+export function HomePageNew() {
   const [state, setState] = useState<HomePageState>({
     profile: null,
     featuredProfiles: [],
@@ -56,7 +61,6 @@ export function HomePage() {
         throw new Error('Failed to fetch profile');
       }
       const userData = await response.json();
-      console.log('Fetch Profile API response:', userData);
       setState(prev => ({
         ...prev,
         profile: userData,
@@ -84,7 +88,6 @@ export function HomePage() {
         throw new Error('Failed to fetch featured profiles');
       }
       const data = await response.json();
-      console.log('Featured profiles API response:', data);
       setState(prev => ({ ...prev, featuredProfiles: data.profiles || [] }));
     } catch (err) {
       setState(prev => ({ ...prev, error: err instanceof Error ? err.message : 'An error occurred' }));
@@ -160,48 +163,57 @@ export function HomePage() {
                   </Link>
                 </div>
               </div>
+
               {/* Right: Profile Card */}
               <div className="relative">
-                <div className="bg-white rounded-2xl shadow-lg p-6 relative z-10">
-                  <div className="flex items-center space-x-4 mb-4">
-                    <div className="w-16 h-16 rounded-full overflow-hidden">
-                      <img
-                        src={state.profile?.profilePicture || "/static/images/profile.jpeg"}
-                        alt="Profile"
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    <div>
-                      <div className="font-semibold text-lg">{state.featuredProfiles[0]?.username || "Loading..."}</div>
-                      <div className="text-gray-600 text-sm">{state.featuredProfiles[0]?.bio || "Loading..."}</div>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-3 gap-4 mb-6 text-center text-sm sm:text-base">
-                    <div>
-                      <div className="font-bold">{state.profile?.posts || "0"}</div>
-                      <div className="text-gray-600">posts</div>
-                    </div>
-                    <div>
-                      <div className="font-bold">{state.profile?.followers || "0"}</div>
-                      <div className="text-gray-600">followers</div>
-                    </div>
-                    <div>
-                      <div className="font-bold">{state.profile?.subscribers || "0"}</div>
-                      <div className="text-gray-600">subscribers</div>
-                    </div>
-                  </div>
-                  <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
-                    <button className="bg-red-600 text-white px-4 py-2 rounded-full font-medium hover:bg-red-700 transition w-full">
-                      Watch Video
-                    </button>
-                    <button className="bg-red-600 text-white px-4 py-2 rounded-full font-medium hover:bg-red-700 transition w-full">
-                      Message
-                    </button>
-                    <button className="bg-red-600 text-white px-4 py-2 rounded-full font-medium hover:bg-red-700 transition w-full">
-                      Send Tip
-                    </button>
-                  </div>
-                </div>
+                <Card className="relative z-10">
+                  <CardHeader>
+                    <CardHeader>
+                      <div className="flex items-center space-x-4 mb-4">
+                        <div className="w-16 h-16 rounded-full overflow-hidden">
+                          <img
+                            src={state.profile?.profilePicture || "/static/images/profile.jpeg"}
+                            alt="Profile"
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        <div>
+                          <CardTitle>{state.featuredProfiles[0]?.username || "Loading..."}</CardTitle>
+                          <CardDescription>{state.featuredProfiles[0]?.bio || "Loading..."}</CardDescription>
+                        </div>
+                      </div>
+                    </CardHeader>
+                  </CardHeader>
+                  <CardContent>
+                    <CardContent>
+                      <div className="grid grid-cols-3 gap-4 mb-6 text-center text-sm sm:text-base">
+                        <div>
+                          <div className="font-bold">{state.profile?.posts || "0"}</div>
+                          <div className="text-gray-600">posts</div>
+                        </div>
+                        <div>
+                          <div className="font-bold">{state.profile?.followers || "0"}</div>
+                          <div className="text-gray-600">followers</div>
+                        </div>
+                        <div>
+                          <div className="font-bold">{state.profile?.subscribers || "0"}</div>
+                          <div className="text-gray-600">subscribers</div>
+                        </div>
+                      </div>
+                      <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
+                        <button className="bg-red-600 text-white px-4 py-2 rounded-full font-medium hover:bg-red-700 transition w-full">
+                          Watch Video
+                        </button>
+                        <button className="bg-red-600 text-white px-4 py-2 rounded-full font-medium hover:bg-red-700 transition w-full">
+                          Message
+                        </button>
+                        <button className="bg-red-600 text-white px-4 py-2 rounded-full font-medium hover:bg-red-700 transition w-full">
+                          Send Tip
+                        </button>
+                      </div>
+                    </CardContent>
+                  </CardContent>
+                </Card>
               </div>
             </div>
           )}
