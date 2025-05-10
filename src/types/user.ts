@@ -64,6 +64,9 @@ export interface FeaturedProfile {
   profilePicture: string;
   bio: string;
   socialLinks: SocialLinks;
+  posts?: number;
+  followers?: number;
+  subscribers?: number;
 }
 
 export interface FeaturedProfileConfig {
@@ -71,4 +74,4 @@ export interface FeaturedProfileConfig {
   username: string;
   isActive: boolean;
   displayOrder: number;
-} 
+}

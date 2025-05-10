@@ -17,6 +17,7 @@ const subscriptionRoutes = require('./routes/subscriptions');
 const userRoutes = require('./routes/user');
 const postRoutes = require('./routes/post');
 const profilesRoutes = require('./routes/profiles');
+const featuredProfilesRoutes = require('./routes/featuredProfiles');
 
 // Initialize express
 const app = express();
@@ -84,6 +85,7 @@ app.use('/api/subscriptions', subscriptionRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/posts', postRoutes);
 app.use('/api/profiles', profilesRoutes);
+app.use('/api/featured', featuredProfilesRoutes);
 
 // Error handling middleware
 app.use(errorHandler);

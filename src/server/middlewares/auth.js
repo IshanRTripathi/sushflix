@@ -21,15 +21,20 @@ const auth = (roles = []) => {
       req.user = decoded;
 
       // Check roles if provided
-      if (roles.length > 0 && !roles.some(role => req.user.roles.includes(role))) {
-        logger.warn(`Auth middleware: User does not have required roles. Required: ${roles.join(', ')}, User has: ${req.user.roles.join(', ')}`);
-        return res.status(403).json({ message: 'Access denied' });
+      if (roles.length > 0 && !decoded.role) {
+        logger.warn('Auth middleware: No role in token');
+        return res.status(403).json({ message: 'Insufficient permissions' });
+      }
+      
+      if (roles.length > 0 && !roles.includes(decoded.role)) {
+        logger.warn('Auth middleware: Insufficient permissions');
+        return res.status(403).json({ message: 'Insufficient permissions' });
       }
 
       next();
     } catch (err) {
       logger.error('Auth middleware: Token verification failed', err);
-      res.status(401).json({ message: 'Token is not valid' });
+      return res.status(401).json({ message: 'Invalid token' });
     }
   };
 };

@@ -9,9 +9,9 @@ interface FeaturedProfilesSectionProps {
 }
 
 const FeaturedProfilesSection: React.FC<FeaturedProfilesSectionProps> = ({
-  profiles,
-  isLoading,
-  error
+  profiles = [],
+  isLoading = false,
+  error = null
 }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
 
@@ -35,10 +35,20 @@ const FeaturedProfilesSection: React.FC<FeaturedProfilesSectionProps> = ({
     return () => clearInterval(interval);
   }, [profiles]);
 
-  const rotatingProfiles = [
+  const rotatingProfiles = profiles.length > 0 ? [
     profiles[(currentIndex + 0) % profiles.length],
     profiles[(currentIndex + 1) % profiles.length],
     profiles[(currentIndex + 2) % profiles.length]
+  ] : [
+    {
+      profilePicture: '/default-avatar.png',
+      username: 'Featured Creator',
+      displayName: 'Popular Creator',
+      bio: 'Featured creator on SushFlix',
+      posts: 0,
+      followers: 0,
+      subscribers: 0
+    }
   ];
 
   return (
@@ -63,12 +73,13 @@ const FeaturedProfilesSection: React.FC<FeaturedProfilesSectionProps> = ({
               <FeaturedCard
                 key={index}
                 profile={{
-                  profilePicture: profile.profilePicture || '/default-avatar.png',
-                  username: profile.username || profile.displayName || 'Unknown User',
-                  bio: profile.bio || 'No bio available',
-                  posts: 0,
-                  followers: 0,
-                  subscribers: 0
+                  profilePicture: profile?.profilePicture || '/default-avatar.png',
+                  username: profile?.username || profile?.displayName || 'Unknown User',
+                  displayName: profile?.displayName || 'Anonymous Creator',
+                  bio: profile?.bio || 'No bio available',
+                  posts: profile?.posts || 0,
+                  followers: profile?.followers || 0,
+                  subscribers: profile?.subscribers || 0
                 }}
                 isHighlighted={index === 1}
                 className={getPositionClass(index)}
