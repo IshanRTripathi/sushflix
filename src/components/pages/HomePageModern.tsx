@@ -3,8 +3,8 @@ import { Link } from 'react-router-dom';
 import { API_BASE_URL } from '../../config/index';
 import ErrorBoundary from '../ui/ErrorBoundary';
 import Loading from '../ui/Loading';
+import FeaturedProfilesSection from './FeaturedProfilesSection';
 import { useLoadingState } from '../../contexts/LoadingStateContext';
-import { Button } from '@mui/material';
 
 interface UserProfile {
   username: string;
@@ -20,27 +20,31 @@ interface UserProfile {
 }
 
 interface FeaturedProfile {
+  userId: string;
   username: string;
-  name: string;
-  bio: string;
+  displayName: string;
   profilePicture: string;
-  displayOrder: number;
-  isActive: boolean;
+  bio: string;
+  socialLinks: {
+    instagram?: string;
+    twitter?: string;
+    website?: string;
+  };
 }
 
 interface HomePageState {
   profile: UserProfile | null;
-  featuredProfiles: FeaturedProfile[];
+  profiles: FeaturedProfile[];
   isLoading: boolean;
   error: string | null;
   retryCount: number;
   maxRetries: number;
 }
 
-export function HomePageModern() {
+export const HomePageModern = () => {
   const [state, setState] = useState<HomePageState>({
     profile: null,
-    featuredProfiles: [],
+    profiles: [],
     isLoading: true,
     error: null,
     retryCount: 0,
@@ -76,49 +80,74 @@ export function HomePageModern() {
     }
   };
 
-  const fetchFeaturedProfiles = async () => {
+  const fetchProfiles = async () => {
     try {
       setLoadingState({ isLoading: true });
-      const response = await fetch(`${API_BASE_URL}/api/profiles/featured`);
+      const response = await fetch(`${API_BASE_URL}/api/profiles/featured`, {
+        headers: {
+          'Cache-Control': 'no-cache'
+        }
+      });
+      
+      if (response.status === 304) {
+        // If we get a 304, use the current state
+        return;
+      }
+      
       if (!response.ok) {
         throw new Error('Failed to fetch featured profiles');
       }
+      
       const data = await response.json();
-      setState(prev => ({ ...prev, featuredProfiles: data.profiles || [] }));
+      // The API returns an object with a 'profiles' property containing the array
+      const profiles = data.profiles || [];
+      setState(prev => ({ 
+        ...prev, 
+        profiles: profiles, 
+        error: null,
+        retryCount: 0
+      }));
     } catch (err) {
-      setState(prev => ({ ...prev, error: err instanceof Error ? err.message : 'An error occurred' }));
+      setState(prev => ({ 
+        ...prev, 
+        error: err instanceof Error ? err.message : 'Failed to fetch featured profiles',
+        retryCount: prev.retryCount + 1
+      }));
     } finally {
       setLoadingState({ isLoading: false });
     }
   };
 
+  const [currentIndex, setCurrentIndex] = useState(0);
+
   useEffect(() => {
     fetchProfile();
-    fetchFeaturedProfiles();
+    fetchProfiles();
   }, []);
 
-  const handleRetry = () => {
-    if (state.retryCount < state.maxRetries) {
-      fetchProfile();
-    }
-  };
+  useEffect(() => {
+    const interval = setInterval(rotateProfiles, 5000);
+    return () => clearInterval(interval);
+  }, []);
 
-  if (state.error && state.retryCount >= state.maxRetries) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen">
-        <div className="bg-red-50 border border-red-400 text-red-700 px-4 py-3 rounded">
-          <h3 className="font-bold text-lg mb-2">Unable to load profile</h3>
-          <p className="text-sm">Please try again later or contact support.</p>
-          <button
-            onClick={handleRetry}
-            className="mt-4 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
-          >
-            Retry
-          </button>
-        </div>
-      </div>
-    );
-  }
+  useEffect(() => {
+    if (state.profiles.length > 0) {
+      const rotatingProfiles = [
+        state.profiles[(currentIndex + 0) % state.profiles.length],
+        state.profiles[(currentIndex + 1) % state.profiles.length],
+        state.profiles[(currentIndex + 2) % state.profiles.length]
+      ];
+      setState(prev => ({
+        ...prev,
+        profiles: prev.profiles,
+        rotatingProfiles: rotatingProfiles
+      }));
+    }
+  }, [state.profiles, currentIndex]);
+
+  const rotateProfiles = () => {
+    setCurrentIndex((prevIndex) => (prevIndex + 1) % state.profiles.length);
+  };
 
   return (
     <ErrorBoundary>
@@ -175,62 +204,17 @@ export function HomePageModern() {
               </div>
 
               {/* Featured Creators Section */}
-              <div className="space-y-8">
-                <h2 className="text-3xl font-bold text-gray-900 mb-4">Featured Creators</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {state.featuredProfiles.map((profile, index) => (
-                    <div
-                      key={index}
-                      className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition duration-300"
-                    >
-                      <div className="p-6">
-                        <div className="flex items-center gap-4 mb-4">
-                          <div className="w-16 h-16 rounded-full overflow-hidden">
-                            <img
-                              src={profile.profilePicture}
-                              alt={`${profile.username} profile`}
-                              className="w-full h-full object-cover"
-                            />
-                          </div>
-                          <div>
-                            <h3 className="text-xl font-semibold text-gray-900">{profile.username}</h3>
-                            <p className="text-gray-600">{profile.bio}</p>
-                          </div>
-                        </div>
-                        <div className="grid grid-cols-3 gap-4 mb-6 text-center text-sm">
-                          <div>
-                            <div className="font-bold">{state.profile?.posts || "0"}</div>
-                            <div className="text-gray-600">Posts</div>
-                          </div>
-                          <div>
-                            <div className="font-bold">{state.profile?.followers || "0"}</div>
-                            <div className="text-gray-600">Followers</div>
-                          </div>
-                          <div>
-                            <div className="font-bold">{state.profile?.subscribers || "0"}</div>
-                            <div className="text-gray-600">Subscribers</div>
-                          </div>
-                        </div>
-                        <div className="flex gap-3">
-                          <Button className="w-full">
-                            Watch Video
-                          </Button>
-                          <Button className="w-full">
-                            Message
-                          </Button>
-                          <Button className="w-full">
-                            Send Tip
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              <FeaturedProfilesSection
+                profiles={state.profiles}
+                isLoading={state.isLoading}
+                error={state.error}
+              />
             </>
           )}
         </main>
       </div>
     </ErrorBoundary>
   );
-}
+};
+
+export default HomePageModern;
