@@ -1,24 +1,17 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { ProfileService } from '../../services/profileService';
 import { logger } from '../../utils/logger';
 import { useLoadingState } from '../../contexts/LoadingStateContext';
 import { useQuery } from '@tanstack/react-query';
-import { UserProfile, USER_ROLES, PartialProfileUpdate } from '../../types/user';
+import { UserProfile, PartialProfileUpdate } from '../../types/user';
 import Loading from '../ui/Loading';
 import ProfileSection from '../content/ProfileSection';
 
-interface ProfilePageProps {
-  isFollowing: boolean;
-  onFollow: () => Promise<void>;
-}
+// Removed ProfilePageProps as we're not using any props
 
-interface UserStats {
-  posts: number;
-  followers: number;
-  following: number;
-}
+
 
 interface Post {
   id: string;
@@ -29,10 +22,17 @@ interface Post {
   createdAt: string;
 }
 
+// This interface is used in the query but not directly in the component
+interface UserStats {
+  posts: number;
+  followers: number;
+  following: number;
+}
+
 const profileService = ProfileService.getInstance();
 
-export default function ProfilePage({ isFollowing, onFollow }: ProfilePageProps) {
-  const { username } = useParams();
+export default function ProfilePage() {
+  const { username } = useParams<{ username: string }>();
   const { user: currentUser } = useAuth();
 
   useEffect(() => {
@@ -43,20 +43,26 @@ export default function ProfilePage({ isFollowing, onFollow }: ProfilePageProps)
     logger.warn('Unauthenticated user trying to access profile page');
     return null;
   }
+  
+  // Default values for following state
+  const [isFollowing, setIsFollowing] = useState(false);
+  // Remove unused state
+  // const [isFollowLoading, setIsFollowLoading] = useState(false);
 
   const { setLoadingState } = useLoadingState();
 
-  const { data: posts, isLoading: postsLoading, error: postsError } = useQuery<Post[]>({
+  // Using _ prefix to indicate intentionally unused variables
+  // We'll fetch posts when we implement the posts section
+  const { isLoading: postsLoading, error: postsError } = useQuery<Post[]>({
     queryKey: ['userPosts', username],
     queryFn: async () => {
+      if (!username) return [];
       setLoadingState({ isLoading: true });
       try {
-        const data = await profileService.getUserPosts(username || '');
-        setLoadingState({ isLoading: false });
+        const data = await profileService.getUserPosts(username);
         return data;
-      } catch (error) {
+      } finally {
         setLoadingState({ isLoading: false });
-        throw error;
       }
     },
     enabled: !!username,
@@ -66,14 +72,12 @@ export default function ProfilePage({ isFollowing, onFollow }: ProfilePageProps)
   const { data: statsData, isLoading: statsLoading, error: statsError } = useQuery<UserStats>({
     queryKey: ['userStats', username],
     queryFn: async () => {
+      if (!username) return { posts: 0, followers: 0, following: 0 };
       setLoadingState({ isLoading: true });
       try {
-        const data = await profileService.getUserStats(username || '');
+        return await profileService.getUserStats(username);
+      } finally {
         setLoadingState({ isLoading: false });
-        return data;
-      } catch (error) {
-        setLoadingState({ isLoading: false });
-        throw error;
       }
     },
     enabled: !!username
@@ -82,9 +86,9 @@ export default function ProfilePage({ isFollowing, onFollow }: ProfilePageProps)
   const { data: userProfile, isLoading: isProfileLoading, error: profileError } = useQuery<UserProfile>({
     queryKey: ['userProfile', username],
     queryFn: async () => {
+      if (!username) throw new Error('Username is required');
       try {
-        const data = await profileService.getUserProfile(username || '');
-        return data;
+        return await profileService.getUserProfile(username);
       } catch (error) {
         logger.error('Error fetching user profile', { error });
         throw error;
@@ -96,39 +100,65 @@ export default function ProfilePage({ isFollowing, onFollow }: ProfilePageProps)
   });
 
   const isLoading = postsLoading || statsLoading || isProfileLoading;
-  const hasError = postsError || statsError || profileError;
+  const hasError = Boolean(postsError || statsError || profileError);
 
-  const isOwnProfile = username === currentUser?.username;
+  const isOwner = username === currentUser?.username;
 
-  const handleProfileUpdate = async (updates: PartialProfileUpdate) => {
+  const handleProfileUpdate = async (updatedUser: UserProfile) => {
+    if (!username) return;
     try {
       setLoadingState({ isLoading: true });
-      const updatedProfile = await profileService.updateProfile(username || '', updates);
-      setLoadingState({ isLoading: false });
-      return updatedProfile;
+      // Convert UserProfile to PartialProfileUpdate
+      const updateData: PartialProfileUpdate = {
+        displayName: updatedUser.displayName,
+        bio: updatedUser.bio,
+        socialLinks: updatedUser.socialLinks,
+        isCreator: updatedUser.isCreator
+      };
+      
+      // Update the profile
+      const updatedProfile = await profileService.updateProfile(username, updateData);
+      
+      // Return the full updated profile with any server-side updates
+      return {
+        ...updatedUser,
+        ...updatedProfile,
+        lastUpdated: new Date()
+      };
     } catch (error) {
       logger.error('Error updating profile', { error });
-      setLoadingState({ isLoading: false });
       throw error;
+    } finally {
+      setLoadingState({ isLoading: false });
     }
   };
 
   const handleFollow = async () => {
+    if (!username) return;
+    
     try {
-      setLoadingState({ isLoading: true });
-      await profileService.toggleFollow(username || '');
-      // Invalidate and refetch follow status
-      await profileService.getUserStats(username || '');
-      setLoadingState({ isLoading: false });
+      // Loading state is handled by LoadingButton in ProfileSection
+      await profileService.toggleFollow(username);
+      // Toggle the follow state
+      setIsFollowing((prev: boolean) => !prev);
+      // Invalidate and refetch stats
+      await profileService.getUserStats(username);
     } catch (error) {
       logger.error('Error following user', { error });
-      setLoadingState({ isLoading: false });
+      // Revert follow state on error
+      setIsFollowing((prev: boolean) => !prev);
       throw error;
+    } finally {
+      // Loading state is handled by LoadingButton in ProfileSection
     }
   };
 
   if (isLoading) {
-    return <Loading showSpinner={true} />;
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loading showSpinner={true} />
+      </div>
+    );
   }
 
   if (hasError) {
@@ -158,23 +188,9 @@ export default function ProfilePage({ isFollowing, onFollow }: ProfilePageProps)
       <div className="flex flex-col md:flex-row gap-8">
         <div className="flex-1">
           <ProfileSection
-            user={userProfile || {
-              id: '',
-              userId: '',
-              username: '',
-              createdAt: new Date(),
-              subscribers: 0,
-              posts: 0,
-              role: USER_ROLES.USER,
-              displayName: '',
-              email: '',
-              profilePicture: '',
-              bio: '',
-              socialLinks: {},
-              lastUpdated: new Date(),
-              isCreator: false
-            }}
+            user={userProfile}
             isFollowing={isFollowing}
+            isOwner={isOwner}
             onFollow={handleFollow}
             onProfileUpdate={handleProfileUpdate}
             posts={statsData.posts}

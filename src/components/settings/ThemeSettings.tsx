@@ -1,7 +1,7 @@
-import { useTheme } from '../../contexts/ThemeContext';
+import { useTheme } from '../../config';
 
 export const ThemeSettings = () => {
-  const { theme, toggleTheme } = useTheme();
+  const { toggleTheme, isDark } = useTheme();
 
   return (
     <div className="space-y-4">
@@ -9,8 +9,11 @@ export const ThemeSettings = () => {
       <div className="flex items-center space-x-4">
         <button
           onClick={toggleTheme}
-          className="flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors"
-          style={{ backgroundColor: theme === 'light' ? 'var(--hover-bg)' : 'var(--bg-color)' }}
+          className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors ${
+            isDark 
+              ? 'bg-gray-700 hover:bg-gray-600 text-white' 
+              : 'bg-gray-200 hover:bg-gray-300 text-gray-800'
+          }`}
         >
           <svg
             className="w-5 h-5"
@@ -27,8 +30,8 @@ export const ThemeSettings = () => {
           </svg>
           <span>Dark Mode</span>
         </button>
-        <span className="text-sm text-gray-500 dark:text-gray-400">
-          {theme === 'dark' ? 'Enabled' : 'Disabled'}
+        <span className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+          {isDark ? 'Enabled' : 'Disabled'}
         </span>
       </div>
     </div>

@@ -1,6 +1,12 @@
 export const API_BASE_URL = 'http://localhost:8080';//'https://sushflix-backend-796527544626.us-central1.run.app';
 
 // Theme configuration
+export { ThemeProvider, ThemeContext } from '../theme/ThemeProvider';
+export { useTheme } from '../theme/useTheme';
+export type { ThemeMode, ThemeOptions, ThemeContextType } from '../theme/types';
+export { lightTheme, darkTheme } from '../theme/theme';
+export { themeManager } from '../theme/ThemeManager';
+
 export const DEFAULT_THEME = 'dark';
 
 // Authentication configuration
