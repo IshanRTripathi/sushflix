@@ -1,76 +1,76 @@
 import React from 'react';
-import { Box, Typography } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/useToast';
-import { ProfileService } from '../../services/profileService';
-import { logger } from '../../utils/logger';
-import { EditProfileProps, ProfileFormData } from './types';
-import { ProfileFormState } from './form/ProfileFormState';
-import { ProfileFormUI } from './form/ProfileFormUI';
+import { ProfileFormData } from './types';
+import { UserProfile } from '../../types/user';
+import { EditProfileModal } from './EditProfileModal';
+import { useProfileUpdate } from '../../hooks/useProfileUpdate';
+
+interface EditProfileProps {
+  user: UserProfile;
+  onProfileUpdate?: () => void;
+  onClose?: () => void;
+}
 
 /**
  * Main profile editing component that coordinates form state and API integration
  */
-const EditProfile: React.FC<EditProfileProps> = ({ user }) => {
-  const navigate = useNavigate();
+const EditProfile: React.FC<EditProfileProps> = ({ user, onProfileUpdate, onClose }) => {
   const { showToast } = useToast();
-  const formState = new ProfileFormState(user);
+  const [isModalOpen, setIsModalOpen] = React.useState(true);
+  const { 
+    updateProfile, 
+    updateProfilePicture, 
+    isLoading, 
+    error: updateError 
+  } = useProfileUpdate(user, onProfileUpdate);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!formState.validate()) return;
-
+  const handleSave = async (formData: ProfileFormData) => {
     try {
-      const profileService = ProfileService.getInstance();
-      const formData = formState.getFormData();
-      
-      await profileService.updateProfile(user.username, {
+      const updateData = {
         displayName: formData.displayName,
         bio: formData.bio,
-        socialLinks: {
-          website: formData.website,
-          twitter: formData.twitter,
-          youtube: formData.youtube
-        },
+        website: formData.website,
+        twitter: formData.twitter,
+        youtube: formData.youtube,
         isCreator: formData.isCreator
-      });
-
-      logger.info('Profile updated successfully', { userId: user.username });
-      showToast('Profile updated successfully', 'success');
+      };
       
-      navigate(-1);
-    } catch (error: unknown) {
+      const success = await updateProfile(updateData);
+      
+      if (success) {
+        showToast('Profile updated successfully', 'success');
+        // Close the modal after a short delay to show the success message
+        setTimeout(() => {
+          setIsModalOpen(false);
+          onClose?.();
+        }, 1000);
+      }
+    } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to update profile';
-      logger.error('Profile update failed', { error });
       showToast(errorMessage, 'error');
+      // Error is already handled by the hook, just re-throw to be handled by the modal
+      throw error;
     }
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    formState.updateField(name as keyof ProfileFormData & string, value);
-  };
-
-  const handleCreatorToggle = (event: React.ChangeEvent<HTMLInputElement>) => {
-    formState.updateField('isCreator', event.target.value === 'creator');
+  const handleClose = () => {
+    if (!isLoading) {
+      setIsModalOpen(false);
+      onClose?.();
+    }
   };
 
   return (
-    <Box>
-      <Typography variant="h5" gutterBottom>
-        Edit Profile
-      </Typography>
-      <ProfileFormUI
-        formData={formState.getFormData()}
-        errors={formState.getErrors()}
-        loading={formState.isLoading()}
-        onInputChange={handleInputChange}
-        onCreatorToggle={handleCreatorToggle}
-        onSubmit={handleSubmit}
-      />
-    </Box>
+    <EditProfileModal
+      isOpen={isModalOpen}
+      onClose={handleClose}
+      user={user}
+      onSave={handleSave}
+      onProfilePictureUpdate={updateProfilePicture}
+      loading={isLoading}
+      error={updateError || undefined}
+    />
   );
 };
 
-export default EditProfile;
+export default React.memo(EditProfile);

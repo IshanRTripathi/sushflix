@@ -82,31 +82,44 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     try {
-      logger.debug('Attempting login to:', { url: AUTH_ENDPOINTS.LOGIN });
+      logger.debug('Attempting login with:', { 
+        url: AUTH_ENDPOINTS.LOGIN,
+        usernameOrEmail: username,
+        passwordLength: password.length
+      });
+      
+      const loginData = { 
+        usernameOrEmail: username.trim(),
+        password: password
+      };
+
+      logger.debug('Sending login request with data:', loginData);
       
       const response = await fetch(AUTH_ENDPOINTS.LOGIN, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ usernameOrEmail: username, password })
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify(loginData)
       });
 
+      const responseBody = await response.text();
+      
       if (!response.ok) {
-        const errorBody = await response.text();
         logger.error('Login failed with status', {
           status: response.status,
           statusText: response.statusText,
           url: response.url,
           headers: Object.fromEntries(response.headers.entries()),
-          errorBody: errorBody || 'Empty response body'
+          responseBody: responseBody || 'Empty response body',
+          requestData: loginData
         });
-        throw new Error(errorBody || 'Login failed');
+        throw new Error(responseBody || 'Login failed');
       }
 
-      const responseText = await response.text();
-      logger.debug('Response content', { responseText });
-      
       try {
-        const data = responseText ? JSON.parse(responseText) : {};
+        const data = responseBody ? JSON.parse(responseBody) : {};
         
         if (!response.ok) {
           const errorMsg = data.message || `HTTP error! status: ${response.status}`;
@@ -136,7 +149,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } catch (parseError) {
         logger.error('Failed to parse response', {
           status: response.status,
-          responseText,
+          responseBody,
           error: parseError,
           requestUrl: AUTH_ENDPOINTS.LOGIN
         });

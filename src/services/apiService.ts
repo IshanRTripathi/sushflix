@@ -11,12 +11,7 @@ const apiClient = axios.create({
   },
 });
 
-// Add signup function
-export const signupUser = (data: { username: string; password: string; email: string; isCreator: boolean }) => {
-  return apiClient.post('signup', data);
-};
-
-// Add request interceptor for token
+// Request interceptor for token
 apiClient.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
@@ -30,7 +25,7 @@ apiClient.interceptors.request.use(
   }
 );
 
-// Add response interceptor for error handling
+// Response interceptor for error handling
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -52,36 +47,85 @@ apiClient.interceptors.response.use(
   }
 );
 
-// Corrected LoginData interface to match backend expectation
-interface LoginData {
+// Types
+export interface LoginData {
   usernameOrEmail: string;
   password: string;
 }
 
+export interface SignupData {
+  username: string;
+  password: string;
+  email: string;
+  isCreator: boolean;
+}
+
+// Auth endpoints
 export const loginUser = (data: LoginData) => {
-  return apiClient.post('login', data);
+  return apiClient.post('/api/auth/login', data);
 };
 
+export const signupUser = (data: SignupData) => {
+  return apiClient.post('/api/auth/signup', data);
+};
+
+// Profile endpoints
 export const getProfile = (userId: string) => {
-  return apiClient.get(`profile/${userId}`);
+  return apiClient.get(`/api/users/${userId}`);
 };
 
 export const getProfileByUsername = (username: string) => {
-  return apiClient.get(`/profile/username/${username}`);
+  return apiClient.get(`/api/users/${username}`);
 };
 
-export const updateProfile = (userId: string, data: any) => {
-  return apiClient.put(`/profile/${userId}`, data);
+export const updateUserProfile = (userId: string, data: any) => {
+  return apiClient.patch(`/api/users/${userId}`, data);
 };
 
-export const uploadProfilePicture = (userId: string, file: any) => {
+export const updateUserSettings = (userId: string, settings: any) => {
+  return apiClient.patch(`/api/users/${userId}/settings`, settings);
+};
+
+export const uploadProfilePicture = (username: string, file: File) => {
   const formData = new FormData();
   formData.append('profilePicture', file);
-  return apiClient.post(`/profile/${userId}/picture`, formData, {
+  return apiClient.post(`/api/users/${username}/picture`, formData, {
     headers: {
       'Content-Type': 'multipart/form-data'
     }
   });
+};
+
+export const uploadCoverPhoto = (userId: string, file: File) => {
+  const formData = new FormData();
+  formData.append('coverPhoto', file);
+  return apiClient.post(`/api/users/${userId}/cover`, formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  });
+};
+
+export const followUser = (targetUserId: string) => {
+  return apiClient.post(`/api/users/${targetUserId}/follow`);
+};
+
+export const unfollowUser = (targetUserId: string) => {
+  return apiClient.delete(`/api/users/${targetUserId}/follow`);
+};
+
+export const getUserStats = (userId: string) => {
+  return apiClient.get(`/api/users/${userId}/stats`);
+};
+
+export const searchUsers = (query: string, page = 1, limit = 20) => {
+  return apiClient.get('/api/users/search', {
+    params: { query, page, limit }
+  });
+};
+
+export const requestVerification = (userId: string) => {
+  return apiClient.post(`/api/users/${userId}/verify`);
 };
 
 export default apiClient;

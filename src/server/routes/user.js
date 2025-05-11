@@ -48,50 +48,56 @@ router.get('/:username/posts', asyncHandler(userController.getUserPosts));
 
 // Profile Picture Routes
 router.post(
-  '/:username/profile-picture',
-  upload.single('file'),
+  '/:username/picture',
+  upload.single('profilePicture'),
   asyncHandler(async (req, res) => {
     const { username } = req.params;
     const file = req.file;
     
-    if (!username || !file) {
+    if (!username) {
       return res.status(400).json({
-        error: 'Invalid request parameters'
+        success: false,
+        error: 'Username is required'
+      });
+    }
+    
+    if (!file) {
+      return res.status(400).json({
+        success: false,
+        error: 'No file uploaded or invalid file type. Please upload a valid image (JPEG, JPG, PNG, or WebP).'
       });
     }
 
     try {
-      const uploadResponse = await userController.uploadProfilePicture(username, file, req, res);
+      const uploadResponse = await userController.uploadProfilePicture(username, file, req);
       
-      if (!uploadResponse.success) {
-        return res.status(500).json({
-          error: uploadResponse.error || 'Failed to upload file'
+      if (!uploadResponse || !uploadResponse.success) {
+        const statusCode = uploadResponse?.statusCode || 500;
+        return res.status(statusCode).json({
+          success: false,
+          error: uploadResponse?.error || 'Failed to upload profile picture',
+          profilePicture: null
         });
       }
 
-      // Update user profile with new image URL
-      const user = await User.findOne({ username });
-      if (!user) {
-        return res.status(404).json({
-          error: 'User not found'
-        });
-      }
-
-      user.profilePicture = uploadResponse.url;
-      await user.save();
-
-      res.json({
+      // Return the response with both profilePicture and url for backward compatibility
+      return res.status(200).json({
         success: true,
-        url: uploadResponse.url
-      });l
+        message: uploadResponse.message || 'Profile picture updated successfully',
+        profilePicture: uploadResponse.url,
+        url: uploadResponse.url // For backward compatibility
+      });
     } catch (error) {
       logger.error('Profile picture upload error', {
         error: error.message,
-        username
+        username,
+        stack: error.stack
       });
       
       return res.status(500).json({
-        error: error.message || 'Failed to upload profile picture'
+        success: false,
+        error: 'An unexpected error occurred while uploading the profile picture',
+        profilePicture: null
       });
     }
   })

@@ -39,6 +39,8 @@ interface ModalProps {
   className?: string;
   closeOnOutsideClick?: boolean;
   closeOnEscape?: boolean;
+  maxWidth?: string | number;
+  sx?: React.CSSProperties;
 }
 
 /**
@@ -55,7 +57,9 @@ const Modal: React.FC<ModalProps> = ({
   title,
   className = '',
   closeOnOutsideClick = true,
-  closeOnEscape = true
+  closeOnEscape = true,
+  maxWidth,
+  sx = {}
 }) => {
   // Handle escape key press
   React.useEffect(() => {
@@ -99,10 +103,12 @@ const Modal: React.FC<ModalProps> = ({
       role="dialog"
       aria-modal="true"
       aria-hidden={!isOpen}
+      style={sx}
     >
       <div
-        className={`${sizeClasses[size]} ${variantClasses[variant]} ${className} relative`}
-        onClick={e => e.stopPropagation()}
+        className={`relative w-full ${sizeClasses[size]} ${variantClasses[variant]} ${className}`}
+        style={maxWidth ? { maxWidth: typeof maxWidth === 'number' ? `${maxWidth}px` : maxWidth } : {}}
+        onClick={(e) => e.stopPropagation()}
       >
         {title && (
           <div className="flex justify-between items-center mb-4">

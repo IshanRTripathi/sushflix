@@ -1,3 +1,66 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Base styles */
+:root {
+  --bg-color: #ffffff;
+  --text-color: #1a1a1a;
+  --border-color: #e5e7eb;
+  --hover-bg: #f3f4f6;
+}
+
+/* Dark mode styles */
+[data-theme="dark"],
+.dark {
+  --bg-color: #121212;
+  --text-color: #f3f4f6;
+  --border-color: #374151;
+  --hover-bg: #1f2937;
+}
+
+/* Apply theme colors */
+body {
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-color);
+}
+
+::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #666;
+}
+
+/* Custom styles for dark mode */
+.dark .MuiPaper-root {
+  background-color: #1e1e1e;
+  color: #ffffff;
+}
+
+.dark .MuiAppBar-root {
+  background-color: #1e1e1e !important;
+}
+
+.dark .MuiDrawer-paper {
+  background-color: #1e1e1e !important;
+  color: #ffffff !important;
+}
+
+/* Smooth transitions */
+* {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}

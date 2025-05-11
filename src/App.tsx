@@ -1,7 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from './components/auth/AuthContext';
-import { ThemeProvider } from './contexts/ThemeContext';
+import { ThemeProvider } from './config';
 import { LoadingStateProvider } from './contexts/LoadingStateContext';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
 import ProfileLayout from './components/layout/ProfileLayout';
@@ -44,31 +44,7 @@ function App() {
                     } />
                     <Route path="/profile/:username" element={
                       <ProtectedRoute>
-                        <ProfilePage
-                          user={{ 
-                            id: '', 
-                            userId: '', 
-                            username: '', 
-                            createdAt: new Date(),
-                            lastUpdated: new Date(),
-                            subscribers: 0,
-                            posts: 0,
-                            displayName: '',
-                            email: '',
-                            profilePicture: '',
-                            bio: '',
-                            role: 'user' as const,
-                            socialLinks: { 
-                              website: '', 
-                              twitter: '', 
-                              youtube: '', 
-                              instagram: '' 
-                            },
-                            isCreator: false
-                          }}
-                          isFollowing={false}
-                          onFollow={async () => {}}
-                        />
+                        <ProfilePage />
                       </ProtectedRoute>
                     } />
                     <Route path="/settings" element={

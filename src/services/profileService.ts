@@ -1,52 +1,44 @@
 import { logger } from '../utils/logger';
-import axios from 'axios';
-import { UserProfile, PartialProfileUpdate } from '../types/user';
-import { API_BASE_URL } from '../config/index';
+import { 
+  getProfile as apiGetProfile,
+  getProfileByUsername as apiGetProfileByUsername,
+  updateUserProfile as apiUpdateUserProfile,
+  updateUserSettings as apiUpdateUserSettings,
+  uploadProfilePicture as apiUploadProfilePicture,
+  uploadCoverPhoto as apiUploadCoverPhoto,
+  followUser as apiFollowUser,
+  unfollowUser as apiUnfollowUser,
+  getUserStats as apiGetUserStats,
+  searchUsers as apiSearchUsers
+} from './apiService';
+import type { 
+  UserProfile, 
+  UserStats, 
+  ProfileInput,
+  UserSettingsUpdate,
+  FeaturedProfileConfig,
+  ApiResponse
+} from '../types/user';
+// File system operations are only available on the server side
+const isServer = typeof window === 'undefined';
+let fs: any, path: any;
 
-// API Endpoints
-const API_ENDPOINTS = {
-  USER_PROFILE: (username: string) => `${API_BASE_URL}/api/users/${username}`,
-  USER_POSTS: (username: string) => `${API_BASE_URL}/api/posts/${username}`,
-  USER_STATS: (username: string) => `${API_BASE_URL}/api/users/${username}/stats`,
-  TOGGLE_FOLLOW: (username: string) => `${API_BASE_URL}/api/users/${username}/follow`,
-  POST_SHARE: (postId: string) => `${API_BASE_URL}/api/posts/${postId}/share`,
-  POST_BOOKMARK: (postId: string) => `${API_BASE_URL}/api/posts/${postId}/bookmark`
-} as const;
-
-export interface Post {
-  id: string;
-  caption: string;
-  mediaUrl: string;
-  likes: number;
-  comments: number;
-  createdAt: string;
+// Use dynamic imports for server-side only modules
+if (isServer) {
+  import('fs/promises').then(module => { fs = module; });
+  import('path').then(module => { path = module; });
 }
 
-export interface UserStats {
-  posts: number;
-  followers: number;
-  following: number;
-}
-
-export interface ApiResponse<T> {
-  data?: T;
-  error?: string;
-  success?: boolean;
-}
-
-export interface UploadResponse {
-  success: boolean;
-  imageUrl?: string;
-  error?: string;
-}
-
-export class ProfileService {
+class ProfileService {
   private static instance: ProfileService;
-  private static readonly DEFAULT_TIMEOUT = 10000;
+  private readonly PROFILES_DIR = isServer ? 'public/profiles' : '';
+  private readonly CONFIG_FILE = isServer ? 'featured-profiles.json' : '';
 
   private constructor() {
-    axios.defaults.timeout = ProfileService.DEFAULT_TIMEOUT;
-    logger.info('Profile service initialized');
+    logger.info('ProfileService initialized');
+    this.ensureProfilesDirectory().catch(err => 
+      logger.error('Failed to create profiles directory', { error: err })
+    );
   }
 
   public static getInstance(): ProfileService {
@@ -56,374 +48,325 @@ export class ProfileService {
     return ProfileService.instance;
   }
 
-  public async uploadProfilePicture(username: string, file: File): Promise<UploadResponse> {
+  private async ensureProfilesDirectory(): Promise<void> {
+    if (!isServer || !fs) return;
+    
     try {
-      // Validate file parameters
-      logger.info('Starting profile picture upload validation', { username });
-      
-      if (!username || typeof username !== 'string') {
-        logger.error('Invalid username provided', { username });
-        throw new Error('Invalid username provided');
-      }
+      await fs.mkdir(this.PROFILES_DIR, { recursive: true });
+      logger.debug('Profiles directory ensured');
+    } catch (error) {
+      logger.error('Failed to create profiles directory', { error });
+      throw error;
+    }
+  }
 
-      if (!file || !(file instanceof File)) {
-        logger.error('Invalid file object provided', { file });
-        throw new Error('Invalid file object provided');
-      }
+  // Profile CRUD Operations
+  public async getProfile(userId: string): Promise<UserProfile | null> {
+    try {
+      const response = await apiGetProfile(userId);
+      return response.data;
+    } catch (error) {
+      logger.error(`Error getting profile: ${userId}`, { error });
+      throw error;
+    }
+  }
 
-      // Validate file size and type
-      const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB
-      if (file.size > MAX_FILE_SIZE) {
-        logger.error('File size exceeds maximum limit', { size: file.size, limit: MAX_FILE_SIZE });
-        throw new Error('File size exceeds maximum limit of 2MB');
-      }
+  public async getProfileByUsername(username: string): Promise<UserProfile | null> {
+    try {
+      const response = await apiGetProfileByUsername(username);
+      return response.data;
+    } catch (error) {
+      logger.error(`Error getting profile by username: ${username}`, { error });
+      throw error;
+    }
+  }
 
-      const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
-      if (!ALLOWED_TYPES.includes(file.type)) {
-        logger.error('Invalid file type', { type: file.type, allowedTypes: ALLOWED_TYPES });
-        throw new Error('Invalid file type. Only JPEG, PNG, and WebP images are allowed.');
-      }
+  public async updateProfile(
+    userId: string, 
+    updates: ProfileInput
+  ): Promise<UserProfile> {
+    try {
+      const response = await apiUpdateUserProfile(userId, updates);
+      logger.info(`Profile updated: ${userId}`);
+      return response.data;
+    } catch (error) {
+      logger.error(`Error updating profile: ${userId}`, { error });
+      throw error;
+    }
+  }
 
-      logger.info('Profile picture validation successful', { 
-        username,
-        fileSize: file.size,
-        fileType: file.type
-      });
-
-      // Create FormData and append the file
-      const formData = new FormData();
-      formData.append('file', file);
-
-      // Set up request controller for timeout
-      const controller = new AbortController();
-      const signal = controller.signal;
-      const timeoutId = setTimeout(() => {
-        controller.abort();
-      }, 30000);
-
-      try {
-        logger.info('Uploading profile picture', {
-          url: `${API_BASE_URL}/api/users/${username}/profile-picture`,
-          file: {
-            name: file.name,
-            size: file.size,
-            type: file.type,
-            lastModified: file.lastModified
-          }
-        });
-
-        const response = await axios.post(
-          `${API_BASE_URL}/api/users/${username}/profile-picture`,
-          formData,
-          {
-            headers: {
-              'Content-Type': 'multipart/form-data'
-            },
-            signal,
-            timeout: 30000
-          }
-        );
-
-        logger.info('Upload completed successfully', {
-          response: {
-            success: true,
-            imageUrl: response.data.url
-          }
-        });
-
-        clearTimeout(timeoutId);
-        return {
-          success: true,
-          imageUrl: response.data.url
-        };
-      } catch (axiosError: any) {
-        clearTimeout(timeoutId);
-
-        // Handle different types of errors
-        if (axiosError.code === 'ERR_CANCELED') {
-          logger.warn('Upload request was canceled');
-          return {
-            success: false,
-            error: 'Upload request was canceled'
-          };
-        }
-
-        if (axiosError.response) {
-          // Server responded with an error
-          logger.error('Server error response', {
-            status: axiosError.response.status,
-            data: axiosError.response.data,
-            headers: axiosError.response.headers
-          });
-
-          if (axiosError.response.status === 408) {
-            return {
-              success: false,
-              error: 'Request timeout. Please try again.'
-            };
-          }
-
-          if (axiosError.response.status === 499) {
-            return {
-              success: false,
-              error: 'Request was aborted by client'
-            };
-          }
-
-          return {
-            success: false,
-            error: axiosError.response.data?.error || 'Server error occurred'
-          };
-        } else if (axiosError.request) {
-          // Request was made but no response
-          logger.error('No response from server', {
-            config: axiosError.config
-          });
-          return {
-            success: false,
-            error: 'No response from server. Please check your network connection.'
-          };
-        } else {
-          // Something happened in setting up the request
-          logger.error('Request setup error', {
-            message: axiosError.message,
-            stack: axiosError.stack
-          });
-          return {
-            success: false,
-            error: 'Error setting up request. Please try again.'
-          };
-        }
-      }
-    } catch (error: unknown) {
-      logger.error('Upload failed', {
-        error: {
-          message: error instanceof Error ? error.message : 'Unknown error',
-          name: error instanceof Error ? error.name : 'Unknown',
-          stack: error instanceof Error ? error.stack : undefined
-        },
-        username,
-        timestamp: new Date().toISOString()
-      });
-
-      // Map error messages based on error type
-      const errorType = error instanceof Error ? error.name : 'Unknown';
-      type ErrorMessages = {
-        [key: string]: string;
+  // Profile methods
+  public async getCurrentUser(): Promise<ApiResponse<UserProfile>> {
+    try {
+      const response = await apiGetProfile('me');
+      return {
+        success: true,
+        data: response.data
       };
-      
-      const errorMessages: ErrorMessages = {
-        'Invalid username': 'Invalid username provided',
-        'Invalid file': 'Invalid file object provided',
-        'File size': 'File size exceeds maximum limit',
-        'File type': 'Invalid file type',
-        'Timeout': 'Request timeout. Please try again.',
-        'Canceled': 'Upload request was canceled',
-        'Network': 'No response from server. Please check your network connection.',
-        'Request': 'Error setting up request. Please try again.',
-        'Unknown': 'Failed to upload profile picture'
-      };
-
-      const errorMessage = errorMessages[errorType] || (error instanceof Error ? error.message : 'Unknown error');
-
+    } catch (error: any) {
+      logger.error('Failed to get current user:', error);
       return {
         success: false,
-        error: errorMessage
+        error: error.response?.data?.message || 'Failed to fetch current user',
+        status: error.response?.status
       };
     }
   }
 
-  private async request<T>(config: any): Promise<T> {
+  public async getUserProfile(usernameOrId: string): Promise<ApiResponse<UserProfile>> {
     try {
-      const response = await axios(config);
-      return response.data;
-    } catch (error: unknown) {
-      logger.error('API request failed:', { error });
-      throw error instanceof Error ? error : new Error('API request failed');
-    }
-  }
-
-  public async getUserProfile(username: string): Promise<UserProfile> {
-    try {
-      logger.debug(`Fetching profile for user: ${username}`);
-      const response = await this.request<UserProfile>({
-        method: 'GET',
-        url: API_ENDPOINTS.USER_PROFILE(username),
-      });
-      logger.debug(`Successfully fetched profile for user: ${username}`);
-      return response || {
-        userId: '',
-        username: '',
-        createdAt: new Date(),
-        subscribers: 0,
-        posts: 0,
-        displayName: '',
-        email: '',
-        profilePicture: '',
-        bio: '',
-        socialLinks: {},
-        lastUpdated: new Date(),
-        isCreator: false
+      // First try to get by username
+      try {
+        const response = await apiGetProfileByUsername(usernameOrId);
+        return {
+          success: true,
+          data: response.data
+        };
+      } catch (error: any) {
+        // If not found by username, try by ID
+        if (error.response?.status === 404) {
+          const response = await apiGetProfile(usernameOrId);
+          return {
+            success: true,
+            data: response.data
+          };
+        }
+        throw error;
+      }
+    } catch (error: any) {
+      logger.error(`Failed to get user profile for ${usernameOrId}:`, error);
+      return {
+        success: false,
+        error: error.response?.data?.message || 'Failed to fetch user profile',
+        status: error.response?.status
       };
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      logger.error(`Error fetching user profile: ${errorMessage}`);
-      throw new Error(`Failed to fetch user profile: ${errorMessage}`);
     }
   }
 
-  public async getUserPosts(username: string): Promise<Post[]> {
+  public async updateUserProfile(
+    userId: string, 
+    profileData: ProfileInput
+  ): Promise<ApiResponse<UserProfile>> {
     try {
-      logger.debug(`Fetching posts for user: ${username}`);
-      const response = await this.request<Post[]>({
-        method: 'GET',
-        url: API_ENDPOINTS.USER_POSTS(username),
-      });
-      logger.debug(`Successfully fetched posts for user: ${username}`);
-      return response || [];
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      logger.error(`Error fetching user posts: ${errorMessage}`);
-      throw new Error(`Failed to fetch user posts: ${errorMessage}`);
-    }
-  }
-
-  public async getUserStats(username: string): Promise<UserStats> {
-    try {
-      logger.debug(`Fetching stats for user: ${username}`);
-      const response = await this.request<UserStats>({
-        method: 'GET',
-        url: API_ENDPOINTS.USER_STATS(username),
-      });
-      logger.debug(`Successfully fetched stats for user: ${username}`);
-      return response || {
-        posts: 0,
-        followers: 0,
-        following: 0
+      const response = await apiUpdateUserProfile(userId, profileData);
+      return {
+        success: true,
+        data: response.data
       };
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      logger.error(`Error fetching user stats: ${errorMessage}`);
-      throw new Error(`Failed to fetch user stats: ${errorMessage}`);
+    } catch (error: any) {
+      logger.error(`Failed to update profile for user ${userId}:`, error);
+      return {
+        success: false,
+        error: error.response?.data?.message || 'Failed to update profile',
+        status: error.response?.status
+      };
     }
   }
 
-  public async toggleFollow(username: string): Promise<boolean> {
+  public async updateUserSettings(
+    userId: string, 
+    settings: UserSettingsUpdate
+  ): Promise<ApiResponse<UserProfile>> {
     try {
-      logger.debug(`Toggling follow for user: ${username}`);
-      const response = await this.request<boolean>({
-        method: 'POST',
-        url: API_ENDPOINTS.TOGGLE_FOLLOW(username),
-      });
-      logger.debug(`Successfully toggled follow for user: ${username}`);
-      return response || false;
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      logger.error(`Error toggling follow: ${errorMessage}`);
-      throw new Error(`Failed to toggle follow: ${errorMessage}`);
+      const response = await apiUpdateUserSettings(userId, settings);
+      return {
+        success: true,
+        data: response.data
+      };
+    } catch (error: any) {
+      logger.error(`Failed to update settings for user ${userId}:`, error);
+      return {
+        success: false,
+        error: error.response?.data?.message || 'Failed to update settings',
+        status: error.response?.status
+      };
     }
   }
 
-  public async likePost(postId: string): Promise<void> {
+  public async uploadProfilePicture(
+    username: string, 
+    file: File
+  ): Promise<ApiResponse<{ profilePicture: string; url?: string }>> {
     try {
-      logger.debug(`Attempting to like post: ${postId}`);
-      await this.request({
-        method: 'POST',
-        url: `${API_BASE_URL}/api/posts/${postId}/like`,
-      });
-      logger.info(`Successfully liked post: ${postId}`);
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      logger.error(`Error liking post: ${errorMessage}`);
-      throw new Error(`Failed to like post: ${errorMessage}`);
+      const response = await apiUploadProfilePicture(username, file);
+      
+      // Ensure we have a profile picture URL
+      if (!response.data?.profilePicture) {
+        throw new Error('No profile picture URL in response');
+      }
+      
+      // Return the response with both profilePicture and url for backward compatibility
+      return {
+        success: true,
+        data: {
+          profilePicture: response.data.profilePicture,
+          url: response.data.profilePicture // Add url for backward compatibility
+        }
+      };
+    } catch (error: any) {
+      logger.error(`Failed to upload profile picture for user ${username}:`, error);
+      return {
+        success: false,
+        error: error.response?.data?.message || error.message || 'Failed to upload profile picture',
+        status: error.response?.status
+      };
     }
   }
 
-  public async commentOnPost(postId: string, comment: string): Promise<void> {
-    await this.request({
-      method: 'POST',
-      url: `${API_BASE_URL}/api/posts/${postId}/comment`,
-      data: { comment },
-    });
-  }
-
-  public async sharePost(postId: string): Promise<void> {
-    await this.request({
-      method: 'POST',
-      url: API_ENDPOINTS.POST_SHARE(postId),
-    });
-  }
-
-  public async bookmarkPost(postId: string): Promise<void> {
-    await this.request({
-      method: 'POST',
-      url: API_ENDPOINTS.POST_BOOKMARK(postId),
-    });
-  }
-
-
-
-  public async updateProfile(username: string, updates: PartialProfileUpdate): Promise<UserProfile> {
+  public async uploadCoverPhoto(
+    userId: string, 
+    file: File
+  ): Promise<ApiResponse<{ coverPhoto: string }>> {
     try {
-      logger.debug(`Updating profile for user: ${username}`, { 
-        username,
-        updates,
-        endpoint: API_ENDPOINTS.USER_PROFILE(username)
-      });
+      const response = await apiUploadCoverPhoto(userId, file);
+      return {
+        success: true,
+        data: response.data
+      };
+    } catch (error: any) {
+      logger.error(`Failed to upload cover photo for user ${userId}:`, error);
+      return {
+        success: false,
+        error: error.response?.data?.message || 'Failed to upload cover photo',
+        status: error.response?.status
+      };
+    }
+  }
 
-      // Validate required fields
-      if (!username) {
-        throw new Error('Username is required for profile update');
+  // Social features
+  public async followUser(_userId: string, targetUserId: string): Promise<ApiResponse<{ success: boolean }>> {
+    try {
+      const response = await apiFollowUser(targetUserId);
+      return {
+        success: true,
+        data: response.data
+      };
+    } catch (error: any) {
+      logger.error(`Failed to follow user ${targetUserId}:`, error);
+      return {
+        success: false,
+        error: error.response?.data?.message || 'Failed to follow user',
+        status: error.response?.status
+      };
+    }
+  }
+
+  public async unfollowUser(_userId: string, targetUserId: string): Promise<ApiResponse<{ success: boolean }>> {
+    try {
+      const response = await apiUnfollowUser(targetUserId);
+      return {
+        success: true,
+        data: response.data
+      };
+    } catch (error: any) {
+      logger.error(`Failed to unfollow user ${targetUserId}:`, error);
+      return {
+        success: false,
+        error: error.response?.data?.message || 'Failed to unfollow user',
+        status: error.response?.status
+      };
+    }
+  }
+
+  public async requestVerification(userId: string): Promise<ApiResponse<{ success: boolean }>> {
+    try {
+      logger.warn(`Verification request not implemented for user: ${userId}`);
+      return {
+        success: false,
+        error: 'Verification is not available at this time',
+        data: { success: false }
+      };
+    } catch (error: any) {
+      logger.error(`Error in verification request for user ${userId}:`, error);
+      return {
+        success: false,
+        error: error.response?.data?.message || 'Failed to process verification request',
+        status: error.response?.status,
+        data: { success: false }
+      };
+    }
+  }
+
+  // Stats
+  public async getUserStats(userId: string): Promise<ApiResponse<UserStats>> {
+    try {
+      const response = await apiGetUserStats(userId);
+      return {
+        success: true,
+        data: response.data
+      };
+    } catch (error: any) {
+      logger.error(`Failed to get stats for user ${userId}:`, error);
+      return {
+        success: false,
+        error: error.response?.data?.message || 'Failed to get user stats',
+        status: error.response?.status
+      };
+    }
+  }
+
+  // Search
+  public async searchUsers(
+    query: string, 
+    page = 1, 
+    limit = 20
+  ): Promise<ApiResponse<{ users: UserProfile[]; total: number }>> {
+    try {
+      const response = await apiSearchUsers(query, page, limit);
+      return {
+        success: true,
+        data: {
+          users: response.data?.users || [],
+          total: response.data?.total || 0
+        }
+      };
+    } catch (error: any) {
+      logger.error(`Error searching users: ${query}`, error);
+      return {
+        success: false,
+        error: error.response?.data?.message || 'Search failed',
+        status: error.response?.status,
+        data: { users: [], total: 0 }
+      };
+    }
+  }
+
+  public async getFeaturedProfiles(): Promise<ApiResponse<{ users: UserProfile[] }>> {
+    try {
+      if (!isServer || !fs || !path) {
+        logger.warn('getFeaturedProfiles is only available on the server side');
+        return {
+          success: false,
+          error: 'This feature is only available on the server side',
+          data: { users: [] }
+        };
       }
 
-      // Filter out undefined values and create a clean updates object
-      const cleanUpdates = Object.entries(updates)
-        .filter(([_, value]) => value !== undefined)
-        .reduce((acc, [key, value]) => ({ ...acc, [key]: value }), {});
-
-      if (Object.keys(cleanUpdates).length === 0) {
-        throw new Error('No valid fields to update');
-      }
-
-      const response = await this.request<UserProfile>({
-        method: 'PATCH',
-        url: API_ENDPOINTS.USER_PROFILE(username),
-        data: cleanUpdates
-      });
-
-      if (!response) {
-        logger.warn(`No response from profile update for user: ${username}`);
-        const fallback = await this.getUserProfile(username);
-        logger.debug(`Using fallback profile data for user: ${username}`);
-        return fallback;
-      }
-
-      logger.info(`Successfully updated profile for user: ${username}`, { 
-        updatedFields: Object.keys(cleanUpdates)
-      });
-      return response;
-    } catch (error: unknown) {
-      const errorObj = error instanceof Error ? error : new Error('Unknown error occurred');
-      logger.error(`Error updating profile for user: ${username}`, {
-        error: {
-          message: errorObj.message,
-          name: errorObj.name,
-          stack: errorObj.stack
-        },
-        updates,
-        timestamp: new Date().toISOString()
-      });
-
-      // Handle specific error cases
-      if (errorObj.message.includes('404')) {        
-        throw new Error(`Profile not found for user: ${username}`);
-      } else if (errorObj.message.includes('401')) {
-        throw new Error('Authentication required to update profile');
-      } else if (errorObj.message.includes('403')) {
-        throw new Error('Permission denied to update profile');
-      }
-
-      throw new Error(`Failed to update profile: ${errorObj.message}`);
+      const configPath = path.join(process.cwd(), this.CONFIG_FILE);
+      const configData = await fs.readFile(configPath, 'utf-8');
+      const config = JSON.parse(configData);
+      
+      return {
+        success: true,
+        data: {
+          users: config.featuredProfiles
+            .filter((profile: FeaturedProfileConfig) => profile.isActive)
+            .sort((a: FeaturedProfileConfig, b: FeaturedProfileConfig) => 
+              a.displayOrder - b.displayOrder
+            )
+        }
+      };
+    } catch (error: any) {
+      logger.error('Error reading featured profiles config', { error });
+      return {
+        success: false,
+        error: error.message || 'Failed to load featured profiles',
+        data: { users: [] }
+      };
     }
   }
 }
+
+// Export a singleton instance
+export const profileService = ProfileService.getInstance();
+export default profileService;
