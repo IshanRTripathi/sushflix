@@ -55,7 +55,12 @@ export interface UserProfile {
   socialLinks: SocialLinks;
   
   // Stats
-  stats: UserStats;
+  stats: UserStats & {
+    posts?: number;
+    followers?: number;
+    subscribers?: number;
+    [key: string]: number | undefined;
+  };
   
   // Preferences
   preferences: UserPreferences;
@@ -67,6 +72,12 @@ export interface UserProfile {
   lastLogin?: Date;
   createdAt: Date;
   updatedAt: Date;
+  
+  // Additional properties for featured profiles
+  posts?: number;
+  followers?: number;
+  subscribers?: number;
+  [key: string]: any; // Allow for additional properties
 }
 
 // For creating/updating a profile

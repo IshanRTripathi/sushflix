@@ -1,15 +1,10 @@
 import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useTheme } from '@mui/material/styles';
 import {
   Box,
   Typography,
-  Avatar,
   Button,
   IconButton,
-  Stack,
-  Divider,
-  useMediaQuery,
   Tooltip,
   CircularProgress,
 } from '@mui/material';
@@ -25,51 +20,34 @@ import {
   Language as WebsiteIcon,
 } from '@mui/icons-material';
 import { UserProfile } from '../../types/user';
-import { useProfile } from '../../hooks/useProfile';
-import { useAuth } from '../../contexts/AuthContext';
 import { useLoading } from '../../contexts/LoadingContext';
-import { formatNumber } from '../../utils/format';
 import { ProfilePictureUpload } from './ProfilePictureUpload';
-import { CoverPhotoUpload } from './CoverPhotoUpload';
 
 interface ProfileHeaderProps {
-  username?: string;
-  initialProfile?: UserProfile;
-  onProfileUpdate?: (updatedProfile: UserProfile) => void;
+  user: UserProfile;
+  isOwner: boolean;
+  onFollow?: () => void;
+  onUnfollow?: () => void;
+  onProfileUpdate?: (updates: Partial<UserProfile>) => Promise<void>;
 }
 
-export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
-  username,
-  initialProfile,
+const ProfileHeader: React.FC<ProfileHeaderProps> = ({
+  user,
+  isOwner,
+  onFollow,
+  onUnfollow,
   onProfileUpdate,
 }) => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const navigate = useNavigate();
-  const { currentUser } = useAuth();
   const { startLoading, stopLoading } = useLoading();
   
-  const {
-    profile,
-    isLoading,
-    isCurrentUser,
-    isFollowing,
-    isCreator,
-    stats,
-    socialLinks,
-    followUser,
-    unfollowUser,
-    uploadAvatar,
-    uploadCoverPhoto,
-  } = useProfile(username);
-
-  const [isEditing, setIsEditing] = useState(false);
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [isHoveringAvatar, setIsHoveringAvatar] = useState(false);
   const [isHoveringCover, setIsHoveringCover] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
 
-  // Use initial profile if provided, otherwise use the one from the hook
-  const displayProfile = initialProfile || profile;
+  // Use the provided user prop
+  const displayProfile = user;
 
   const handleEditProfile = useCallback(() => {
     navigate('/settings/profile');
@@ -79,64 +57,63 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     try {
       startLoading();
       if (isFollowing) {
-        await unfollowUser();
+        onUnfollow?.();
       } else {
-        await followUser();
+        onFollow?.();
       }
+      setIsFollowing(!isFollowing);
     } finally {
       stopLoading();
     }
-  }, [followUser, isFollowing, startLoading, stopLoading, unfollowUser]);
+  }, [isFollowing, onFollow, onUnfollow, startLoading, stopLoading]);
 
   const handleAvatarUpload = useCallback(
     async (file: File) => {
       try {
         setIsUploading(true);
-        const url = await uploadAvatar(file);
+        // TODO: Implement actual avatar upload
+        // const response = await profileService.uploadProfilePicture(displayProfile.userId, file);
+        // const url = response.data?.profilePicture;
         
         if (onProfileUpdate && displayProfile) {
-          onProfileUpdate({
+          await onProfileUpdate({
             ...displayProfile,
-            profilePicture: url,
+            profilePicture: URL.createObjectURL(file), // Temporary URL for preview
           });
         }
-        
-        return url;
+        return { success: true, imageUrl: URL.createObjectURL(file) };
       } catch (error) {
-        console.error('Failed to upload avatar:', error);
-        throw error;
+        console.error('Error uploading avatar:', error);
+        return { success: false, error: 'Failed to upload avatar' };
       } finally {
         setIsUploading(false);
       }
     },
-    [displayProfile, onProfileUpdate, uploadAvatar]
+    [displayProfile, onProfileUpdate]
   );
 
-  const handleCoverUpload = useCallback(
+  const handleCoverPhotoUpload = useCallback(
     async (file: File) => {
       try {
         setIsUploading(true);
-        const url = await uploadCoverPhoto(file);
-        
         if (onProfileUpdate && displayProfile) {
-          onProfileUpdate({
+          await onProfileUpdate({
             ...displayProfile,
-            coverPhoto: url,
+            coverPhoto: URL.createObjectURL(file), // Temporary URL for preview
           });
         }
-        
-        return url;
+        return { success: true, imageUrl: URL.createObjectURL(file) };
       } catch (error) {
-        console.error('Failed to upload cover photo:', error);
-        throw error;
+        console.error('Error uploading cover photo:', error);
+        return { success: false, error: 'Failed to upload cover photo' };
       } finally {
         setIsUploading(false);
       }
     },
-    [displayProfile, onProfileUpdate, uploadCoverPhoto]
+    [displayProfile, onProfileUpdate]
   );
 
-  if (isLoading && !displayProfile) {
+  if (isUploading && !displayProfile) {
     return (
       <Box display="flex" justifyContent="center" p={4}>
         <CircularProgress />
@@ -161,12 +138,79 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     isVerified,
   } = displayProfile;
 
+  // Social links section
   const socialIcons = [
-    { key: 'website', icon: <WebsiteIcon />, url: socialLinks?.website },
-    { key: 'twitter', icon: <TwitterIcon />, url: socialLinks?.twitter },
-    { key: 'instagram', icon: <InstagramIcon />, url: socialLinks?.instagram },
-    { key: 'youtube', icon: <YouTubeIcon />, url: socialLinks?.youtube },
-  ].filter(({ url }) => !!url);
+    { 
+      key: 'instagram',
+      icon: <InstagramIcon />, 
+      url: displayProfile.socialLinks?.instagram
+    },
+    { 
+      key: 'twitter',
+      icon: <TwitterIcon />, 
+      url: displayProfile.socialLinks?.twitter
+    },
+    { 
+      key: 'youtube',
+      icon: <YouTubeIcon />, 
+      url: displayProfile.socialLinks?.youtube
+    },
+    { 
+      key: 'website',
+      icon: <WebsiteIcon />, 
+      url: displayProfile.socialLinks?.website
+    },
+  ].filter(link => link.url);
+
+  const stats = [
+    { label: 'Posts', value: displayProfile.postsCount || 0 },
+    { label: 'Followers', value: displayProfile.followers || 0 },
+    { label: 'Following', value: displayProfile.following || 0 },
+  ];
+
+  if (displayProfile.isCreator) {
+    stats.push({ label: 'Subscribers', value: displayProfile.subscribers || 0 });
+  }
+
+  const renderActionButton = () => {
+    if (isOwner) {
+      return (
+        <Button
+          variant="outlined"
+          startIcon={<EditIcon />}
+          onClick={handleEditProfile}
+          disabled={isUploading}
+        >
+          Edit Profile
+        </Button>
+      );
+    }
+
+    if (isFollowing) {
+      return (
+        <Button
+          variant="outlined"
+          startIcon={<PersonRemoveIcon />}
+          onClick={handleFollow}
+          disabled={isUploading}
+        >
+          Following
+        </Button>
+      );
+    }
+
+    return (
+      <Button
+        variant="contained"
+        color="primary"
+        startIcon={<PersonAddIcon />}
+        onClick={handleFollow}
+        disabled={isUploading}
+      >
+        Follow
+      </Button>
+    );
+  };
 
   return (
     <Box
@@ -197,10 +241,10 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         onMouseEnter={() => setIsHoveringCover(true)}
         onMouseLeave={() => setIsHoveringCover(false)}
       >
-        {isCurrentUser && (
-          <CoverPhotoUpload
+        {isOwner && (
+          <ProfilePictureUpload
             isVisible={isHoveringCover}
-            onUpload={handleCoverUpload}
+            onUpload={handleCoverPhotoUpload}
             isUploading={isUploading}
           />
         )}
@@ -230,20 +274,58 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
           onMouseEnter={() => setIsHoveringAvatar(true)}
           onMouseLeave={() => setIsHoveringAvatar(false)}
         >
-          <Avatar
-            src={profilePicture}
-            alt={displayName || profileUsername}
+          <Box
             sx={{
+              position: 'relative',
               width: '100%',
               height: '100%',
-              fontSize: '3rem',
+              borderRadius: '50%',
+              overflow: 'hidden',
               bgcolor: 'primary.main',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'white',
+              fontSize: '3rem',
+              border: '2px solid blue', // Add border to see the container
             }}
           >
-            {(displayName || profileUsername || '').charAt(0).toUpperCase()}
-          </Avatar>
+            {profilePicture ? (
+              <Box
+                component="img"
+                src={profilePicture}
+                alt={displayName || profileUsername}
+                sx={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                  display: 'block',
+                }}
+                onLoad={(e) => {
+                  const img = e.target as HTMLImageElement;
+                  console.log('Profile image loaded:', {
+                    src: img.src,
+                    naturalWidth: img.naturalWidth,
+                    naturalHeight: img.naturalHeight,
+                    clientWidth: img.clientWidth,
+                    clientHeight: img.clientHeight,
+                  });
+                }}
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  console.error('Error loading profile image:', {
+                    src: target.src,
+                    error: 'Failed to load image',
+                  });
+                  target.style.display = 'none';
+                }}
+              />
+            ) : (
+              <span>{(displayName || profileUsername || '').charAt(0).toUpperCase()}</span>
+            )}
+          </Box>
 
-          {isCurrentUser && (
+          {isOwner && (
             <ProfilePictureUpload
               isVisible={isHoveringAvatar}
               onUpload={handleAvatarUpload}
@@ -263,7 +345,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                 <CheckIcon color="primary" fontSize="small" />
               </Tooltip>
             )}
-            {isCreator && (
+            {displayProfile.isCreator && (
               <Box
                 sx={{
                   ml: 1,
@@ -298,16 +380,11 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                 <Tooltip key={key} title={url}>
                   <IconButton
                     size="small"
-                    href={url?.startsWith('http') ? url : `https://${url}`}
+                    component="a"
+                    href={url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    sx={{
-                      color: 'text.secondary',
-                      '&:hover': {
-                        color: 'primary.main',
-                        bgcolor: 'action.hover',
-                      },
-                    }}
+                    color="inherit"
                   >
                     {icon}
                   </IconButton>
@@ -319,104 +396,50 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
 
         {/* Stats */}
         <Box display="flex" gap={3} mb={3}>
-          <StatItem
-            label="Posts"
-            value={formatNumber(stats?.postCount || 0)}
-            onClick={() => {}}
-          />
-          <StatItem
-            label="Followers"
-            value={formatNumber(stats?.followerCount || 0)}
-            onClick={() => navigate(`/${profileUsername}/followers`)}
-          />
-          <StatItem
-            label="Following"
-            value={formatNumber(stats?.followingCount || 0)}
-            onClick={() => navigate(`/${profileUsername}/following`)}
-          />
-          {isCreator && (
-            <StatItem
-              label="Subscribers"
-              value={formatNumber(stats?.subscriberCount || 0)}
-              onClick={() => navigate(`/${profileUsername}/subscribers`)}
-            />
-          )}
+          {stats.map((stat) => (
+            <Box
+              key={stat.label}
+              sx={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                cursor: 'pointer',
+                '&:hover': {
+                  '& .stat-value': {
+                    color: 'primary.main',
+                  },
+                },
+              }}
+              onClick={() => navigate(`/${profileUsername}/${stat.label.toLowerCase()}`)}
+            >
+              <Typography
+                variant="h6"
+                component="span"
+                className="stat-value"
+                sx={{
+                  fontWeight: 'bold',
+                  transition: 'color 0.2s',
+                }}
+              >
+                {stat.value}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {stat.label}
+              </Typography>
+            </Box>
+          ))}
         </Box>
 
         {/* Actions */}
         <Box display="flex" gap={2} flexWrap="wrap">
-          {isCurrentUser ? (
-            <>
-              <Button
-                variant="outlined"
-                startIcon={<EditIcon />}
-                onClick={handleEditProfile}
-                disabled={isUploading}
-              >
-                Edit Profile
-              </Button>
-              <Button variant="outlined" onClick={() => setIsEditing(!isEditing)}>
-                {isEditing ? 'Cancel' : 'Share Profile'}
-              </Button>
-            </>
-          ) : (
-            <>
-              <Button
-                variant="contained"
-                color="primary"
-                startIcon={isFollowing ? <PersonRemoveIcon /> : <PersonAddIcon />}
-                onClick={handleFollow}
-                disabled={isUploading}
-              >
-                {isFollowing ? 'Unfollow' : 'Follow'}
-              </Button>
-              <Button variant="outlined" startIcon={<LinkIcon />}>
-                Share
-              </Button>
-            </>
-          )}
+          {renderActionButton()}
+          <Button variant="outlined" startIcon={<LinkIcon />}>
+            Share
+          </Button>
         </Box>
-      </Box>
     </Box>
-  );
-};
-
-interface StatItemProps {
-  label: string;
-  value: string | number;
-  onClick?: () => void;
-}
-
-const StatItem: React.FC<StatItemProps> = ({ label, value, onClick }) => (
-  <Box
-    sx={{
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      cursor: onClick ? 'pointer' : 'default',
-      '&:hover': {
-        '& .stat-value': {
-          color: 'primary.main',
-        },
-      },
-    }}
-    onClick={onClick}
-  >
-    <Typography
-      variant="h6"
-      component="span"
-      className="stat-value"
-      sx={{
-        fontWeight: 'bold',
-        transition: 'color 0.2s',
-      }}
-    >
-      {value}
-    </Typography>
-    <Typography variant="body2" color="text.secondary">
-      {label}
-    </Typography>
   </Box>
 );
+};
 
-export default ProfileHeader;
+export { ProfileHeader };

@@ -1,8 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { useTheme } from '@mui/material/styles';
 import {
-  Box,
-  IconButton,
   CircularProgress,
   Dialog,
   DialogTitle,
@@ -16,7 +14,8 @@ import { logger } from '@/utils/logger';
 
 export interface UploadResponse {
   success: boolean;
-  imageUrl?: string;
+  imageUrl?: string;  // Preferred property name
+  url?: string;      // Alternative property name for backward compatibility
   error?: string;
 }
 
@@ -65,26 +64,36 @@ const ProfilePictureUpload: React.FC<ProfilePictureUploadProps> = ({
   };
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    logger.debug('File input changed', { files: event.target.files });
     const file = event.target.files?.[0];
     if (file) {
+      logger.debug('File selected', { name: file.name, type: file.type, size: file.size });
       const validationError = validateFile(file);
       if (validationError) {
+        logger.warn('File validation failed', { error: validationError });
         setError(validationError);
         return;
       }
       setSelectedFile(file);
-      setPreviewUrl(URL.createObjectURL(file));
+      const objectUrl = URL.createObjectURL(file);
+      logger.debug('Created object URL for preview', { objectUrl });
+      setPreviewUrl(objectUrl);
       setError('');
       setIsDialogOpen(true);
     } else {
       logger.warn('No file selected');
     }
     setError('');
+    // Reset the input value to allow selecting the same file again
+    event.target.value = '';
   };
 
   const handleUpload = useCallback(async () => {
+    logger.debug('Starting file upload', { hasFile: !!selectedFile });
     if (!selectedFile) {
-      setError('Please select a file to upload');
+      const errorMsg = 'No file selected for upload';
+      logger.warn(errorMsg);
+      setError(errorMsg);
       return;
     }
 
@@ -101,10 +110,13 @@ const ProfilePictureUpload: React.FC<ProfilePictureUploadProps> = ({
       // Upload the file using the onUpload callback
       const response = await onUpload(selectedFile);
 
-      if (response.success && response.imageUrl) {
+      // Use either imageUrl or url from the response, with imageUrl taking precedence
+      const imageUrl = response.imageUrl || response.url;
+
+      if (response.success && imageUrl) {
         // Notify parent component about successful upload
         if (onUploadSuccess) {
-          await onUploadSuccess({ imageUrl: response.imageUrl });
+          await onUploadSuccess({ imageUrl });
         }
         
         // Close the dialog
@@ -138,36 +150,47 @@ const ProfilePictureUpload: React.FC<ProfilePictureUploadProps> = ({
 
   if (!isVisible) return null;
 
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const handleClick = () => {
+    logger.debug('Profile picture area clicked');
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
   return (
     <div className="relative group">
       <input
+        ref={fileInputRef}
         type="file"
         accept="image/*"
         onChange={handleFileSelect}
         className="hidden"
         id="profile-picture-upload"
       />
-      <label htmlFor="profile-picture-upload" className="cursor-pointer">
-        <div className="relative w-32 h-32 rounded-full overflow-hidden border-2 border-gray-200">
-          {previewUrl || currentImageUrl ? (
-            <img
-              src={previewUrl || currentImageUrl}
-              alt="Profile preview"
-              className="w-full h-full object-cover"
-              onError={(e) => {
-                const target = e.target as HTMLImageElement;
-                target.src = 'https://via.placeholder.com/128';
-              }}
-            />
-          ) : (
-            <div className="w-full h-full bg-gray-100 flex items-center justify-center">
-              <CloudUploadIcon className="w-12 h-12 text-gray-400" />
-            </div>
-          )}
+      <div 
+        onClick={handleClick}
+        className="relative w-32 h-32 rounded-full overflow-hidden border-2 border-gray-200 cursor-pointer"
+      >
+        {previewUrl || currentImageUrl ? (
+          <img
+            src={previewUrl || currentImageUrl}
+            alt="Profile preview"
+            className="w-full h-full object-cover"
+            onError={(e) => {
+              const target = e.target as HTMLImageElement;
+              target.src = 'https://via.placeholder.com/128';
+            }}
+          />
+        ) : (
+          <div className="w-full h-full bg-gray-100 flex items-center justify-center">
+            <CloudUploadIcon className="w-12 h-12 text-gray-400" />
+          </div>
+        )}
+        <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
+          <CloudUploadIcon className="text-white w-8 h-8" />
         </div>
-      </label>
-      <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
-        <CloudUploadIcon className="text-white w-8 h-8" />
       </div>
       <Dialog open={isDialogOpen} onClose={() => setIsDialogOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle>Upload Profile Picture</DialogTitle>

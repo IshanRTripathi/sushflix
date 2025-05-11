@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { UserProfile, EditableProfileFields, SocialLinks } from '../types/user';
-import { userProfileService } from '../services/userProfileService';
+import { UserProfile, SocialLinks, ProfileInput } from '../types/user';
+import { profileService } from '../services/profileService';
 import { logger } from '../utils/logger';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { Edit as EditIcon } from '@mui/icons-material';
@@ -32,9 +32,17 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
   const { user: currentUser } = useAuth();
   const isOwnProfile = currentUser?.username === username;
 
-  const [formData, setFormData] = useState<EditableProfileFields>({
+  const [formData, setFormData] = useState<{
+    displayName: string;
+    bio: string;
+    socialLinks: {
+      website: string;
+      twitter: string;
+      youtube: string;
+    };
+    isCreator: boolean;
+  }>({
     displayName: '',
-    email: '',
     bio: '',
     socialLinks: {
       website: '',
@@ -46,7 +54,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev: any) => ({
       ...prev,
       ...(name.startsWith('social.')
         ? {
@@ -66,23 +74,28 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
     if (!profile || !formData.socialLinks) return;
 
     try {
-      const updates: EditableProfileFields = {
-        displayName: formData.displayName,
-        bio: formData.bio,
+      const updates: ProfileInput = {
+        displayName: formData.displayName || profile.displayName,
+        bio: formData.bio || profile.bio,
         socialLinks: {
+          ...profile.socialLinks,
           website: formData.socialLinks.website || '',
           twitter: formData.socialLinks.twitter || '',
           youtube: formData.socialLinks.youtube || ''
         }
       };
       
-      const success = await userProfileService.updateProfile(profile.userId, updates);
-      if (success) {
-        setProfile(prev => prev && {
-          ...prev,
-          ...formData,
+      const response = await profileService.updateUserProfile(profile.userId, updates);
+      if (response.success && response.data) {
+        setProfile(prev => ({
+          ...prev!,
+          ...updates,
+          socialLinks: {
+            ...prev!.socialLinks,
+            ...updates.socialLinks
+          },
           lastUpdated: new Date()
-        });
+        } as UserProfile));
         setIsEditing(false);
       } else {
         setError('Failed to update profile');
@@ -96,7 +109,8 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const profileData = await userProfileService.getProfileByUsername(username);
+        const response = await profileService.getUserProfile(username);
+        const profileData = response.data;
         if (profileData) {
           setProfile(profileData);
         } else {
@@ -137,9 +151,12 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
     if (profile) {
       setFormData({
         displayName: profile.displayName,
-        email: profile.email,
         bio: profile.bio,
-        socialLinks: profile.socialLinks,
+        socialLinks: {
+          website: profile.socialLinks?.website || '',
+          twitter: profile.socialLinks?.twitter || '',
+          youtube: profile.socialLinks?.youtube || ''
+        },
         isCreator: profile.isCreator
       });
     }
@@ -175,21 +192,28 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
             </div>
             <div className="absolute bottom-0 right-0 -translate-x-1/2 -translate-y-1/2">
               <ProfilePictureUpload
-                username={username}
-                onUploadSuccess={async (updates) => {
-                  if (!profile) return;
+                onUpload={async (file) => {
+                  if (!profile) return { success: false, error: 'No profile found' };
                   
-                  // Update profile with new picture
-                  const success = await userProfileService.updateProfile(profile.userId, {
-                    ...updates,
-                    profilePicture: updates.profilePicture as string
-                  });
-                  
-                  if (success) {
-                    setProfile(prev => prev && {
-                      ...prev,
-                      profilePicture: updates.profilePicture as string
-                    });
+                  try {
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    formData.append('userId', profile.userId);
+                    
+                    const response = await profileService.uploadProfilePicture(profile.userId, file);
+                    
+                    if (response.success && response.data) {
+                      setProfile(prev => prev && ({
+                        ...prev,
+                        profilePicture: response.data?.profilePicture || ''
+                      }));
+                      return { success: true, imageUrl: response.data.profilePicture };
+                    }
+                    return { success: false, error: 'Failed to update profile picture' };
+                  } catch (error) {
+const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+                    logger.error('Error uploading profile picture:', { error: errorMessage });
+                    return { success: false, error: 'An error occurred while uploading' };
                   }
                 }}
               />

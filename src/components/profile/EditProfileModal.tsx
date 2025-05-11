@@ -6,6 +6,7 @@ import { ProfileFormData, ProfileErrors } from './types';
 import { UserProfile } from '../../types/user';
 import { Box, CircularProgress } from '@mui/material';
 import { logger } from '../../utils/logger';
+import profileService from '../../services/profileService';
 
 interface EditProfileModalProps {
   isOpen: boolean;
@@ -144,30 +145,67 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
         <Box sx={{ display: 'flex', justifyContent: 'center', mb: 4 }}>
           <Box sx={{ position: 'relative' }}>
             <ProfilePictureUpload
-              username={user.username}
               currentImageUrl={user.profilePicture}
-              onUploadSuccess={async (updates) => {
-                if (!updates.profilePicture) {
+              onUpload={async (file) => {
+                try {
+                  setIsPictureUploading(true);
+                  
+                  // Create a mock response since the actual upload will be handled by the parent
+                  // The actual upload will be handled by the parent component
+                  return {
+                    success: true,
+                    imageUrl: URL.createObjectURL(file) // Temporary URL for preview
+                  };
+                } catch (error) {
+                  const errorMessage = error instanceof Error ? error.message : 'Failed to process image';
+                  logger.error('Error processing image', { error });
+                  return {
+                    success: false,
+                    error: errorMessage
+                  };
+                } finally {
+                  setIsPictureUploading(false);
+                }
+              }}
+              onUploadSuccess={async ({ imageUrl: previewUrl }) => {
+                if (!previewUrl) {
+                  setPictureError('No image URL provided');
                   return false;
                 }
                 
                 try {
                   setIsPictureUploading(true);
-                  const success = await handleProfilePictureUpdate(updates.profilePicture);
+                  // Convert data URL to blob for upload
+                  const response = await fetch(previewUrl);
+                  const blob = await response.blob();
+                  const file = new File([blob], 'profile-picture.jpg', { type: 'image/jpeg' });
+                  
+                  // Upload the file to the server
+                  const uploadResult = await profileService.uploadProfilePicture(user.username, file);
+                  
+                  if (!uploadResult?.success || !uploadResult.data?.profilePicture) {
+                    throw new Error(uploadResult?.error || 'No URL returned from server');
+                  }
+                  
+                  const uploadedImageUrl = uploadResult.data.profilePicture;
+                  
+                  // Update the profile with the new picture URL
+                  const success = await handleProfilePictureUpdate(uploadedImageUrl);
                   
                   if (success) {
                     // Update the form data with the new picture URL
                     setFormData(prev => ({
                       ...prev,
-                      profilePicture: updates.profilePicture
+                      profilePicture: uploadedImageUrl
                     }));
                   }
                   
                   return success;
                   
                 } catch (error) {
-                  const errorMessage = error instanceof Error ? error.message : 'Failed to update profile picture';
-                  logger.error('Error updating profile picture', { 
+                  const errorMessage = error instanceof Error ? error.message : 'Failed to upload profile picture';
+                  setPictureError(errorMessage);
+                  logger.error('Error uploading profile picture', { 
                     error: errorMessage,
                     username: user.username,
                     stack: error instanceof Error ? error.stack : undefined
@@ -178,7 +216,6 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
                   setIsPictureUploading(false);
                 }
               }}
-
             />
             {isPictureUploading && (
               <Box 

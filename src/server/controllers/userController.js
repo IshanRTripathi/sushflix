@@ -16,10 +16,17 @@ const getCurrentUserProfile = async (req, res) => {
     }
 
     // Format response with default values
+    const ensureAbsoluteUrl = (url) => {
+      if (!url) return '/default-avatar.png';
+      if (url.startsWith('http')) return url;
+      if (url.startsWith('/')) return url;
+      return `/${url}`;
+    };
+
     const userProfile = {
       username: user.username,
       displayName: user.displayName || user.username,
-      profilePicture: user.profilePicture,
+      profilePicture: ensureAbsoluteUrl(user.profilePicture),
       isCreator: user.isCreator || false,
       email: user.email,
       stats: {
@@ -72,34 +79,90 @@ const getUserProfile = async (req, res) => {
       });
     }
 
-    // Format response with default values
+    // Helper function to ensure URL is absolute
+    const ensureAbsoluteUrl = (url) => {
+      if (!url) return '/default-avatar.svg';
+      if (url.startsWith('http')) return url;
+      if (url.startsWith('/')) return url;
+      return `/${url}`;
+    };
+
+    // Log the raw profile picture data
+    logger.info('User profile picture data:', {
+      hasProfilePicture: !!user.profilePicture,
+      rawProfilePicture: user.profilePicture,
+      processedUrl: ensureAbsoluteUrl(user.profilePicture),
+      user: user.username
+    });
+
+    // Format response according to frontend's UserProfile type
     const userProfile = {
+      id: user._id.toString(),
+      userId: user._id.toString(),
       username: user.username,
-      displayName: user.displayName || user.username,
-      profilePicture: user.profilePicture,
-      isCreator: user.isCreator || false,
       email: user.email,
+      role: user.role || 'user',
+      emailVerified: user.emailVerified || false,
+      displayName: user.displayName || user.username,
+      bio: user.bio || '',
+      // Ensure profile picture URL is properly formatted
+      profilePicture: ensureAbsoluteUrl(user.profilePicture),
+      coverPhoto: user.coverPhoto || '',
+      socialLinks: user.socialLinks || {},
       stats: {
-        posts: 0,
-        followers: 0,
-        following: 0
-      }
+        postCount: 0,
+        followerCount: 0,
+        followingCount: 0,
+        subscriberCount: 0
+      },
+      preferences: {
+        theme: 'system',
+        notifications: {
+          email: true,
+          push: true
+        }
+      },
+      isCreator: user.isCreator || false,
+      isVerified: user.isVerified || false,
+      createdAt: user.createdAt || new Date(),
+      updatedAt: user.updatedAt || new Date()
     };
 
     // Get stats
-    const [postsCount, followersCount, followingCount] = await Promise.all([
+    const [postCount, followerCount, followingCount] = await Promise.all([
       Post.countDocuments({ userId: user._id }),
       User.countDocuments({ following: user._id }),
       User.countDocuments({ followers: user._id })
     ]);
 
+    // Update stats with correct property names
     userProfile.stats = {
-      posts: postsCount,
-      followers: followersCount,
-      following: followingCount
+      postCount,
+      followerCount,
+      followingCount,
+      subscriberCount: 0 // Add this if you have subscribers
     };
 
-    res.status(200).json(userProfile);
+    // Set CORS headers
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.setHeader('Access-Control-Allow-Credentials', true);
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+
+    // Log the response being sent
+    logger.info('Sending user profile response', {
+      userId: user._id,
+      username: user.username,
+      hasProfilePicture: !!userProfile.profilePicture,
+      profilePictureUrl: userProfile.profilePicture,
+      headers: res.getHeaders()
+    });
+
+    // Send the response
+    return res.status(200).json(userProfile);
   } catch (error) {
     console.error('Error fetching user profile:', error);
     res.status(500).json({ 
@@ -166,31 +229,30 @@ const getUserStats = async (req, res) => {
 };
 
 // Upload profile picture
-const uploadProfilePicture = async (username, file, req, res) => {
+const uploadProfilePicture = async (username, file, req) => {
     try {
-    // Validate request parameters
-    if (!username || typeof username !== 'string') {
-      logger.error('Invalid username parameter', {
-        username,
-        params: req.params
-      });
-      return res.status(400).json({
-        success: false,
-        error: 'Invalid username parameter'
-      });
-    }
+      // Validate request parameters
+      if (!username || typeof username !== 'string') {
+        logger.error('Invalid username parameter', {
+          username,
+          params: req.params
+        });
+        return {
+          success: false,
+          error: 'Invalid username parameter'
+        };
+      }
 
-    const file = req.file;
-    if (!file) {
-      logger.error('No file uploaded in request', {
-        headers: req.headers,
-        body: req.body
-      });
-      return res.status(400).json({
-        success: false,
-        error: 'No file uploaded'
-      });
-    }
+      if (!file) {
+        logger.error('No file uploaded in request', {
+          headers: req.headers,
+          body: req.body
+        });
+        return {
+          success: false,
+          error: 'No file uploaded'
+        };
+      }
 
     // Upload to Google Cloud Storage
     const uploadResponse = await uploadFile(username, file);
@@ -198,46 +260,87 @@ const uploadProfilePicture = async (username, file, req, res) => {
     if (!uploadResponse.success) {
       logger.error('Failed to upload to storage', {
         error: uploadResponse.error,
-        response: uploadResponse
+        response: uploadResponse,
+        username,
+        file: {
+          originalname: file.originalname,
+          mimetype: file.mimetype,
+          size: file.size
+        }
       });
-      return res.status(500).json({
+      return {
         success: false,
-        error: uploadResponse.error || 'Failed to upload file'
-      });
+        error: uploadResponse.error || 'Failed to upload file to storage',
+        statusCode: 500
+      };
     }
 
-    // Update user profile with new image URL
+    // Find user first
     const user = await User.findOne({ username });
     if (!user) {
       logger.error('User not found', { username });
-      return res.status(404).json({
+      return {
         success: false,
-        error: 'User not found'
-      });
+        error: 'User not found',
+        statusCode: 404
+      };
     }
 
-    user.profilePicture = uploadResponse.url;
-    await user.save();
-    logger.info('Profile picture updated successfully', {
-      username,
-      newUrl: uploadResponse.url
-    });
+    try {
+      // Save the old picture URL for cleanup
+      const oldPictureUrl = user.profilePicture;
 
-    res.json({
-      success: true,
-      url: uploadResponse.url
-    });
+      user.profilePicture = uploadResponse.url;
+      await user.save();
+
+      // If there was an old picture, delete it from storage
+      if (oldPictureUrl) {
+        try {
+          await deleteFile(oldPictureUrl);
+        } catch (deleteError) {
+          // Log but don't fail the request if deletion fails
+          logger.error('Failed to delete old profile picture', {
+            error: deleteError.message,
+            url: oldPictureUrl,
+            username
+          });
+        }
+      }
+
+      logger.info('Profile picture updated successfully', {
+        username,
+        newPictureUrl: uploadResponse.url
+      });
+
+      return {
+        success: true,
+        url: uploadResponse.url,
+        message: 'Profile picture updated successfully'
+      };
+    } catch (error) {
+      logger.error('Failed to update user profile with new picture', {
+        error: error.message,
+        username,
+        stack: error.stack
+      });
+      return {
+        success: false,
+        error: 'Failed to update profile with new picture',
+        statusCode: 500
+      };
+    }
   } catch (error) {
     logger.error('Profile picture upload error', {
       error: error.message,
       stack: error.stack,
-      username: req.params.username
+      username: username || 'unknown'
     });
     
-    return res.status(500).json({
+    return {
       success: false,
-      error: error.message || 'Failed to upload profile picture'
-    });
+      error: 'An unexpected error occurred while uploading the profile picture',
+      statusCode: 500
+    };
   }
 };
 

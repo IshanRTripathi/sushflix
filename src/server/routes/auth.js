@@ -153,8 +153,10 @@ router.post('/login', [
 
     logger.info(`Attempting to find user by username or email: ${usernameOrEmail}`);
     try {
-        // Check if the user exists
-        const user = await User.findOne({ $or: [{ username: usernameOrEmail }, { email: usernameOrEmail }] });
+        // Check if the user exists and explicitly select the password field
+        const user = await User.findOne({ 
+          $or: [{ username: usernameOrEmail }, { email: usernameOrEmail }] 
+        }).select('+password');
         if (!user) {
             logger.warn(`Login attempt with invalid username or email: ${usernameOrEmail}`);
             return res.status(401).json({ message: 'Invalid credentials' });
@@ -162,6 +164,11 @@ router.post('/login', [
         logger.info(`User found: ${user.username}`);
 
         // Validate password
+        if (!user.password) {
+            logger.warn(`User ${user.username} has no password set`);
+            return res.status(401).json({ message: 'Invalid credentials' });
+        }
+        
         logger.info(`Comparing password for user: ${user.username}`);
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
