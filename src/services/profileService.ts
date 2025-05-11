@@ -1,52 +1,107 @@
+import axios, { AxiosRequestConfig } from 'axios';
+import type { 
+  UserProfile, 
+  UserStats, 
+  ApiResponse
+} from '../types/user';
 import { logger } from '../utils/logger';
-import axios from 'axios';
-import { UserProfile, PartialProfileUpdate } from '../types/user';
-import { API_BASE_URL } from '../config/index';
 
-// API Endpoints
-const API_ENDPOINTS = {
-  USER_PROFILE: (username: string) => `${API_BASE_URL}/api/users/${username}`,
-  USER_POSTS: (username: string) => `${API_BASE_URL}/api/posts/${username}`,
-  USER_STATS: (username: string) => `${API_BASE_URL}/api/users/${username}/stats`,
-  TOGGLE_FOLLOW: (username: string) => `${API_BASE_URL}/api/users/${username}/follow`,
-  POST_SHARE: (postId: string) => `${API_BASE_URL}/api/posts/${postId}/share`,
-  POST_BOOKMARK: (postId: string) => `${API_BASE_URL}/api/posts/${postId}/bookmark`
-} as const;
+// Re-export types from user module
+export type { 
+  UserProfile, 
+  UserStats, 
+  ApiResponse
+} from '../types/user';
 
-export interface Post {
-  id: string;
-  caption: string;
-  mediaUrl: string;
-  likes: number;
-  comments: number;
-  createdAt: string;
+// Export UserSettings interface for external use
+export interface UserSettings extends Record<string, unknown> {
+  theme: 'light' | 'dark' | 'system';
+  notifications: {
+    email: boolean;
+    push: boolean;
+    [key: string]: boolean;
+  };
+  privacy?: {
+    showOnlineStatus?: boolean;
+    showActivityStatus?: boolean;
+    allowMessagesFrom?: 'everyone' | 'followed' | 'none';
+  };
+  emailPreferences?: {
+    newsletter?: boolean;
+    productUpdates?: boolean;
+    marketing?: boolean;
+  };
 }
 
-export interface UserStats {
-  posts: number;
-  followers: number;
-  following: number;
-}
 
-export interface ApiResponse<T> {
-  data?: T;
-  error?: string;
-  success?: boolean;
-}
 
-export interface UploadResponse {
-  success: boolean;
-  imageUrl?: string;
-  error?: string;
-}
+type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
-export class ProfileService {
+// Define the EditableProfileFields type
+type EditableProfileFields = {
+  displayName?: string;
+  bio?: string;
+  location?: string;
+  website?: string;
+  socialLinks?: {
+    twitter?: string;
+    instagram?: string;
+    facebook?: string;
+    linkedin?: string;
+    youtube?: string;
+    tiktok?: string;
+  };
+};
+
+// API Endpoints are now inlined in the methods
+
+// Default values
+const DEFAULT_PROFILE: Omit<UserProfile, 'id' | 'userId' | 'username' | 'email' | 'role' | 'createdAt' | 'updatedAt'> = {
+  emailVerified: false,
+  displayName: '',
+  bio: '',
+  profilePicture: '',
+  coverPhoto: '',
+  socialLinks: {},
+  stats: {
+    postCount: 0,
+    followerCount: 0,
+    followingCount: 0,
+    subscriberCount: 0,
+  },
+  preferences: {
+    theme: 'system',
+    notifications: {
+      email: true,
+      push: true,
+    },
+  },
+  isCreator: false,
+  isVerified: false,
+};
+
+class ProfileService {
   private static instance: ProfileService;
   private static readonly DEFAULT_TIMEOUT = 10000;
+  private authService: { logout: () => void };
 
   private constructor() {
+    this.authService = {
+      logout: () => {
+        window.location.href = '/login';
+      },
+    };
     axios.defaults.timeout = ProfileService.DEFAULT_TIMEOUT;
-    logger.info('Profile service initialized');
+    axios.interceptors.response.use(
+      (response) => response,
+      (error) => {
+        if (error.response?.status === 401) {
+          this.authService.logout();
+        }
+        return Promise.reject(error);
+      }
+    );
+    logger.info('ProfileService initialized');
   }
 
   public static getInstance(): ProfileService {
@@ -56,374 +111,508 @@ export class ProfileService {
     return ProfileService.instance;
   }
 
-  public async uploadProfilePicture(username: string, file: File): Promise<UploadResponse> {
+  private getAuthHeader(): Record<string, string> {
     try {
-      // Validate file parameters
-      logger.info('Starting profile picture upload validation', { username });
+      if (typeof window === 'undefined') {
+        return {};
+      }
+      const token = localStorage.getItem('authToken');
+      return token ? { Authorization: `Bearer ${token}` } : {};
+    } catch (error) {
+      console.error('Error getting auth token:', error);
+      return {};
+    }
+  }
+
+  private async request<T>(
+    method: HttpMethod,
+    url: string,
+    data?: unknown,
+    params: Record<string, unknown> = {},
+    headers: Record<string, string> = {}
+  ): Promise<ApiResponse<T>> {
+    try {
+      // Check if the URL is already a full URL
+      let apiUrl: string;
+      if (url.startsWith('http')) {
+        apiUrl = url;
+      } else {
+        // Use environment variable for API base URL or default to development
+        const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+        // Ensure the URL starts with a slash and doesn't have double slashes
+        const path = url.startsWith('/') ? url : `/${url}`;
+        apiUrl = `${baseUrl}${baseUrl.endsWith('/') ? path.slice(1) : path}`;
+      }
       
-      if (!username || typeof username !== 'string') {
-        logger.error('Invalid username provided', { username });
-        throw new Error('Invalid username provided');
-      }
-
-      if (!file || !(file instanceof File)) {
-        logger.error('Invalid file object provided', { file });
-        throw new Error('Invalid file object provided');
-      }
-
-      // Validate file size and type
-      const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB
-      if (file.size > MAX_FILE_SIZE) {
-        logger.error('File size exceeds maximum limit', { size: file.size, limit: MAX_FILE_SIZE });
-        throw new Error('File size exceeds maximum limit of 2MB');
-      }
-
-      const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
-      if (!ALLOWED_TYPES.includes(file.type)) {
-        logger.error('Invalid file type', { type: file.type, allowedTypes: ALLOWED_TYPES });
-        throw new Error('Invalid file type. Only JPEG, PNG, and WebP images are allowed.');
-      }
-
-      logger.info('Profile picture validation successful', { 
-        username,
-        fileSize: file.size,
-        fileType: file.type
+      logger.debug(`Making ${method} request to:`, { 
+        url: apiUrl,
+        params,
+        hasData: !!data,
+        headers: Object.keys(headers)
       });
 
-      // Create FormData and append the file
-      const formData = new FormData();
-      formData.append('file', file);
-
-      // Set up request controller for timeout
-      const controller = new AbortController();
-      const signal = controller.signal;
-      const timeoutId = setTimeout(() => {
-        controller.abort();
-      }, 30000);
-
-      try {
-        logger.info('Uploading profile picture', {
-          url: `${API_BASE_URL}/api/users/${username}/profile-picture`,
-          file: {
-            name: file.name,
-            size: file.size,
-            type: file.type,
-            lastModified: file.lastModified
-          }
-        });
-
-        const response = await axios.post(
-          `${API_BASE_URL}/api/users/${username}/profile-picture`,
-          formData,
-          {
-            headers: {
-              'Content-Type': 'multipart/form-data'
-            },
-            signal,
-            timeout: 30000
-          }
-        );
-
-        logger.info('Upload completed successfully', {
-          response: {
-            success: true,
-            imageUrl: response.data.url
-          }
-        });
-
-        clearTimeout(timeoutId);
-        return {
-          success: true,
-          imageUrl: response.data.url
-        };
-      } catch (axiosError: any) {
-        clearTimeout(timeoutId);
-
-        // Handle different types of errors
-        if (axiosError.code === 'ERR_CANCELED') {
-          logger.warn('Upload request was canceled');
-          return {
-            success: false,
-            error: 'Upload request was canceled'
-          };
-        }
-
-        if (axiosError.response) {
-          // Server responded with an error
-          logger.error('Server error response', {
-            status: axiosError.response.status,
-            data: axiosError.response.data,
-            headers: axiosError.response.headers
-          });
-
-          if (axiosError.response.status === 408) {
-            return {
-              success: false,
-              error: 'Request timeout. Please try again.'
-            };
-          }
-
-          if (axiosError.response.status === 499) {
-            return {
-              success: false,
-              error: 'Request was aborted by client'
-            };
-          }
-
-          return {
-            success: false,
-            error: axiosError.response.data?.error || 'Server error occurred'
-          };
-        } else if (axiosError.request) {
-          // Request was made but no response
-          logger.error('No response from server', {
-            config: axiosError.config
-          });
-          return {
-            success: false,
-            error: 'No response from server. Please check your network connection.'
-          };
-        } else {
-          // Something happened in setting up the request
-          logger.error('Request setup error', {
-            message: axiosError.message,
-            stack: axiosError.stack
-          });
-          return {
-            success: false,
-            error: 'Error setting up request. Please try again.'
-          };
-        }
-      }
-    } catch (error: unknown) {
-      logger.error('Upload failed', {
-        error: {
-          message: error instanceof Error ? error.message : 'Unknown error',
-          name: error instanceof Error ? error.name : 'Unknown',
-          stack: error instanceof Error ? error.stack : undefined
+      const config: AxiosRequestConfig = {
+        method,
+        url: apiUrl,
+        data: data as Record<string, unknown>,
+        params,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          ...this.getAuthHeader(),
+          ...headers,
         },
-        username,
-        timestamp: new Date().toISOString()
-      });
-
-      // Map error messages based on error type
-      const errorType = error instanceof Error ? error.name : 'Unknown';
-      type ErrorMessages = {
-        [key: string]: string;
-      };
-      
-      const errorMessages: ErrorMessages = {
-        'Invalid username': 'Invalid username provided',
-        'Invalid file': 'Invalid file object provided',
-        'File size': 'File size exceeds maximum limit',
-        'File type': 'Invalid file type',
-        'Timeout': 'Request timeout. Please try again.',
-        'Canceled': 'Upload request was canceled',
-        'Network': 'No response from server. Please check your network connection.',
-        'Request': 'Error setting up request. Please try again.',
-        'Unknown': 'Failed to upload profile picture'
+        validateStatus: (status) => status < 500, // Don't throw for 4xx errors
       };
 
-      const errorMessage = errorMessages[errorType] || (error instanceof Error ? error.message : 'Unknown error');
+      const response = await axios(config);
+
+      // Check if the response is HTML (which would indicate a routing issue)
+      const contentType = response.headers?.['content-type'] || '';
+      if (contentType.includes('text/html')) {
+        logger.error('Received HTML response instead of JSON', {
+          url: apiUrl,
+          status: response.status,
+          statusText: response.statusText,
+          response: response.data?.substring(0, 200) // Log first 200 chars of response
+        });
+        throw new Error('Received HTML response. Check if the API endpoint is correct.');
+      }
+
+      // If the response is not successful, log the error
+      if (response.status >= 400) {
+        const errorMessage = response.data?.message || `Request failed with status ${response.status}`;
+        logger.error('API request failed', {
+          url: apiUrl,
+          status: response.status,
+          statusText: response.statusText,
+          message: errorMessage,
+          response: response.data
+        });
+        return {
+          success: false,
+          message: errorMessage,
+          status: response.status
+        } as ApiResponse<T>;
+      }
 
       return {
+        success: true,
+        data: response.data as T,
+      };
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        return {
+          success: false,
+          message: error.response?.data?.message || error.message,
+        };
+      }
+      return {
         success: false,
-        error: errorMessage
+        message: error instanceof Error ? error.message : 'An unknown error occurred',
       };
     }
   }
 
-  private async request<T>(config: any): Promise<T> {
+  private normalizeUserProfile(profile: UserProfile): UserProfile {
+    return { ...DEFAULT_PROFILE, ...profile };
+  }
+
+  // User Profile Methods
+  
+  /**
+   * Get the current user's profile
+   */
+  public async getCurrentUser(): Promise<UserProfile> {
     try {
-      const response = await axios(config);
-      return response.data;
-    } catch (error: unknown) {
-      logger.error('API request failed:', { error });
-      throw error instanceof Error ? error : new Error('API request failed');
+      const response = await this.request<UserProfile>('GET', '/users/me');
+      if (!response.success || !response.data) {
+        throw new Error(response.message || 'Failed to fetch user profile');
+      }
+      return this.normalizeUserProfile(response.data);
+    } catch (error) {
+      logger.error('Error fetching current user:', { error });
+      throw error;
     }
   }
 
+  /**
+   * Get a user's profile by username
+   */
   public async getUserProfile(username: string): Promise<UserProfile> {
     try {
-      logger.debug(`Fetching profile for user: ${username}`);
-      const response = await this.request<UserProfile>({
-        method: 'GET',
-        url: API_ENDPOINTS.USER_PROFILE(username),
+      logger.info(`Fetching profile for username: ${username}`);
+      
+      // First, try to get the user ID by username if needed
+      let userId = '';
+      let currentUser = null;
+      try {
+        // Try to get user from local storage if available
+        const userData = localStorage.getItem('currentUser');
+        if (userData) {
+          currentUser = JSON.parse(userData);
+          if (currentUser?.username === username) {
+            userId = currentUser.id;
+          }
+        }
+      } catch (e) {
+        logger.warn('Error getting user data from local storage', { error: e });
+      }
+
+      let response;
+      try {
+        // Try with username first
+        logger.debug('Trying to fetch profile by username:', { username });
+        response = await this.request<UserProfile>('GET', `/api/users/${username}`);
+        
+        // If we got a response but it's not successful, try with ID if available
+        if ((!response.success || !response.data) && userId) {
+          logger.warn('Failed to fetch by username, trying with ID', { username, userId });
+          response = await this.request<UserProfile>('GET', `/api/users/${userId}`);
+        }
+      } catch (error) {
+        logger.error('Error fetching user profile:', { 
+          username, 
+          error: error instanceof Error ? error.message : 'Unknown error',
+          stack: error instanceof Error ? error.stack : undefined
+        });
+        throw error;
+      }
+      
+      // Log the raw response for debugging
+      logger.debug('Raw profile response:', { 
+        responseStatus: response?.status,
+        responseSuccess: response?.success,
+        hasData: !!response?.data,
+        dataType: typeof response?.data,
+        dataKeys: response?.data ? Object.keys(response.data) : []
       });
-      logger.debug(`Successfully fetched profile for user: ${username}`);
-      return response || {
-        userId: '',
-        username: '',
-        createdAt: new Date(),
-        subscribers: 0,
-        posts: 0,
-        displayName: '',
-        email: '',
-        profilePicture: '',
-        bio: '',
-        socialLinks: {},
-        lastUpdated: new Date(),
-        isCreator: false
-      };
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      logger.error(`Error fetching user profile: ${errorMessage}`);
-      throw new Error(`Failed to fetch user profile: ${errorMessage}`);
-    }
-  }
 
-  public async getUserPosts(username: string): Promise<Post[]> {
-    try {
-      logger.debug(`Fetching posts for user: ${username}`);
-      const response = await this.request<Post[]>({
-        method: 'GET',
-        url: API_ENDPOINTS.USER_POSTS(username),
+      if (!response || !response.success) {
+        const errorMessage = response?.message || 'No profile data received';
+        logger.error('Invalid profile response', { 
+          status: response?.status,
+          statusText: (response as any)?.statusText,
+          error: errorMessage
+        });
+        throw new Error(errorMessage);
+      }
+
+      // If we have data but it's in the data property, use that
+      let profileData = response.data;
+      
+      // If the data is a string, try to parse it as JSON
+      if (typeof profileData === 'string') {
+        try {
+          profileData = JSON.parse(profileData);
+        } catch (e) {
+          logger.error('Failed to parse profile data', { data: profileData });
+          throw new Error('Invalid user profile data format');
+        }
+      }
+
+      // If we still don't have valid data, throw an error
+      if (!profileData || typeof profileData !== 'object') {
+        logger.error('Invalid profile data structure', { profileData });
+        throw new Error('Invalid profile data structure');
+      }
+
+      // Log the parsed profile data for debugging
+      logger.debug('Parsed profile data:', { 
+        hasProfileData: !!profileData,
+        profileDataKeys: Object.keys(profileData || {})
       });
-      logger.debug(`Successfully fetched posts for user: ${username}`);
-      return response || [];
+
+      return this.normalizeUserProfile(profileData as UserProfile);
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      logger.error(`Error fetching user posts: ${errorMessage}`);
-      throw new Error(`Failed to fetch user posts: ${errorMessage}`);
-    }
-  }
-
-  public async getUserStats(username: string): Promise<UserStats> {
-    try {
-      logger.debug(`Fetching stats for user: ${username}`);
-      const response = await this.request<UserStats>({
-        method: 'GET',
-        url: API_ENDPOINTS.USER_STATS(username),
-      });
-      logger.debug(`Successfully fetched stats for user: ${username}`);
-      return response || {
-        posts: 0,
-        followers: 0,
-        following: 0
-      };
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      logger.error(`Error fetching user stats: ${errorMessage}`);
-      throw new Error(`Failed to fetch user stats: ${errorMessage}`);
-    }
-  }
-
-  public async toggleFollow(username: string): Promise<boolean> {
-    try {
-      logger.debug(`Toggling follow for user: ${username}`);
-      const response = await this.request<boolean>({
-        method: 'POST',
-        url: API_ENDPOINTS.TOGGLE_FOLLOW(username),
-      });
-      logger.debug(`Successfully toggled follow for user: ${username}`);
-      return response || false;
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      logger.error(`Error toggling follow: ${errorMessage}`);
-      throw new Error(`Failed to toggle follow: ${errorMessage}`);
-    }
-  }
-
-  public async likePost(postId: string): Promise<void> {
-    try {
-      logger.debug(`Attempting to like post: ${postId}`);
-      await this.request({
-        method: 'POST',
-        url: `${API_BASE_URL}/api/posts/${postId}/like`,
-      });
-      logger.info(`Successfully liked post: ${postId}`);
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      logger.error(`Error liking post: ${errorMessage}`);
-      throw new Error(`Failed to like post: ${errorMessage}`);
-    }
-  }
-
-  public async commentOnPost(postId: string, comment: string): Promise<void> {
-    await this.request({
-      method: 'POST',
-      url: `${API_BASE_URL}/api/posts/${postId}/comment`,
-      data: { comment },
-    });
-  }
-
-  public async sharePost(postId: string): Promise<void> {
-    await this.request({
-      method: 'POST',
-      url: API_ENDPOINTS.POST_SHARE(postId),
-    });
-  }
-
-  public async bookmarkPost(postId: string): Promise<void> {
-    await this.request({
-      method: 'POST',
-      url: API_ENDPOINTS.POST_BOOKMARK(postId),
-    });
-  }
-
-
-
-  public async updateProfile(username: string, updates: PartialProfileUpdate): Promise<UserProfile> {
-    try {
-      logger.debug(`Updating profile for user: ${username}`, { 
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorData = {
+        error: errorMessage,
         username,
-        updates,
-        endpoint: API_ENDPOINTS.USER_PROFILE(username)
-      });
-
-      // Validate required fields
-      if (!username) {
-        throw new Error('Username is required for profile update');
-      }
-
-      // Filter out undefined values and create a clean updates object
-      const cleanUpdates = Object.entries(updates)
-        .filter(([_, value]) => value !== undefined)
-        .reduce((acc, [key, value]) => ({ ...acc, [key]: value }), {});
-
-      if (Object.keys(cleanUpdates).length === 0) {
-        throw new Error('No valid fields to update');
-      }
-
-      const response = await this.request<UserProfile>({
-        method: 'PATCH',
-        url: API_ENDPOINTS.USER_PROFILE(username),
-        data: cleanUpdates
-      });
-
-      if (!response) {
-        logger.warn(`No response from profile update for user: ${username}`);
-        const fallback = await this.getUserProfile(username);
-        logger.debug(`Using fallback profile data for user: ${username}`);
-        return fallback;
-      }
-
-      logger.info(`Successfully updated profile for user: ${username}`, { 
-        updatedFields: Object.keys(cleanUpdates)
-      });
-      return response;
-    } catch (error: unknown) {
-      const errorObj = error instanceof Error ? error : new Error('Unknown error occurred');
-      logger.error(`Error updating profile for user: ${username}`, {
-        error: {
-          message: errorObj.message,
-          name: errorObj.name,
-          stack: errorObj.stack
+        response: (error as any)?.response?.data,
+        status: (error as any)?.response?.status,
+        statusText: (error as any)?.response?.statusText,
+        config: (error as any)?.config,
+        stack: error instanceof Error ? error.stack : undefined
+      };
+      
+      logger.error(`Failed to fetch profile for ${username}`, errorData);
+      
+      // Return a default profile with the username if all else fails
+      const now = new Date();
+      return {
+        id: `temp-${Date.now()}`,
+        userId: `temp-${Date.now()}`,
+        username,
+        email: '',
+        role: 'user',
+        emailVerified: false,
+        displayName: username,
+        bio: '',
+        profilePicture: '',
+        coverPhoto: '',
+        socialLinks: {},
+        stats: {
+          postCount: 0,
+          followerCount: 0,
+          followingCount: 0,
+          subscriberCount: 0
         },
-        updates,
-        timestamp: new Date().toISOString()
-      });
+        preferences: {
+          theme: 'system',
+          notifications: {
+            email: true,
+            push: true
+          }
+        },
+        isCreator: false,
+        isVerified: false,
+        createdAt: now,
+        updatedAt: now,
+        isFollowing: false
+      };
+    }
+  }
 
-      // Handle specific error cases
-      if (errorObj.message.includes('404')) {        
-        throw new Error(`Profile not found for user: ${username}`);
-      } else if (errorObj.message.includes('401')) {
-        throw new Error('Authentication required to update profile');
-      } else if (errorObj.message.includes('403')) {
-        throw new Error('Permission denied to update profile');
+  /**
+   * Update a user's profile
+   */
+  public async updateUserProfile(userId: string, profileData: Partial<EditableProfileFields>): Promise<UserProfile> {
+    try {
+      const response = await this.request<UserProfile>(
+        'PUT', 
+        `/users/${userId}`, 
+        profileData as Record<string, unknown>,
+        {}
+      );
+      if (!response.success || !response.data) {
+        throw new Error(response.message || 'Failed to update profile');
       }
+      return this.normalizeUserProfile(response.data);
+    } catch (error) {
+      logger.error('Error updating profile:', { error });
+      throw error;
+    }
+  }
 
-      throw new Error(`Failed to update profile: ${errorObj.message}`);
+  /**
+   * Update user settings
+   */
+  public async updateUserSettings(userId: string, settings: UserSettings): Promise<UserSettings> {
+    try {
+      const response = await this.request<UserSettings>(
+        'PATCH', 
+        `/users/${userId}/settings`,
+        settings,
+        {}
+      );
+      if (!response.success || !response.data) {
+        throw new Error(response.message || 'Failed to update settings');
+      }
+      return response.data;
+    } catch (error) {
+      logger.error('Error updating settings:', { error });
+      throw error;
+    }
+  }
+
+  // Avatar & Cover Photo Methods
+  
+  /**
+   * Upload a new profile picture
+   */
+  public async uploadProfilePicture(userId: string, file: File): Promise<string> {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const response = await this.request<{ url: string }>(
+        'POST', 
+        `/users/${userId}/profile-picture`,
+        formData,
+        {},
+        { 'Content-Type': 'multipart/form-data' }
+      );
+      
+      if (!response.success || !response.data?.url) {
+        throw new Error(response.message || 'Failed to upload profile picture');
+      }
+      
+      return response.data.url;
+    } catch (error) {
+      logger.error('Error uploading profile picture:', { error });
+      throw error;
+    }
+  }
+
+  /**
+   * Upload a new cover photo
+   */
+  public async uploadCoverPhoto(userId: string, file: File): Promise<string> {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const response = await this.request<{ url: string }>(
+        'POST', 
+        `/users/${userId}/cover-photo`,
+        formData,
+        {},
+        { 'Content-Type': 'multipart/form-data' }
+      );
+      
+      if (!response.success || !response.data?.url) {
+        throw new Error(response.message || 'Failed to upload cover photo');
+      }
+      
+      return response.data.url;
+    } catch (error) {
+      logger.error('Error uploading cover photo:', { error });
+      throw error;
+    }
+  }
+
+  // Follow/Unfollow Methods
+  
+  /**
+   * Follow a user
+   */
+  public async followUser(_userId: string, targetUserId: string): Promise<void> {
+    try {
+      const response = await this.request<void>(
+        'POST', 
+        `/users/${targetUserId}/follow`,
+        {} as Record<string, unknown>,
+        {}
+      );
+      if (!response.success) {
+        throw new Error(response.message || 'Failed to follow user');
+      }
+    } catch (error) {
+      logger.error('Error following user:', { error });
+      throw error;
+    }
+  }
+
+  /**
+   * Unfollow a user
+   */
+  public async unfollowUser(_userId: string, targetUserId: string): Promise<void> {
+    try {
+      const response = await this.request<void>(
+        'DELETE', 
+        `/users/${targetUserId}/follow`,
+        {} as Record<string, unknown>,
+        {}
+      );
+      if (!response.success) {
+        throw new Error(response.message || 'Failed to unfollow user');
+      }
+    } catch (error) {
+      logger.error('Error unfollowing user:', { error });
+      throw error;
+    }
+  }
+
+  // Stats Methods
+  
+  /**
+   * Get user stats
+   */
+  public async getUserStats(userId: string): Promise<UserStats> {
+    try {
+      const response = await this.request<UserStats>(
+        'GET', 
+        `/users/${userId}/stats`,
+        {} as Record<string, unknown>,
+        {}
+      );
+      if (!response.success || !response.data) {
+        throw new Error(response.message || 'Failed to fetch user stats');
+      }
+      return {
+        postCount: response.data.postCount || 0,
+        followerCount: response.data.followerCount || 0,
+        followingCount: response.data.followingCount || 0,
+        subscriberCount: response.data.subscriberCount || 0,
+      };
+    } catch (error) {
+      logger.error('Error fetching user stats:', { error });
+      throw error;
+    }
+  }
+
+  /**
+   * Update user stats
+   */
+  public async updateUserStats(userId: string, updates: Partial<UserStats>): Promise<UserStats> {
+    try {
+      const response = await this.request<UserStats>(
+        'PATCH', 
+        `/users/${userId}/stats`, 
+        updates as Record<string, unknown>,
+        {}
+      );
+      if (!response.success || !response.data) {
+        throw new Error(response.message || 'Failed to update user stats');
+      }
+      return response.data;
+    } catch (error) {
+      logger.error('Error updating user stats:', { error });
+      throw error;
+    }
+  }
+
+  // Search Methods
+  
+  /**
+   * Search for users
+   */
+  public async searchUsers(query: string, page = 1, limit = 20): Promise<{ users: UserProfile[]; total: number }> {
+    try {
+      const response = await this.request<{ users: UserProfile[]; total: number }>(
+        'GET', 
+        '/users/search', 
+        {} as Record<string, unknown>,
+        { query, page, limit }
+      );
+      
+      if (!response.success || !response.data) {
+        throw new Error(response.message || 'Failed to search users');
+      }
+      
+      return {
+        users: (response.data.users || []).map(user => this.normalizeUserProfile(user)),
+        total: response.data.total || 0
+      };
+    } catch (error) {
+      logger.error('Error searching users:', { error });
+      throw error;
+    }
+  }
+
+  // Verification Methods
+  
+  /**
+   * Request account verification
+   */
+  public async requestVerification(userId: string): Promise<void> {
+    try {
+      const response = await this.request<void>(
+        'POST', 
+        `/users/${userId}/request-verification`,
+        {} as Record<string, unknown>,
+        {}
+      );
+      if (!response.success) {
+        throw new Error(response.message || 'Failed to request verification');
+      }
+    } catch (error) {
+      logger.error('Error requesting verification:', { error });
+      throw error;
     }
   }
 }
+
+export const profileService = ProfileService.getInstance();
+export default profileService;

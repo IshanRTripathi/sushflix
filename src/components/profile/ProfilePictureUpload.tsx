@@ -1,25 +1,133 @@
-import React, { useState, useEffect } from 'react';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Alert } from '@mui/material';
-import { ProfileService } from '../../services/profileService';
-import { UserProfile, PartialProfileUpdate } from '../../types/user';
-import { logger } from '../../utils/logger';
-import { CloudUpload as CloudUploadIcon } from '@mui/icons-material';
+import React, { useState, useCallback, useEffect } from 'react';
+import { useTheme } from '@mui/material/styles';
+import {
+  Box,
+  IconButton,
+  CircularProgress,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
+  Alert,
+} from '@mui/material';
+import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import { logger } from '@/utils/logger';
 
-interface ProfilePictureUploadProps {
-  username: string;
-  onUploadSuccess: (updates: PartialProfileUpdate) => Promise<void>;
-  onProfileUpdate?: (updates: PartialProfileUpdate) => Promise<void>;
+export interface UploadResponse {
+  success: boolean;
+  imageUrl?: string;
+  error?: string;
 }
 
-export const ProfilePictureUpload: React.FC<ProfilePictureUploadProps> = ({ username, onUploadSuccess, onProfileUpdate }) => {
+export interface ProfilePictureUploadProps {
+  isVisible?: boolean;
+  isUploading?: boolean;
+  currentImageUrl?: string;
+  onUpload: (file: File) => Promise<UploadResponse>;
+  onUploadSuccess?: (data: { imageUrl: string }) => Promise<boolean>;
+}
+
+const ProfilePictureUpload: React.FC<ProfilePictureUploadProps> = ({
+  isVisible = true,
+  isUploading = false,
+  currentImageUrl = '',
+  onUpload,
+  onUploadSuccess,
+}) => {
+  const theme = useTheme();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>('');
-  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string>('');
-  const [open, setOpen] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const profileService = ProfileService.getInstance();
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isInternalUploading, setIsInternalUploading] = useState(false);
+  const isUploadingState = Boolean(isUploading) || isInternalUploading;
 
+  const validateFile = (file: File): string | null => {
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      return 'Please select an image file (JPEG, PNG, or WebP)';
+    }
+
+    // Check specific image types
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      return 'Only JPEG, PNG, and WebP images are allowed';
+    }
+
+    // Check file size (max 5MB)
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    if (file.size > maxSize) {
+      return 'Image size should not exceed 5MB';
+    }
+
+    return null;
+  };
+
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const validationError = validateFile(file);
+      if (validationError) {
+        setError(validationError);
+        return;
+      }
+      setSelectedFile(file);
+      setPreviewUrl(URL.createObjectURL(file));
+      setError('');
+      setIsDialogOpen(true);
+    } else {
+      logger.warn('No file selected');
+    }
+    setError('');
+  };
+
+  const handleUpload = useCallback(async () => {
+    if (!selectedFile) {
+      setError('Please select a file to upload');
+      return;
+    }
+
+    setError('');
+    setIsInternalUploading(true);
+
+    try {
+      logger.info('Starting profile picture upload', {
+        filename: selectedFile.name,
+        size: selectedFile.size,
+        type: selectedFile.type,
+      });
+
+      // Upload the file using the onUpload callback
+      const response = await onUpload(selectedFile);
+
+      if (response.success && response.imageUrl) {
+        // Notify parent component about successful upload
+        if (onUploadSuccess) {
+          await onUploadSuccess({ imageUrl: response.imageUrl });
+        }
+        
+        // Close the dialog
+        setIsDialogOpen(false);
+        setPreviewUrl('');
+        setSelectedFile(null);
+      } else {
+        throw new Error(response.error || 'Failed to upload image');
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+      logger.error('Profile picture upload failed', { 
+        error: errorMessage,
+        stack: error instanceof Error ? error.stack : undefined
+      });
+      
+      setError(`Upload failed: ${errorMessage}`);
+    } finally {
+      setIsInternalUploading(false);
+    }
+  }, [selectedFile, onUpload, onUploadSuccess]);
+
+  // Clean up object URLs on unmount
   useEffect(() => {
     return () => {
       if (previewUrl) {
@@ -28,180 +136,76 @@ export const ProfilePictureUpload: React.FC<ProfilePictureUploadProps> = ({ user
     };
   }, [previewUrl]);
 
-  useEffect(() => {
-    const handleExternalFileSelect = (event: Event) => {
-      logger.info('Received external file selection event');
-      const customEvent = event as CustomEvent<{ file: File }>;
-      const file = customEvent.detail?.file;
-      if (file) {
-        logger.info('External file selected', { name: file.name });
-        handleFile(file);
-      }
-    };
-
-    window.addEventListener('externalFileSelect', handleExternalFileSelect as EventListener);
-    return () => {
-      window.removeEventListener('externalFileSelect', handleExternalFileSelect as EventListener);
-    };
-  }, []);
-
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    logger.info('File picker triggered');
-    const file = event.target.files?.[0];
-    if (file) {
-      handleFile(file);
-    } else {
-      logger.warn('No file selected');
-    }
-  };
-
-  const handleFile = (file: File) => {
-    logger.info('File selected', {
-      name: file.name,
-      size: file.size,
-      type: file.type
-    });
-    
-    // Validate file size (2MB limit)
-    if (file.size > 2 * 1024 * 1024) {
-      setError('File size exceeds maximum limit of 2MB');
-      return;
-    }
-
-    // Validate file type
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
-    if (!allowedTypes.includes(file.type)) {
-      setError('Invalid file type. Only JPEG, PNG, and WebP images are allowed.');
-      return;
-    }
-
-    setSelectedFile(file);
-    const preview = URL.createObjectURL(file);
-    setPreviewUrl(preview);
-    setError('');
-    setOpen(true);
-  };
-
-  const handleClose = () => {
-    setOpen(false);
-    setSelectedFile(null);
-    setPreviewUrl('');
-    setError('');
-  };
-
-  const handleUpload = async () => {
-    try {
-      if (!selectedFile) {
-        throw new Error('No file selected');
-      }
-
-      // Validate file size and type
-      const maxSize = 5 * 1024 * 1024; // 5MB
-      if (selectedFile.size > maxSize) {
-        throw new Error('File size exceeds 5MB limit');
-      }
-
-      if (!['image/jpeg', 'image/png', 'image/webp'].includes(selectedFile.type)) {
-        throw new Error('Only JPEG, PNG, and WebP files are allowed');
-      }
-
-      const formData = new FormData();
-      formData.append('image', selectedFile);
-
-      logger.debug('Uploading profile picture', {
-        username,
-        filename: selectedFile.name,
-        size: selectedFile.size,
-        type: selectedFile.type
-      });
-
-      setUploading(true);
-      const response = await profileService.uploadProfilePicture(username, selectedFile);
-      
-      if (!response?.imageUrl) {
-        throw new Error('Failed to get image URL from response');
-      }
-
-      logger.info('Profile picture uploaded successfully', { 
-        url: response.imageUrl,
-        username,
-        timestamp: new Date().toISOString()
-      });
-
-      // Only update the profile picture field
-      if (onUploadSuccess) {
-        await onUploadSuccess({ profilePicture: response.imageUrl });
-      }
-
-    } catch (error: unknown) {
-      const errorObj = error instanceof Error ? error : new Error('Unknown error occurred');
-      logger.error('Error uploading profile picture', {
-        error: {
-          message: errorObj.message,
-          name: errorObj.name,
-          stack: errorObj.stack
-        },
-        username,
-        timestamp: new Date().toISOString()
-      });
-
-      setError(errorObj.message);
-      setTimeout(() => setError(''), 3000);
-    } finally {
-      setProgress(0);
-      setSelectedFile(null);
-      setUploading(false);
-    }
-  };
+  if (!isVisible) return null;
 
   return (
-    <div className="relative">
-      {previewUrl && (
-        <img
-          src={previewUrl}
-          alt="Preview"
-          className="w-full h-full rounded-full object-cover absolute inset-0"
-        />
-      )}
+    <div className="relative group">
       <input
         type="file"
         accept="image/*"
-        className="hidden"
-        id="profilePictureInput"
         onChange={handleFileSelect}
+        className="hidden"
+        id="profile-picture-upload"
       />
-      <label
-        htmlFor="profilePictureInput"
-        className="absolute bottom-0 right-0 p-2 bg-black/50 rounded-full cursor-pointer hover:bg-black/70 transition-colors duration-200"
-      >
-        <CloudUploadIcon className="text-white w-6 h-6" />
+      <label htmlFor="profile-picture-upload" className="cursor-pointer">
+        <div className="relative w-32 h-32 rounded-full overflow-hidden border-2 border-gray-200">
+          {previewUrl || currentImageUrl ? (
+            <img
+              src={previewUrl || currentImageUrl}
+              alt="Profile preview"
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                target.src = 'https://via.placeholder.com/128';
+              }}
+            />
+          ) : (
+            <div className="w-full h-full bg-gray-100 flex items-center justify-center">
+              <CloudUploadIcon className="w-12 h-12 text-gray-400" />
+            </div>
+          )}
+        </div>
       </label>
-      {error && (
-        <Alert severity="error" className="mt-2">
-          {error}
-        </Alert>
-      )}
-      <Dialog open={open} onClose={handleClose}>
+      <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
+        <CloudUploadIcon className="text-white w-8 h-8" />
+      </div>
+      <Dialog open={isDialogOpen} onClose={() => setIsDialogOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle>Upload Profile Picture</DialogTitle>
         <DialogContent>
-          <div className="flex flex-col items-center">
-            {previewUrl && (
+          {error && (
+            <Alert severity="error" className="mb-4">
+              {error}
+            </Alert>
+          )}
+          {previewUrl && (
+            <div className="flex justify-center my-4">
               <img
                 src={previewUrl}
                 alt="Preview"
-                className="w-40 h-40 rounded-full object-cover mb-4"
+                className="max-w-full max-h-64 object-contain rounded"
               />
-            )}
-          </div>
+            </div>
+          )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleClose}>Cancel</Button>
+          <Button 
+            onClick={() => {
+              setIsDialogOpen(false);
+              setPreviewUrl('');
+              setSelectedFile(null);
+            }} 
+            disabled={isUploadingState}
+          >
+            Cancel
+          </Button>
           <Button
             onClick={handleUpload}
+            color="primary"
             variant="contained"
-            disabled={!selectedFile || uploading}
+            disabled={isUploadingState}
+            startIcon={isUploadingState ? <CircularProgress size={20} /> : null}
           >
-            {uploading ? 'Uploading...' : 'Upload'}
+            {isUploadingState ? 'Uploading...' : 'Upload'}
           </Button>
         </DialogActions>
       </Dialog>
@@ -209,4 +213,7 @@ export const ProfilePictureUpload: React.FC<ProfilePictureUploadProps> = ({ user
   );
 };
 
+// Export the component as default and named export for flexibility
+// Export the component as default and named export for flexibility
 export default ProfilePictureUpload;
+export { ProfilePictureUpload };
