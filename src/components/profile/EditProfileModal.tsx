@@ -6,7 +6,6 @@ import { ProfileFormData, ProfileErrors } from './types';
 import { UserProfile } from '../../types/user';
 import { Box, CircularProgress } from '@mui/material';
 import { logger } from '../../utils/logger';
-import profileService from '../../services/profileService';
 
 interface EditProfileModalProps {
   isOpen: boolean;
@@ -150,11 +149,12 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
                 try {
                   setIsPictureUploading(true);
                   
-                  // Create a mock response since the actual upload will be handled by the parent
-                  // The actual upload will be handled by the parent component
+                  // Create a temporary URL for preview
+                  const previewUrl = URL.createObjectURL(file);
+                  
                   return {
                     success: true,
-                    imageUrl: URL.createObjectURL(file) // Temporary URL for preview
+                    imageUrl: previewUrl // Return temporary URL for preview
                   };
                 } catch (error) {
                   const errorMessage = error instanceof Error ? error.message : 'Failed to process image';
@@ -175,28 +175,41 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
                 
                 try {
                   setIsPictureUploading(true);
+                  
                   // Convert data URL to blob for upload
                   const response = await fetch(previewUrl);
                   const blob = await response.blob();
                   const file = new File([blob], 'profile-picture.jpg', { type: 'image/jpeg' });
                   
-                  // Upload the file to the server
-                  const uploadResult = await profileService.uploadProfilePicture(user.username, file);
+                  // Upload the file to the server using the parent's handler
+                  const formData = new FormData();
+                  formData.append('profilePicture', file);
                   
-                  if (!uploadResult?.success || !uploadResult.data?.profilePicture) {
-                    throw new Error(uploadResult?.error || 'No URL returned from server');
+                  const uploadResponse = await fetch(
+                    `http://localhost:8080/api/users/${user.username}/picture`,
+                    {
+                      method: 'POST',
+                      headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('sushflix_auth_token')}`
+                      },
+                      body: formData
+                    }
+                  );
+                  
+                  const result = await uploadResponse.json();
+                  
+                  if (!result.success || !result.profilePicture) {
+                    throw new Error(result.error || 'Failed to upload profile picture');
                   }
                   
-                  const uploadedImageUrl = uploadResult.data.profilePicture;
-                  
                   // Update the profile with the new picture URL
-                  const success = await handleProfilePictureUpdate(uploadedImageUrl);
+                  const success = await handleProfilePictureUpdate(result.profilePicture);
                   
                   if (success) {
                     // Update the form data with the new picture URL
                     setFormData(prev => ({
                       ...prev,
-                      profilePicture: uploadedImageUrl
+                      profilePicture: result.profilePicture
                     }));
                   }
                   
@@ -211,7 +224,6 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
                     stack: error instanceof Error ? error.stack : undefined
                   });
                   return false;
-                  
                 } finally {
                   setIsPictureUploading(false);
                 }
