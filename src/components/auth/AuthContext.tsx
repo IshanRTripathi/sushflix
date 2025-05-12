@@ -181,8 +181,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     const updatedUser = { ...user, ...updates };
     logger.debug('Updating user data', { updates });
+    
+    // Update localStorage
     localStorage.setItem('user', JSON.stringify(updatedUser));
-    setUser(updatedUser);
+    
+    // Force a state update by creating a new object reference
+    setUser(prevUser => ({
+      ...(prevUser || {}),
+      ...updatedUser
+    }));
+    
+    logger.info('User data updated', { userId: user.userId, updatedFields: Object.keys(updates) });
   };
 
   const openAuthModal = (type: AuthModalType) => {

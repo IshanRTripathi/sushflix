@@ -43,10 +43,19 @@ export function Header({
 } = {}) {
   const { isAuthenticated, logout, user, openAuthModal } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [profilePicture, setProfilePicture] = useState(user?.profilePicture || '');
 
   useEffect(() => {
-    logger.info('Header component mounted');
-  }, []);
+    logger.info('Header component mounted or user data changed', { 
+      hasUser: !!user,
+      profilePicture: user?.profilePicture 
+    });
+    
+    // Update local state when user data changes
+    if (user?.profilePicture !== profilePicture) {
+      setProfilePicture(user?.profilePicture || '');
+    }
+  }, [user, user?.profilePicture]);
 
   const handleMenuClick = () => {
     const newState = !isMenuOpen;
@@ -109,14 +118,19 @@ export function Header({
               <div className="flex items-center space-x-2">
                 <span className="text-gray-400">{user?.displayName}</span>
                 <img
-                  src={user?.profilePicture || DEFAULT_AVATAR}
+                  src={profilePicture || DEFAULT_AVATAR}
                   alt="Profile"
-                  className="w-8 h-8 rounded-full"
+                  className="w-8 h-8 rounded-full object-cover"
                   onError={(e) => {
                     const img = e.target as HTMLImageElement;
-                    img.src = DEFAULT_AVATAR;
-                    logger.warn('Failed to load profile picture, using default');
+                    if (img.src !== DEFAULT_AVATAR) {
+                      img.src = DEFAULT_AVATAR;
+                      logger.warn('Failed to load profile picture, using default', { 
+                        attemptedUrl: profilePicture 
+                      });
+                    }
                   }}
+                  key={profilePicture} // Force re-render when profile picture changes
                 />
               </div>
             </div>
