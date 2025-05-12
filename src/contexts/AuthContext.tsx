@@ -51,8 +51,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (!currentUser) return;
     
     const updatedUser = { ...currentUser, ...updates };
-    localStorage.setItem('user', JSON.stringify(updatedUser));
     setCurrentUser(updatedUser);
+    localStorage.setItem('user', JSON.stringify(updatedUser));
   };
 
   return (

@@ -44,13 +44,7 @@ const ProfileInfo = styled('div')(({ theme }) => ({
   },
 }));
 
-const Username = styled(Typography)(({ theme }) => ({
-  fontWeight: 600,
-  marginBottom: theme.spacing(1),
-  display: 'flex',
-  alignItems: 'center',
-  gap: theme.spacing(1),
-}));
+// Username component removed as it's not being used
 
 const Bio = styled(Typography)(({ theme }) => ({
   color: theme.palette.text.secondary,
@@ -100,10 +94,10 @@ interface ProfilePageParams {
 
 export default function ProfilePage(): React.ReactElement {
   const { username } = useParams<keyof ProfilePageParams>();
-  const { user: currentUser } = useAuth();
+  const { user: currentUser, updateUser } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { setLoading } = useLoadingState();
+  const { setLoadingState } = useLoadingState();
   
   // Redirect if no username is provided
   if (!username) {
@@ -115,7 +109,7 @@ export default function ProfilePage(): React.ReactElement {
   const [activeTab, setActiveTab] = useState(0);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+
   const [isUploading, setIsUploading] = useState(false);
   
   // Fetch user profile data
@@ -168,7 +162,7 @@ export default function ProfilePage(): React.ReactElement {
     }
     
     try {
-      setIsLoading(true);
+      setLoadingState({ isLoading: true });
       // In a real app, you would update the profile via an API call here
       // For now, we'll just close the modal and show a success message
       logger.info('Profile updated successfully');
@@ -177,10 +171,11 @@ export default function ProfilePage(): React.ReactElement {
       // Refresh the profile data
       await queryClient.invalidateQueries({ queryKey: ['userProfile', username] });
     } catch (error) {
-      logger.error('Error updating profile:', { error });
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      logger.error('Error updating profile:', { error: errorMessage });
       // Show error message to user
     } finally {
-      setIsLoading(false);
+      setLoadingState({ isLoading: false });
     }
   };
   
@@ -191,7 +186,7 @@ export default function ProfilePage(): React.ReactElement {
     }
     
     try {
-      setLoading(true);
+      setLoadingState({ isLoading: true });
       if (isFollowing) {
         await profileService.unfollowUser(currentUser.username, username);
       } else {
@@ -203,7 +198,7 @@ export default function ProfilePage(): React.ReactElement {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       logger.error('Error following user:', { error: errorMessage });
     } finally {
-      setLoading(false);
+      setLoadingState({ isLoading: false });
     }
   };
   
@@ -215,6 +210,7 @@ export default function ProfilePage(): React.ReactElement {
     }
     
     try {
+      setLoadingState({ isLoading: true });
       setIsUploading(true);
       
       // Log the file being uploaded
@@ -245,6 +241,11 @@ export default function ProfilePage(): React.ReactElement {
       // Invalidate and refetch profile data
       await queryClient.invalidateQueries({ queryKey: ['userProfile', username] });
       
+      // Update the current user's profile picture in the auth context
+      if (isCurrentUserProfile) {
+        updateUser({ profilePicture: imageUrl });
+      }
+      
       // Return success with the updated profile picture URL
       // Using both url and imageUrl for maximum compatibility
       return { 
@@ -263,6 +264,7 @@ export default function ProfilePage(): React.ReactElement {
         error: errorMessage
       };
     } finally {
+      setLoadingState({ isLoading: false });
       setIsUploading(false);
     }
   };

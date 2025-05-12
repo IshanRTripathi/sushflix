@@ -166,7 +166,7 @@ export const HomePageModern = () => {
                   <div className="flex flex-col md:flex-row items-center justify-between gap-8">
                     <div className="flex-1">
                       <div className="flex items-center mb-6">
-                        <img src="/images/community_icons.png" alt="Community Icons" className="h-8 w-auto mr-4" />
+                        <img src="\static\images\community-icon.png" alt="Community Icons" className="h-8 w-auto mr-4" />
                         <span className="text-gray-700 uppercase text-xs font-semibold tracking-widest">
                           TRUSTED BY A DIVERSE COMMUNITY OF CREATORS
                         </span>
@@ -194,7 +194,7 @@ export const HomePageModern = () => {
                     </div>
                     <div className="w-full md:w-1/2">
                       <img
-                        src="/images/hero-illustration.svg"
+                        src="\static\images\instagram-post.png"
                         alt="Content Creation Illustration"
                         className="w-full h-auto"
                       />

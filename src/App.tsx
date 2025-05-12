@@ -7,7 +7,7 @@ import { ProtectedRoute } from './components/auth/ProtectedRoute';
 import ProfileLayout from './components/layout/ProfileLayout';
 import { Footer } from './components/layout/Footer';
 import Toast from './components/Toast';
-import { HomePageModern as HomePage} from './components/pages/HomePageModern';
+import HomePageModern from './components/pages/HomePageModern';
 import { ExplorePage } from './components/content/ExplorePage';
 import { ContentDetail } from './components/content/components/ContentDetail';
 import SettingsPage from './components/pages/SettingsPage';
@@ -35,7 +35,7 @@ function App() {
                 <Navigation />
                 <main className="flex-grow">
                   <Routes>
-                    <Route path="/" element={<HomePage />} />
+                    <Route path="/" element={<HomePageModern />} />
                     <Route path="/explore" element={<ExplorePage />} />
                     <Route path="/content/:id" element={
                       <ProtectedRoute>

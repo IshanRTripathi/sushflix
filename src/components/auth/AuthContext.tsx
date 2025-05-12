@@ -27,6 +27,7 @@ export interface AuthContextType {
   isAuthenticated: boolean;
   login: (username: string, password: string) => Promise<UserProfile>;
   logout: () => void;
+  updateUser: (updates: Partial<UserProfile>) => void;
   error: AuthErrorType | null;
   isAuthModalOpen: boolean;
   authModalType: AuthModalType;
@@ -175,6 +176,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setError(null);
   };
 
+  const updateUser = (updates: Partial<UserProfile>) => {
+    if (!user) return;
+    
+    const updatedUser = { ...user, ...updates };
+    logger.debug('Updating user data', { updates });
+    localStorage.setItem('user', JSON.stringify(updatedUser));
+    setUser(updatedUser);
+  };
+
   const openAuthModal = (type: AuthModalType) => {
     logger.debug('Opening auth modal', { modalType: type });
     setAuthModalType(type);
@@ -192,6 +202,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     isAuthenticated: !!user,
     login,
     logout,
+    updateUser,
     error,
     isAuthModalOpen,
     authModalType,
