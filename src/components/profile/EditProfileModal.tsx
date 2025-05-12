@@ -6,6 +6,7 @@ import { ProfileFormData, ProfileErrors } from './types';
 import { UserProfile } from '../../types/user';
 import { Box, CircularProgress } from '@mui/material';
 import { logger } from '../../utils/logger';
+import profileService from '../../services/profileService';
 
 interface EditProfileModalProps {
   isOpen: boolean;
@@ -80,39 +81,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
     }
   };
 
-  const handleProfilePictureUpdate = async (imageUrl: string): Promise<boolean> => {
-    try {
-      const success = await onProfilePictureUpdate(imageUrl);
-      
-      if (!success) {
-        throw new Error('Failed to update profile picture');
-      }
-      
-      // Clear any previous errors
-      setPictureError(undefined);
-      
-      logger.info('Profile picture updated successfully', { 
-        username: user.username,
-        imageUrl: imageUrl.substring(0, 50) + '...' 
-      });
-      
-      return true;
-      
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to update profile picture';
-      
-      // Set the error message to be displayed to the user
-      setPictureError(errorMessage);
-      
-      logger.error('Profile picture update failed', { 
-        error: errorMessage,
-        username: user.username,
-        stack: err instanceof Error ? err.stack : undefined
-      });
-      
-      return false;
-    }
-  };
+  // Removed handleProfilePictureUpdate as it's no longer needed
 
   const handleModalClose = () => {
     if (!loading) {
@@ -147,86 +116,59 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
               currentImageUrl={user.profilePicture}
               onUpload={async (file) => {
                 try {
-                  setIsPictureUploading(true);
+                  // Create a temporary URL for preview (not used in this implementation)
+                  URL.createObjectURL(file);
                   
-                  // Create a temporary URL for preview
-                  const previewUrl = URL.createObjectURL(file);
+                  // Upload the file using the profile service
+                  const response = await profileService.uploadProfilePicture(user.username, file);
                   
-                  return {
-                    success: true,
-                    imageUrl: previewUrl // Return temporary URL for preview
-                  };
-                } catch (error) {
-                  const errorMessage = error instanceof Error ? error.message : 'Failed to process image';
-                  logger.error('Error processing image', { error });
-                  return {
-                    success: false,
-                    error: errorMessage
-                  };
-                } finally {
-                  setIsPictureUploading(false);
-                }
-              }}
-              onUploadSuccess={async ({ imageUrl: previewUrl }) => {
-                if (!previewUrl) {
-                  setPictureError('No image URL provided');
-                  return false;
-                }
-                
-                try {
-                  setIsPictureUploading(true);
-                  
-                  // Convert data URL to blob for upload
-                  const response = await fetch(previewUrl);
-                  const blob = await response.blob();
-                  const file = new File([blob], 'profile-picture.jpg', { type: 'image/jpeg' });
-                  
-                  // Upload the file to the server using the parent's handler
-                  const formData = new FormData();
-                  formData.append('profilePicture', file);
-                  
-                  const uploadResponse = await fetch(
-                    `http://localhost:8080/api/users/${user.username}/picture`,
-                    {
-                      method: 'POST',
-                      headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('sushflix_auth_token')}`
-                      },
-                      body: formData
-                    }
-                  );
-                  
-                  const result = await uploadResponse.json();
-                  
-                  if (!result.success || !result.profilePicture) {
-                    throw new Error(result.error || 'Failed to upload profile picture');
+                  if (!response.success || !response.data?.profilePicture) {
+                    throw new Error(response.error || 'Failed to upload profile picture');
                   }
                   
                   // Update the profile with the new picture URL
-                  const success = await handleProfilePictureUpdate(result.profilePicture);
+                  const success = await onProfilePictureUpdate(response.data.profilePicture);
                   
                   if (success) {
                     // Update the form data with the new picture URL
                     setFormData(prev => ({
                       ...prev,
-                      profilePicture: result.profilePicture
+                      profilePicture: response.data!.profilePicture
                     }));
+                    
+                    logger.info('Profile picture updated successfully', { 
+                      username: user.username,
+                      imageUrl: response.data.profilePicture.substring(0, 50) + '...' 
+                    });
                   }
                   
-                  return success;
-                  
+                  return { 
+                    success, 
+                    imageUrl: response.data.profilePicture,
+                    url: response.data.profilePicture // For backward compatibility
+                  };
                 } catch (error) {
                   const errorMessage = error instanceof Error ? error.message : 'Failed to upload profile picture';
                   setPictureError(errorMessage);
-                  logger.error('Error uploading profile picture', { 
+                  logger.error('Profile picture update failed', { 
                     error: errorMessage,
                     username: user.username,
                     stack: error instanceof Error ? error.stack : undefined
                   });
-                  return false;
+                  return { 
+                    success: false, 
+                    error: errorMessage 
+                  };
                 } finally {
                   setIsPictureUploading(false);
                 }
+              }}
+              onUploadSuccess={async ({ imageUrl }) => {
+                setFormData(prev => ({
+                  ...prev,
+                  profilePicture: imageUrl
+                }));
+                return true;
               }}
             />
             {isPictureUploading && (

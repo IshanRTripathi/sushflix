@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { logger } from '../../utils/logger';
@@ -43,19 +43,24 @@ export function Header({
 } = {}) {
   const { isAuthenticated, logout, user, openAuthModal } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [profilePicture, setProfilePicture] = useState(user?.profilePicture || '');
-
+  // Use a ref to track the previous profile picture URL to prevent unnecessary updates
+  const prevProfilePictureRef = React.useRef<string | undefined>();
+  
+  // Always use the latest user.profilePicture, no need for local state
+  const profilePicture = user?.profilePicture || '';
+  
+  // Debug effect to log profile picture changes
   useEffect(() => {
-    logger.info('Header component mounted or user data changed', { 
-      hasUser: !!user,
-      profilePicture: user?.profilePicture 
-    });
-    
-    // Update local state when user data changes
-    if (user?.profilePicture !== profilePicture) {
-      setProfilePicture(user?.profilePicture || '');
+    if (prevProfilePictureRef.current !== user?.profilePicture) {
+      logger.info('Profile picture URL changed', {
+        previous: prevProfilePictureRef.current,
+        current: user?.profilePicture,
+        hasUser: !!user,
+        userId: user?.userId
+      });
+      prevProfilePictureRef.current = user?.profilePicture;
     }
-  }, [user, user?.profilePicture]);
+  }, [user?.profilePicture, user?.userId]);
 
   const handleMenuClick = () => {
     const newState = !isMenuOpen;
