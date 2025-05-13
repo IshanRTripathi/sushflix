@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { UserProfile, UserStats, SocialLinks } from '../types/user';
 import { profileService } from '../services/profileService';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../components/auth/AuthContext';
 import { useLoading } from '../contexts/LoadingContext';
 
 /**
@@ -48,7 +48,7 @@ interface UseProfileReturn {
  */
 export const useProfile = (username?: string): UseProfileReturn => {
   const { username: urlUsername } = useParams<{ username: string }>();
-  const { currentUser } = useAuth();
+  const { user: currentUser } = useAuth();
   const { startLoading, stopLoading } = useLoading();
   const navigate = useNavigate();
 
