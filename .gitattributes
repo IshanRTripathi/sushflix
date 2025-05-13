@@ -1,0 +1,23 @@
+# Auto detect text files and perform LF normalization
+* text=auto eol=lf
+
+# Source code files
+*.{js,jsx,ts,tsx,json,html,css,scss,less,md,yml,yaml} text eol=lf
+
+# Binary files that should not be modified
+*.{png,jpg,jpeg,gif,ico,svg,ttf,woff,woff2,eot,mp4,webm,wav,mp3,m4a,aac,oga,mov,pdf,zip,gz,bz2,xz,tgz,7z,exe,dll,so,dylib,dmg,pkg,app,pdb,lib,a,o,obj,pyc,pyo,pyd,class,jar,war,ear,rar,db,sqlite,sqlite3,sql,sql.gz,tar,tar.gz,tar.bz2,tar.xz,gem} binary
+
+# Windows specific files
+*.{cmd,bat} text eol=crlf
+*.{ps1,psm1,psd1,ps1xml,psc1,pssc,cdxml} text eol=lf
+
+# Shell scripts
+*.sh text eol=lf
+
+# Git merge files
+*.{orig,bak,patch,diff} binary
+
+# IDE specific files
+.vscode/* text eol=lf
+.idea/* text eol=lf
+*.{sln,suo,user,userosscache,sln.docstates,vspscc,vssscc,scc,DotSettings} text eol=lf

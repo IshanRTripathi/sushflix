@@ -1,0 +1,29 @@
+# Browsers that we support
+
+# Last 2 versions of all major browsers
+last 2 versions
+
+# Browsers with market share > 0.5%
+> 0.5%
+
+# Not dead browsers (no official updates in the last 24 months)
+not dead
+
+# Specific browser versions
+not ie <= 11
+not op_mini all
+
+# Specific browser versions with market share > 1%
+and_chr >= 90
+and_ff >= 90
+and_uc >= 13.4
+android >= 6
+chrome >= 90
+chromeandroid >= 90
+edge >= 90
+firefox >= 90
+ios_saf >= 14
+op_mob >= 64
+opera >= 76
+safari >= 14
+samsung >= 14.0

@@ -7,10 +7,16 @@ import LoadingSpinner from '../common/LoadingSpinner';
 interface FeaturedProfilesSectionProps {
   profiles: UserProfile[];
   isLoading?: boolean;
-  error?: string;
+  error?: string | null;
+  isDark?: boolean;
 }
 
-const FeaturedProfilesSection: React.FC<FeaturedProfilesSectionProps> = ({ profiles, isLoading = false, error = '' }) => {
+const FeaturedProfilesSection: React.FC<FeaturedProfilesSectionProps> = ({ 
+  profiles, 
+  isLoading = false, 
+  error = null,
+  isDark = false 
+}) => {
   const [currentIndex, setCurrentIndex] = useState(0);
 
   useEffect(() => {
@@ -37,16 +43,30 @@ const FeaturedProfilesSection: React.FC<FeaturedProfilesSectionProps> = ({ profi
 
   if (isLoading) {
     return (
-      <div className="h-[400px] flex items-center justify-center">
-        <LoadingSpinner />
+      <div className={`h-[400px] flex items-center justify-center ${
+        isDark ? 'bg-gray-900' : 'bg-white'
+      }`}>
+        <LoadingSpinner color={isDark ? 'secondary' : 'gray'} />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="h-[400px] flex items-center justify-center text-red-500">
-        <p>{error}</p>
+      <div className={`relative h-[500px] overflow-hidden ${
+        isDark ? 'bg-gray-900' : 'bg-white'
+      }`}>
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="relative w-full max-w-4xl mx-auto px-4">
+            <div className="relative h-[400px]">
+              <p className={`text-center px-4 ${
+                isDark ? 'text-red-400' : 'text-red-600'
+              }`}>
+                {error}
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
