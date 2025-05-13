@@ -4,7 +4,7 @@ import { API_BASE_URL, useTheme } from '../../config/index';
 import ErrorBoundary from '../ui/ErrorBoundary';
 import Loading from '../ui/Loading';
 import FeaturedProfilesSection from './FeaturedProfilesSection';
-import { useLoadingContext } from '../../contexts/LoadingContextV2';
+import { useLoadingContext } from '../../contexts/LoadingContext';
 import { USER_ROLES, UserPreferences } from '../../types/user';
 
 interface UserProfile {

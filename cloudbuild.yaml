@@ -31,9 +31,9 @@ steps:
         'us-central1',
         '--allow-unauthenticated',
         '--set-secrets',
-        'MONGO_URI=mongo-uri:latest,JWT_SECRET=jwt-secret:latest',
-        '--set-env-vars',
-        'GCS_BUCKET_NAME=user-profile-pictures-sushflix'
+        'MONGODB_URI=mongodb-uri:latest,JWT_SECRET=jwt-secret:latest',
+        '--update-env-vars',
+        'GCS_BUCKET_NAME=user-profile-pictures-sushflix,NODE_ENV=production'
       ]
 
   # Build and push the frontend Docker image

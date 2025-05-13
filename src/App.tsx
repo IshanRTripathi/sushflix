@@ -2,7 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from './components/auth/AuthContext';
 import { ThemeProvider } from './theme/components/ThemeProvider';
-import { LoadingProvider } from './contexts/LoadingContextV2';
+import { LoadingProvider } from './contexts/LoadingContext';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
 import ProfileLayout from './components/layout/ProfileLayout';
 import { Footer } from './components/layout/Footer';

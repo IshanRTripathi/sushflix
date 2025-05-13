@@ -1,6 +1,6 @@
 import React from 'react';
 import { CircularProgress } from '@mui/material';
-import { useLoadingContext } from '../../contexts/LoadingContextV2';
+import { useLoadingContext } from '../../contexts/LoadingContext';
 import SkeletonLoader from './SkeletonLoader';
 
 interface LoadingProps {

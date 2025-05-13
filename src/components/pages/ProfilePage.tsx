@@ -17,7 +17,7 @@ import VerifiedIcon from '@mui/icons-material/Verified';
 import { useAuth } from '../auth/AuthContext';
 import profileService from '../../services/profileService';
 import { logger } from '../../utils/logger';
-import { useLoadingContext } from '../../contexts/LoadingContextV2';
+import { useLoadingContext } from '../../contexts/LoadingContext';
 import { useQuery, useQueryClient, UseQueryOptions } from '@tanstack/react-query';
 import type { ApiResponse, UserProfile } from '../../types/user';
 import EditProfile from '../profile/EditProfile';
