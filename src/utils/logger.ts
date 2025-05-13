@@ -1,3 +1,5 @@
+import { env } from './env';
+
 /**
  * Log levels for the Logger class.
  * Logs with a level greater than or equal to the current log level will be output.
@@ -57,8 +59,9 @@ class Logger {
   private includeContext: boolean;
 
   private constructor(options: LoggerOptions = {}) {
+    const isProduction = env?.NODE_ENV === 'production';
     this.logLevel = options.logLevel || 
-      (process.env.NODE_ENV === 'production' ? LogLevel.INFO : LogLevel.DEBUG);
+      (isProduction ? LogLevel.INFO : LogLevel.DEBUG);
     this.includeTimestamps = options.includeTimestamps ?? true;
     this.includeContext = options.includeContext ?? true;
   }
@@ -124,19 +127,14 @@ class Logger {
    * Internal method to handle log writing
    * @private
    */
-  private log(level: LogLevel, message: string, context?: Record<string, unknown>) {
-    if (!message || typeof message !== 'string') {
-      console.warn('Attempted to log with invalid message');
-      return;
-    }
-
+  private log(level: LogLevel, message: string, context?: Record<string, unknown>): void {
     if (!this.shouldLog(level)) return;
 
     const entry: LogEntry = {
       level,
       message,
       timestamp: new Date(),
-      context,
+      ...(this.includeContext && context ? { context } : {}),
     };
 
     const formattedMessage = this.formatMessage(entry);

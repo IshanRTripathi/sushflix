@@ -1,6 +1,8 @@
 require('dotenv').config({ path: '../../.env' });
 
 const path = require('path');
+// Server configuration
+const PORT = process.env.PORT || 8080;
 const express = require('express');
 const cors = require('cors');
 const morgan = require('morgan');
@@ -72,7 +74,7 @@ app.use('/api', (req, res, next) => {
   logger.debug('Body:', req.body);
 
   // Set timeout but don't handle response here
-  req.setTimeout(30000, () => {
+  req.setTimeout(51730, () => {
     logger.warn(`Request timeout: ${req.method} ${req.url}`);
   });
 
@@ -121,7 +123,6 @@ process.on('unhandledRejection', (reason, promise) => {
   
 
 // Server bootstrap
-const PORT = process.env.PORT || 8080;
 
 const startServer = async () => {
   logger.info('Initializing server...');

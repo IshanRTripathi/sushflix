@@ -1,85 +1,136 @@
+const mongoose = require('mongoose');
 const FeaturedProfile = require('../models/FeaturedProfile');
 const User = require('../models/User');
 const logger = require('../config/logger');
 
 const getFeaturedProfiles = async () => {
   try {
-    // First get all the featured profiles
+    logger.info('Fetching featured profiles from database...');
+    
+    // Get all active featured profiles
     const featuredProfiles = await FeaturedProfile
       .find({ isActive: true })
       .sort({ displayOrder: 1, lastUpdated: -1 })
-      .limit(3);
+      .limit(3)
+      .lean()
+      .catch(err => {
+        logger.error('Error fetching featured profiles:', err);
+        throw err;
+      });
 
-    logger.info('Found featured profiles:', featuredProfiles.length);
-    logger.debug('Raw featured profiles:', featuredProfiles);
-
-    // Get all user IDs from featured profiles
-    const userIds = featuredProfiles.map(fp => fp.userId);
+    logger.info(`Found ${featuredProfiles.length} featured profiles in database`);
+    logger.debug('Featured profiles raw data:', JSON.stringify(featuredProfiles, null, 2));
     
-    // Fetch all user data in one query
-    const users = await User.find({ _id: { $in: userIds } });
-    logger.debug('Fetched users:', users);
+    if (!featuredProfiles || featuredProfiles.length === 0) {
+      logger.warn('No active featured profiles found in database');
+      return [];
+    }
+    
+    logger.debug('Featured profiles from DB:', JSON.stringify(featuredProfiles, null, 2));
+    
+    // Get user IDs from featured profiles with validation
+    let userIds = [];
+    try {
+      userIds = featuredProfiles
+        .map(profile => {
+          if (!profile || !profile.userId) {
+            logger.warn('Invalid profile data:', profile);
+            return null;
+          }
+          return profile.userId;
+        })
+        .filter(Boolean)
+        .filter(userId => {
+          try {
+            // Validate userId format
+            new mongoose.Types.ObjectId(userId);
+            return true;
+          } catch (error) {
+            logger.error(`Invalid userId format: ${userId}`, error);
+            return false;
+          }
+        });
 
-    const defaultProfile = {
-      userId: '',
-      username: 'Unknown User',
-      displayName: 'Anonymous Creator',
-      profilePicture: 'https://via.placeholder.com/150',
-      bio: 'No bio available',
-      posts: 0,
-      followers: 0,
-      subscribers: 0
-    };
-
-    const mappedProfiles = featuredProfiles.map(fp => {
-      // Find the corresponding user data
-      const user = users.find(u => u._id.toString() === fp.userId.toString());
+      logger.info(`Extracted ${userIds.length} valid user IDs from featured profiles`);
       
-      logger.debug('Mapping profile for user:', user);
+      if (userIds.length === 0) {
+        logger.error('No valid user IDs found in featured profiles');
+        return [];
+      }
+    } catch (error) {
+      logger.error('Error processing user IDs:', error);
+      throw error;
+    }
 
-      return {
-        profilePicture: user?.profilePicture || defaultProfile.profilePicture,
-        username: user?.username || defaultProfile.username,
-        bio: defaultProfile.bio,
-        posts: defaultProfile.posts,
-        followers: defaultProfile.followers,
-        subscribers: defaultProfile.subscribers
-      };
-    });
+    // Fetch user details for featured profiles
+    let users = [];
+    try {
+      users = await User.find({ _id: { $in: userIds } })
+        .select('username displayName profilePicture bio postsCount followersCount subscribersCount')
+        .lean()
+        .catch(err => {
+          logger.error('Error fetching user details:', err);
+          throw err;
+        });
 
-    logger.info('Final mapped featured profiles:', mappedProfiles);
+      logger.info(`Fetched ${users.length} user records for featured profiles`);
+      
+      if (users.length === 0) {
+        logger.error('No user records found for featured profiles');
+        return [];
+      }
+    } catch (error) {
+      logger.error('Error in user details fetch:', error);
+      throw error;
+    }
+
+    // Create a map of user IDs to user objects for easy lookup
+    const userMap = users.reduce((acc, user) => {
+      acc[user._id.toString()] = user;
+      return acc;
+    }, {});
+    
+    // Map the profiles to include user data
+    const mappedProfiles = featuredProfiles
+      .map(profile => {
+        const user = userMap[profile.userId];
+        
+        if (!user) {
+          logger.warn(`No user found for featured profile with userId: ${profile.userId}`);
+          return null;
+        }
+
+        return {
+          userId: user._id,
+          profilePicture: user.profilePicture || 'https://via.placeholder.com/150',
+          username: user.username || 'Unknown User',
+          displayName: user.displayName || user.username || 'Anonymous Creator',
+          bio: user.bio || 'No bio available',
+          posts: user.postsCount || 0,
+          followers: user.followersCount || 0,
+          subscribers: user.subscribersCount || 0
+        };
+      })
+      .filter(Boolean); // Remove any null entries from missing users
+    
+    logger.info(`Mapped ${mappedProfiles.length} featured profiles with user data`);
     return mappedProfiles;
   } catch (error) {
-    logger.error('Error fetching featured profiles:', error);
-    logger.error('Error details:', {
+    logger.error('CRITICAL ERROR in getFeaturedProfiles:', {
       message: error.message,
-      stack: error.stack
+      stack: error.stack,
+      name: error.name,
+      code: error.code,
+      errors: error.errors
     });
+    
+    // Don't return mock data in production
+    if (process.env.NODE_ENV === 'production') {
+      return [];
+    }
+    
+    // Only return test data in development
     return [
-      {
-        profilePicture: 'https://via.placeholder.com/150',
-        username: 'Featured Creator 1',
-        bio: 'Featured creator on SushFlix',
-        posts: 100,
-        followers: 5000,
-        subscribers: 2500
-      },
-      {
-        profilePicture: 'https://via.placeholder.com/150',
-        username: 'Featured Creator 2',
-        bio: 'Trending creator on SushFlix',
-        posts: 75,
-        followers: 3000,
-        subscribers: 1500
-      },
-      {
-        profilePicture: 'https://via.placeholder.com/150',
-        username: 'Featured Creator 3',
-        bio: 'Rising creator on SushFlix',
-        posts: 50,
-        followers: 2000,
-        subscribers: 1000
-      }
     ];
   }
 };

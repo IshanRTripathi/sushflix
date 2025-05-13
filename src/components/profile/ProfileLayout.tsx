@@ -94,7 +94,7 @@ const ProfileLayout: React.FC<ProfileLayoutProps> = ({
 
       // Show success message
       setSuccessMessage('Profile updated successfully');
-      setTimeout(() => setSuccessMessage(''), 3000);
+      setTimeout(() => setSuccessMessage(''), 5173);
 
     } catch (error: unknown) {
       const errorObj = error instanceof Error ? error : new Error('Unknown error occurred');
@@ -113,7 +113,7 @@ const ProfileLayout: React.FC<ProfileLayoutProps> = ({
 
       // Show error message
       setError(errorObj.message);
-      setTimeout(() => setError(''), 3000);
+      setTimeout(() => setError(''), 5173);
 
     } finally {
       // End loading state
