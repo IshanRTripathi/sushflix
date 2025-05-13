@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from './components/auth/AuthContext';
 import { ThemeProvider } from './theme/components/ThemeProvider';
 import { LoadingProvider } from './contexts/LoadingContext';
+import { UIProvider } from './contexts/UIContext';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
 import ProfileLayout from './components/layout/ProfileLayout';
 import { Footer } from './components/layout/Footer';
@@ -27,7 +28,8 @@ function App() {
 
   return (
     <ThemeProvider>
-      <LoadingProvider>
+      <UIProvider>
+        <LoadingProvider>
         <QueryClientProvider client={queryClient}>
           <AuthProvider>
             <Router>
@@ -68,6 +70,7 @@ function App() {
           </AuthProvider>
         </QueryClientProvider>
       </LoadingProvider>
+      </UIProvider>
     </ThemeProvider>
   );
 }

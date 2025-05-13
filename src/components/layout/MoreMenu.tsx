@@ -1,6 +1,7 @@
 import React, { useCallback } from 'react';
 import { logger } from '../../utils/logger';
 import { SettingsIcon, HelpCircleIcon, ShieldIcon, FileTextIcon } from 'lucide-react';
+import { useUI } from '../../contexts/UIContext';
 
 // Constants for configuration
 const MENU_ITEMS = [
@@ -35,23 +36,22 @@ const MENU_ITEMS = [
 ] as const;
 
 interface MoreMenuProps {
-  onClose: () => void;
   className?: string;
   onMenuItemClick?: (id: string) => void;
 }
 
 export const MoreMenu: React.FC<MoreMenuProps> = ({
-  onClose,
   className = '',
   onMenuItemClick
 }) => {
+  const { closeMoreMenu, isMoreMenuOpen } = useUI();
   const handleItemClick = useCallback((id: string) => {
     try {
       const item = MENU_ITEMS.find(i => i.id === id);
       if (item) {
         item.action();
         onMenuItemClick?.(id);
-        onClose();
+        closeMoreMenu();
       }
     } catch (error: unknown) {
       logger.error('Error handling menu item click:', {
@@ -59,13 +59,15 @@ export const MoreMenu: React.FC<MoreMenuProps> = ({
         itemId: id
       });
     }
-  }, [onClose, onMenuItemClick]);
+  }, [closeMoreMenu, onMenuItemClick]);
 
   const handleBackdropClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     if (e.target === e.currentTarget) {
-      onClose();
+      closeMoreMenu();
     }
-  }, [onClose]);
+  }, [closeMoreMenu]);
+
+  if (!isMoreMenuOpen) return null;
 
   return (
     <div

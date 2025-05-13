@@ -1,4 +1,4 @@
-import { defineConfig, loadEnv, type ConfigEnv } from 'vite';
+import { defineConfig, loadEnv, type ConfigEnv, splitVendorChunkPlugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 import { visualizer } from 'rollup-plugin-visualizer';
@@ -8,6 +8,7 @@ import { createStyleImportPlugin, AntdResolve } from 'vite-plugin-style-import';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { z } from 'zod';
+import { chunkSplitPlugin } from 'vite-plugin-chunk-split';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -34,6 +35,8 @@ export default defineConfig(({ mode }: ConfigEnv) => {
     }
   }
 
+  const isProduction = mode === 'production';
+  
   return {
     resolve: {
       alias: {
@@ -43,21 +46,68 @@ export default defineConfig(({ mode }: ConfigEnv) => {
     define: {
       __APP_ENV__: JSON.stringify(env.NODE_ENV || 'development'),
     },
+    esbuild: {
+      // Minify production builds
+      minify: isProduction,
+      // Enable tree-shaking
+      treeShaking: true,
+    },
+    build: {
+      target: 'esnext',
+      minify: isProduction ? 'esbuild' : false,
+      sourcemap: !isProduction,
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            // Split vendor modules into separate chunks
+            vendor: ['react', 'react-dom', 'react-router-dom'],
+            // Split UI libraries
+            ui: ['@mui/material', '@mui/icons-material', '@emotion/react', '@emotion/styled'],
+            // Split data fetching libraries
+            data: ['@tanstack/react-query', 'axios'],
+          },
+        },
+      },
+      // Enable CSS code splitting
+      cssCodeSplit: true,
+      // Optimize chunks
+      chunkSizeWarningLimit: 1000,
+      // Enable gzip compression
+      reportCompressedSize: true,
+    },
     plugins: [
+      // Enable React fast refresh in development
       react({
         babel: {
           plugins: [
             ['@babel/plugin-proposal-decorators', { legacy: true }],
             ['@babel/plugin-proposal-class-properties', { loose: true }],
+            // Enable React.lazy and Suspense for code splitting
+            '@babel/plugin-syntax-dynamic-import',
           ],
         },
       }),
       createStyleImportPlugin({
         resolves: [AntdResolve()],
       }),
+      // Bundle splitting and optimization
+      splitVendorChunkPlugin(),
+      chunkSplitPlugin({
+        strategy: 'default',
+        customSplitting: {
+          // Split routes into separate chunks
+          'home': ['src/pages/HomePage.tsx'],
+          'profile': ['src/pages/ProfilePage.tsx'],
+          'explore': ['src/pages/ExplorePage.tsx'],
+          // Split large components
+          'editor': ['src/components/editor/**/*.tsx'],
+          'media': ['src/components/media/**/*.tsx'],
+        },
+      }),
+      // PWA support
       VitePWA({
         registerType: 'autoUpdate',
-        includeAssets: ['favicon.ico', 'robots.txt', 'apple-touch-icon.png', 'static/**/*'],
+        includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
         manifest: {
           name: env.VITE_APP_NAME,
           short_name: env.VITE_APP_NAME,
@@ -73,6 +123,27 @@ export default defineConfig(({ mode }: ConfigEnv) => {
               src: 'pwa-512x512.png',
               sizes: '512x512',
               type: 'image/png',
+            },
+          ],
+        },
+        workbox: {
+          // Enable precaching of assets
+          globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+          // Enable runtime caching for API requests
+          runtimeCaching: [
+            {
+              urlPattern: /^https:\/\/api\./,
+              handler: 'NetworkFirst',
+              options: {
+                cacheName: 'api-cache',
+                expiration: {
+                  maxEntries: 10,
+                  maxAgeSeconds: 60 * 60 * 24 * 7, // 7 days
+                },
+                cacheableResponse: {
+                  statuses: [0, 200], // Cache successful and opaque responses
+                },
+              },
             },
           ],
         },
@@ -92,11 +163,11 @@ export default defineConfig(({ mode }: ConfigEnv) => {
           },
         },
       }),
-      mode === 'analyze' && visualizer({
+      isProduction && visualizer({
         open: true,
-        filename: 'dist/bundle-analyzer-report.html',
         gzipSize: true,
         brotliSize: true,
+        filename: 'dist/bundle-stats.html',
       }),
     ].filter(Boolean),
     build: {

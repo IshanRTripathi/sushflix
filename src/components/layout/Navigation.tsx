@@ -1,18 +1,19 @@
-import { useState } from 'react';
+import { useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { useTheme } from '../../config';
 import { DEFAULT_IMAGES } from '../../config/images';
+import { useUI } from '../../contexts/UIContext';
 
 export function Navigation() {
   const { isAuthenticated, logout, user, openAuthModal } = useAuth();
   const { isDark } = useTheme();
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { isMobileMenuOpen, toggleMobileMenu } = useUI();
 
-  const handleLogout = () => {
+  const handleLogout = useCallback(() => {
     logout();
-    setIsMenuOpen(false);
-  };
+    toggleMobileMenu();
+  }, [logout, toggleMobileMenu]);
 
   return (
     <nav className={`h-16 ${isDark ? 'bg-gray-900 border-b border-gray-800' : 'bg-white shadow-lg'}`}>
@@ -73,9 +74,10 @@ export function Navigation() {
             {isAuthenticated ? (
               <div className="relative flex items-center">
                 <button
-                  onClick={() => setIsMenuOpen(!isMenuOpen)}
+                  onClick={toggleMobileMenu}
                   className="focus:outline-none"
                   aria-label="Toggle user menu"
+                  aria-expanded={isMobileMenuOpen}
                 >
                   <img
                     src={user?.profilePicture || DEFAULT_IMAGES.avatar}
@@ -84,20 +86,20 @@ export function Navigation() {
                   />
                 </button>
 
-                {isMenuOpen && (
+                {isMobileMenuOpen && (
                   <div className={`absolute top-full right-4 mt-2 w-48 rounded-md shadow-lg z-50 ${isDark ? 'bg-gray-800 ring-1 ring-gray-700' : 'bg-white ring-1 ring-black ring-opacity-5'}`}>
                     <div className="py-1">
                       <Link
                         to={`/profile/${user?.username}`}
                         className={`block px-4 py-2 text-sm ${isDark ? 'text-gray-200 hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-100'}`}
-                        onClick={() => setIsMenuOpen(false)}
+                        onClick={toggleMobileMenu}
                       >
                         Your Profile
                       </Link>
                       <Link
                         to="/settings"
                         className={`block px-4 py-2 text-sm ${isDark ? 'text-gray-200 hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-100'}`}
-                        onClick={() => setIsMenuOpen(false)}
+                        onClick={toggleMobileMenu}
                       >
                         Settings
                       </Link>
@@ -124,18 +126,20 @@ export function Navigation() {
         </div>
       </div>
 
-      {isMenuOpen && (
+      {isMobileMenuOpen && (
         <div className="sm:hidden">
           <div className="px-2 pt-2 pb-3 space-y-1">
             <Link
               to="/"
               className={`block px-3 py-2 rounded-md text-base font-medium ${isDark ? 'text-gray-400 hover:text-white hover:bg-gray-800' : 'text-gray-900 hover:text-gray-700 hover:bg-gray-50'}`}
+              onClick={toggleMobileMenu}
             >
               Home
             </Link>
             <Link
               to="/explore"
               className={`block px-3 py-2 rounded-md text-base font-medium ${isDark ? 'text-gray-400 hover:text-white hover:bg-gray-800' : 'text-gray-900 hover:text-gray-700 hover:bg-gray-50'}`}
+              onClick={toggleMobileMenu}
             >
               Explore
             </Link>
@@ -160,12 +164,14 @@ export function Navigation() {
                 <Link
                   to={`/profile/${user?.username}`}
                   className={`block px-3 py-2 rounded-md text-base font-medium ${isDark ? 'text-gray-400 hover:text-white hover:bg-gray-800' : 'text-gray-900 hover:text-gray-700 hover:bg-gray-50'}`}
+                  onClick={toggleMobileMenu}
                 >
                   Profile
                 </Link>
                 <Link
                   to="/settings"
                   className={`block px-3 py-2 rounded-md text-base font-medium ${isDark ? 'text-gray-400 hover:text-white hover:bg-gray-800' : 'text-gray-900 hover:text-gray-700 hover:bg-gray-50'}`}
+                  onClick={toggleMobileMenu}
                 >
                   Settings
                 </Link>
