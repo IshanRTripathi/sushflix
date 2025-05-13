@@ -1,45 +1,7 @@
-import React, { useRef, useCallback, useState, useEffect } from 'react';
+import React, { useRef, useCallback } from 'react';
 import { Upload, X, Image as ImageIcon, Film, AlertCircle } from 'lucide-react';
 import { useContentUploadForm } from '../../hooks/useContentUploadForm';
-
-// File input types are now defined inline where used
-
-interface ContentFormData {
-  title: string;
-  description: string;
-  requiredLevel: 0 | 1 | 2 | 3;
-  mediaType: 'image' | 'video';
-  thumbnailFile?: File;
-  mediaFile?: File;
-}
-
-interface PreviewUrls {
-  thumbnail?: string;
-  media?: string;
-}
-
-// ContentUploadProps is not used in this component, so it's removed
-
-interface FormErrors {
-  general?: string;
-  title?: string;
-  description?: string;
-  thumbnail?: string;
-  media?: string;
-  [key: string]: string | undefined;
-}
-
-interface ContentUploadFormProps {
-  formData: ContentFormData;
-  setFormData: (data: ContentFormData) => void;
-  errors: FormErrors;
-  isUploading: boolean;
-  uploadProgress: number;
-  previewUrls: PreviewUrls;
-  handleFileChange: (e: React.ChangeEvent<HTMLInputElement>, type: 'thumbnail' | 'media') => void;
-  handleSubmit: (e: React.FormEvent) => Promise<void>;
-  LEVEL_DESCRIPTIONS: string[];
-}
+import type { FormData } from '../../hooks/useContentUploadForm';
 
 interface ContentUploadComponentProps {
   onError?: (message: string) => void;
@@ -57,111 +19,55 @@ export function ContentUpload({ onError }: ContentUploadComponentProps) {
     errors, 
     isUploading, 
     uploadProgress, 
-    previewUrls = {}, 
+    previewUrls, 
+    handleFileChange,
+    handleFileDrop: handleFileDropHook,
     handleSubmit, 
-    LEVEL_DESCRIPTIONS = []
-  } = useContentUploadForm() as unknown as ContentUploadFormProps;
-  
-  // Local state for preview URLs
-  const [localPreviewUrls, setLocalPreviewUrls] = useState<PreviewUrls>({});
+    LEVEL_DESCRIPTIONS
+  } = useContentUploadForm();
 
   // Type-safe form data update
-  const updateFormData = useCallback(<K extends keyof ContentFormData>(
+  const updateFormData = useCallback(<K extends keyof FormData>(
     key: K, 
-    value: ContentFormData[K] | undefined
+    value: FormData[K] | undefined
   ) => {
-    setFormData({
-      ...formData,
+    setFormData(prev => ({
+      ...prev,
       [key]: value
-    });
-  }, [formData, setFormData]);
-
-
+    }));
+  }, [setFormData]);
 
   // Handle file removal
   const handleRemoveFile = useCallback((fileType: 'thumbnail' | 'media') => {
-    const formKey = `${fileType}File` as keyof ContentFormData;
+    const formKey = `${fileType}File` as const;
+    
+    // Update form data to remove the file
     updateFormData(formKey, undefined);
     
-    setLocalPreviewUrls((prev: PreviewUrls) => {
-      const newUrls = { ...prev };
-      delete newUrls[fileType];
-      return newUrls;
-    });
-    
-    // Clear file input
+    // Clear the file input value
     const input = fileType === 'thumbnail' ? thumbnailInputRef.current : fileInputRef.current;
-    if (input) input.value = '';
-  }, [updateFormData]);
-  
-  // Handle file input change with proper typing
-  const handleFileInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>, type: 'thumbnail' | 'media') => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    
-    // Validate file type before proceeding
-    const validImageTypes = ['image/jpeg', 'image/png', 'image/gif'];
-    const validVideoTypes = ['video/mp4', 'video/webm'];
-    const isValidType = 
-      (type === 'thumbnail' && validImageTypes.includes(file.type)) ||
-      (type === 'media' && (validImageTypes.includes(file.type) || validVideoTypes.includes(file.type)));
-
-    if (!isValidType) {
-      const errorMessage = `Invalid file type. Please upload a ${type === 'thumbnail' ? 'JPEG, PNG, or GIF' : 'JPEG, PNG, GIF, MP4, or WebM'} file.`;
-      onError?.(errorMessage);
-      return;
+    if (input) {
+      input.value = '';
     }
     
-    // Update form data with the new file
-    const formKey = `${type}File` as keyof ContentFormData;
-    updateFormData(formKey, file as File);
-    
-    // Create and set preview URL
-    const previewUrl = URL.createObjectURL(file);
-    setLocalPreviewUrls(prev => ({
-      ...prev,
-      [type]: previewUrl
-    }));
+    // Notify parent component if there's an error handler
+    if (onError) {
+      onError('');
+    }
   }, [updateFormData, onError]);
 
   // Handle file drop
   const handleDrop = useCallback((e: React.DragEvent<HTMLDivElement>, type: 'thumbnail' | 'media') => {
     e.preventDefault();
     e.stopPropagation();
-    
-    const file = e.dataTransfer.files?.[0];
-    if (!file) return;
-    
-    const event = { 
-      target: { 
-        files: [file],
-        value: ''
-      } 
-    } as unknown as React.ChangeEvent<HTMLInputElement>;
-    handleFileInputChange(event, type);
-  }, [handleFileInputChange]);
+    handleFileDropHook(e, type);
+  }, [handleFileDropHook]);
   
   // Handle drag over
   const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
   }, []);
-
-  // Cleanup preview URLs on unmount
-  useEffect(() => {
-    const currentUrls = { ...localPreviewUrls };
-    return () => {
-      Object.values(currentUrls).forEach((url: string | undefined) => {
-        if (url) URL.revokeObjectURL(url);
-      });
-    };
-  }, [localPreviewUrls]);
-
-  // Combine preview URLs from props and local state
-  const displayPreviewUrls: PreviewUrls = React.useMemo(() => ({
-    ...previewUrls,
-    ...localPreviewUrls
-  }), [previewUrls, localPreviewUrls]);
 
 
 
@@ -303,10 +209,10 @@ export function ContentUpload({ onError }: ContentUploadComponentProps) {
                 errors.thumbnail ? 'border-red-300' : 'border-gray-300'
               } hover:border-indigo-400`}
             >
-              {displayPreviewUrls.thumbnail ? (
+              {previewUrls.thumbnail ? (
                 <div className="relative">
                   <img
-                    src={displayPreviewUrls.thumbnail}
+                    src={previewUrls.thumbnail}
                     alt="Thumbnail preview"
                     className="max-h-48 rounded"
                   />
@@ -340,7 +246,7 @@ export function ContentUpload({ onError }: ContentUploadComponentProps) {
                 type="file"
                 accept="image/*"
                 className="hidden"
-                onChange={(e) => handleFileInputChange(e, 'thumbnail')}
+                onChange={(e) => handleFileChange(e, 'thumbnail')}
               />
             </div>
             {errors.thumbnail && (
@@ -362,17 +268,17 @@ export function ContentUpload({ onError }: ContentUploadComponentProps) {
                 errors.media ? 'border-red-300' : 'border-gray-300'
               } hover:border-indigo-400`}
             >
-              {displayPreviewUrls.media ? (
+              {previewUrls.media ? (
                 <div className="relative">
                   {formData.mediaType === 'video' ? (
                     <video
-                      src={displayPreviewUrls.media}
+                      src={previewUrls.media}
                       className="max-h-48 rounded"
                       controls
                     />
                   ) : (
                     <img
-                      src={displayPreviewUrls.media}
+                      src={previewUrls.media}
                       alt="Media preview"
                       className="max-h-48 rounded"
                     />
@@ -409,7 +315,7 @@ export function ContentUpload({ onError }: ContentUploadComponentProps) {
                 type="file"
                 accept={formData.mediaType === 'video' ? 'video/*' : 'image/*'}
                 className="hidden"
-                onChange={(e) => handleFileInputChange(e, 'media')}
+                onChange={(e) => handleFileChange(e, 'media')}
               />
             </div>
             {errors.media && (

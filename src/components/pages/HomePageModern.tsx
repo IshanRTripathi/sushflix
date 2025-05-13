@@ -4,7 +4,7 @@ import { API_BASE_URL, useTheme } from '../../config/index';
 import ErrorBoundary from '../ui/ErrorBoundary';
 import Loading from '../ui/Loading';
 import FeaturedProfilesSection from './FeaturedProfilesSection';
-import { useLoadingState } from '../../contexts/LoadingStateContext';
+import { useLoadingContext } from '../../contexts/LoadingContextV2';
 import { USER_ROLES, UserPreferences } from '../../types/user';
 
 interface UserProfile {
@@ -86,11 +86,11 @@ export const HomePageModern = () => {
     updatedAt: new Date()
   }));
 
-  const { setLoadingState } = useLoadingState();
+  const { startLoading, stopLoading } = useLoadingContext();
 
   const fetchProfile = async () => {
     try {
-      setLoadingState({ isLoading: true });
+      startLoading();
       const response = await fetch(`${API_BASE_URL}/api/profile`);
       if (!response.ok) {
         throw new Error('Failed to fetch profile');
@@ -111,13 +111,13 @@ export const HomePageModern = () => {
         retryCount: prev.retryCount + 1
       }));
     } finally {
-      setLoadingState({ isLoading: false });
+      stopLoading();
     }
   };
 
   const fetchProfiles = async () => {
     try {
-      setLoadingState({ isLoading: true });
+      startLoading();
       const response = await fetch(`${API_BASE_URL}/api/profiles/featured`, {
         headers: {
           'Cache-Control': 'no-cache'
@@ -149,7 +149,7 @@ export const HomePageModern = () => {
         retryCount: prev.retryCount + 1
       }));
     } finally {
-      setLoadingState({ isLoading: false });
+      stopLoading();
     }
   };
 

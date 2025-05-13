@@ -13,7 +13,7 @@ type LoadingState = {
 
 type LoadingStates = Record<string, LoadingState>;
 
-interface UseLoadingOptions {
+export interface UseLoadingOptions {
   /** Whether to track loading time (default: true) */
   trackTime?: boolean;
   /** Whether to reset error when starting a new loading state (default: true) */

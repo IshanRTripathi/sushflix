@@ -17,7 +17,7 @@ import VerifiedIcon from '@mui/icons-material/Verified';
 import { useAuth } from '../auth/AuthContext';
 import profileService from '../../services/profileService';
 import { logger } from '../../utils/logger';
-import { useLoadingState } from '../../contexts/LoadingStateContext';
+import { useLoadingContext } from '../../contexts/LoadingContextV2';
 import { useQuery, useQueryClient, UseQueryOptions } from '@tanstack/react-query';
 import type { ApiResponse, UserProfile } from '../../types/user';
 import EditProfile from '../profile/EditProfile';
@@ -97,7 +97,7 @@ export default function ProfilePage(): React.ReactElement {
   const { user: currentUser, updateUser } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { setLoadingState } = useLoadingState();
+  const { startLoading, stopLoading } = useLoadingContext();
   
   // Redirect if no username is provided
   if (!username) {
@@ -161,8 +161,8 @@ export default function ProfilePage(): React.ReactElement {
       return;
     }
     
+    startLoading('profile-update');
     try {
-      setLoadingState({ isLoading: true });
       // In a real app, you would update the profile via an API call here
       // For now, we'll just close the modal and show a success message
       logger.info('Profile updated successfully');
@@ -173,9 +173,9 @@ export default function ProfilePage(): React.ReactElement {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       logger.error('Error updating profile:', { error: errorMessage });
-      // Show error message to user
+      throw error;
     } finally {
-      setLoadingState({ isLoading: false });
+      stopLoading('profile-update');
     }
   };
   
@@ -185,8 +185,10 @@ export default function ProfilePage(): React.ReactElement {
       return;
     }
     
+    const action = isFollowing ? 'unfollow' : 'follow';
+    startLoading(`profile-${action}`);
+    
     try {
-      setLoadingState({ isLoading: true });
       if (isFollowing) {
         await profileService.unfollowUser(currentUser.username, username);
       } else {
@@ -197,8 +199,9 @@ export default function ProfilePage(): React.ReactElement {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       logger.error('Error following user:', { error: errorMessage });
+      throw error;
     } finally {
-      setLoadingState({ isLoading: false });
+      stopLoading(`profile-${action}`);
     }
   };
   
@@ -209,10 +212,10 @@ export default function ProfilePage(): React.ReactElement {
       return { success: false, error: errorMsg };
     }
     
+    setIsUploading(true);
+    startLoading('profile-picture-upload');
+    
     try {
-      setLoadingState({ isLoading: true });
-      setIsUploading(true);
-      
       // Log the file being uploaded
       logger.info('Starting profile picture upload', {
         filename: file.name,
@@ -264,7 +267,7 @@ export default function ProfilePage(): React.ReactElement {
         error: errorMessage
       };
     } finally {
-      setLoadingState({ isLoading: false });
+      stopLoading('profile-picture-upload');
       setIsUploading(false);
     }
   };
@@ -346,15 +349,15 @@ export default function ProfilePage(): React.ReactElement {
           
           <ProfileStats>
             <StatItem>
-              <span>{profile.stats?.posts || 0}</span>
+              <span>{profile.stats?.postCount || 0}</span>
               <span>Posts</span>
             </StatItem>
             <StatItem>
-              <span>{profile.stats?.followers || 0}</span>
+              <span>{profile.stats?.followerCount || 0}</span>
               <span>Followers</span>
             </StatItem>
             <StatItem>
-              <span>{profile.stats?.following || 0}</span>
+              <span>{profile.stats?.followingCount || 0}</span>
               <span>Following</span>
             </StatItem>
           </ProfileStats>

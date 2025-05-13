@@ -1,6 +1,6 @@
 import React from 'react';
 import { CircularProgress } from '@mui/material';
-import { useLoadingState } from '../../contexts/LoadingStateContext';
+import { useLoadingContext } from '../../contexts/LoadingContextV2';
 import SkeletonLoader from './SkeletonLoader';
 
 interface LoadingProps {
@@ -22,9 +22,9 @@ const Loading: React.FC<LoadingProps> = ({
   height = 20,
   showSpinner = false
 }) => {
-  const { loadingState } = useLoadingState();
+  const { isLoading } = useLoadingContext();
 
-  if (!loadingState.isLoading) return null;
+  if (!isLoading) return null;
 
   return (
     <div className={`flex items-center justify-center ${className}`}>

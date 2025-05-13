@@ -2,7 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from './components/auth/AuthContext';
 import { ThemeProvider } from './theme/components/ThemeProvider';
-import { LoadingStateProvider } from './contexts/LoadingStateContext';
+import { LoadingProvider } from './contexts/LoadingContextV2';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
 import ProfileLayout from './components/layout/ProfileLayout';
 import { Footer } from './components/layout/Footer';
@@ -27,7 +27,7 @@ function App() {
 
   return (
     <ThemeProvider>
-      <LoadingStateProvider>
+      <LoadingProvider>
         <QueryClientProvider client={queryClient}>
           <AuthProvider>
             <Router>
@@ -67,7 +67,7 @@ function App() {
             </Router>
           </AuthProvider>
         </QueryClientProvider>
-      </LoadingStateProvider>
+      </LoadingProvider>
     </ThemeProvider>
   );
 }
