@@ -4,23 +4,23 @@
 This document tracks the cleanup and optimization of utility functions in the `/src/utils` directory.
 
 ## Current Status
-- **Status**: Pending (Phase 1)
-- **Last Updated**: 2025-05-12
+- **Status**: In Progress (Phase 1)
+- **Last Updated**: 2025-05-13
 - **Target Directory**: `/src/utils`
 - **Dependencies**: 
-  - Types Cleanup (Phase 1)
-  - Hooks Cleanup (Phase 1)
+  - ✅ Types Cleanup (Phase 1)
+  - ✅ Hooks Cleanup (Phase 1)
 
 ## Utils Inventory
 
 ### Utility Files
 | File | Category | Functions | Dependencies | Status |
 |------|----------|------------|--------------|--------|
-| `dateUtils.ts` | Date/Time | `formatDate`, `timeAgo` | date-fns | Will audit |
-| `stringUtils.ts` | String | `truncate`, `slugify` | - | Will audit |
-| `validation.ts` | Validation | `validateEmail`, `validatePassword` | - | Will audit |
-| `api.ts` | API | `apiClient`, `handleApiError` | axios | Will audit |
-| `logger.ts` | Logging | `logError`, `logInfo` | - | Will audit |
+| `constants.ts` | Configuration | API configuration | - | ✅ Enhanced |
+| `format.ts` | Formatting | `formatNumber`, `formatCompactNumber`, `formatRelativeTime` | - | ✅ Enhanced |
+| `imageUtils.ts` | Media | `getStaticImageUrl`, `getPlaceholderImages`, `getPlaceholderImage` | - | ✅ Enhanced |
+| `logger.ts` | Logging | `Logger` class with multiple log levels | - | ✅ Enhanced |
+| `index.ts` | Exports | Barrel file for all utils | - | ✅ Created |
 
 ## Audit Checklist
 
