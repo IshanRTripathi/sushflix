@@ -26,6 +26,7 @@
     "@mui/icons-material": "^7.0.2",
     "@mui/lab": "^7.0.0-beta.11",
     "@mui/material": "^7.0.2",
+    "@mui/x-date-pickers": "^8.3.1",
     "@tanstack/react-query": "^5.75.1",
     "@types/mongoose": "^5.11.97",
     "@types/react-dropzone": "^5.1.0",

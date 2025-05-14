@@ -12,7 +12,7 @@ import {
 } from '@mui/material';
 import GridOnIcon from '@mui/icons-material/GridOn';
 import BookmarkBorderIcon from '@mui/icons-material/BookmarkBorder';
-import EditIcon from '@mui/icons-material/Edit';
+import Settings from '@mui/icons-material/Edit';
 import VerifiedIcon from '@mui/icons-material/Verified';
 import { useAuth } from '../auth/AuthContext';
 import profileService from '../../services/profileService';
@@ -65,19 +65,27 @@ const ProfileStats = styled('div')(({ theme }) => ({
   borderBottom: `1px solid ${theme.palette.divider}`,
 }));
 
-const StatItem = styled('div')({
+const StatItem = styled('div')(({ theme }) => ({
   display: 'flex',
   flexDirection: 'column',
   alignItems: 'center',
+  flex: 1,
   '& > span:first-of-type': {
-    fontWeight: 600,
-    fontSize: '1.2rem',
+    fontWeight: 700,
+    fontSize: '1.25rem',
+    color: theme.palette.text.primary,
   },
   '& > span:last-child': {
-    color: 'rgba(0, 0, 0, 0.6)',
+    color:
+      theme.palette.mode === 'dark'
+        ? theme.palette.grey[400]
+        : theme.palette.grey[600],
     fontSize: '0.875rem',
+    marginTop: '4px',
+    letterSpacing: '0.5px',
   },
-});
+}));
+
 
 const ActionButtons = styled('div')(({ theme }) => ({
   display: 'flex',
@@ -427,22 +435,19 @@ export default function ProfilePage(): React.ReactElement {
         <ProfileInfo>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
             <Typography variant="h5" component="h1">
-              {profile.displayName || profile.username}
+              {profile.displayName}
             </Typography>
-            {profile.isVerified && (
+            {!profile.isVerified && (
               <VerifiedIcon color="primary" fontSize="small" />
             )}
-          </Box>
           
           <ActionButtons>
             {isCurrentUserProfile ? (
               <ActionButton 
-                variant="outlined" 
                 size="small"
                 onClick={handleEditProfile}
-                startIcon={<EditIcon />}
+                startIcon={<Settings />}
               >
-                Edit Profile
               </ActionButton>
             ) : (
               <ActionButton 
@@ -456,6 +461,17 @@ export default function ProfilePage(): React.ReactElement {
               </ActionButton>
             )}
           </ActionButtons>
+          </Box>
+          <Box>
+            <Typography variant="subtitle2" fontWeight={400}>
+              {"@" + profile.username}
+            </Typography>
+            {profile.bio && (
+              <Bio variant="body2">
+                {profile.bio}
+              </Bio>
+            )}
+          </Box>
           
           <ProfileStats>
             <StatItem>
@@ -471,17 +487,6 @@ export default function ProfilePage(): React.ReactElement {
               <span>Following</span>
             </StatItem>
           </ProfileStats>
-          
-          <Box>
-            <Typography variant="subtitle1" fontWeight={600}>
-              {profile.displayName || profile.username}
-            </Typography>
-            {profile.bio && (
-              <Bio variant="body2">
-                {profile.bio}
-              </Bio>
-            )}
-          </Box>
         </ProfileInfo>
       </ProfileHeader>
       
