@@ -1,25 +1,59 @@
 const { Storage } = require('@google-cloud/storage');
 const path = require('path');
+const fs = require('fs');
 const { v4: uuidv4 } = require('uuid');
 const logger = require('../config/logger');
 
 const ALLOWED_FILE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB
+const USE_GCS = process.env.USE_GCS === 'true';
 
-// Initialize storage client
-const storage = new Storage({
-  projectId: process.env.GCP_PROJECT_ID,
-  keyFilename: process.env.GCP_KEY_FILE_PATH
-});
+let storage, bucket;
+
+if (USE_GCS) {
+  try {
+    // Initialize Google Cloud Storage client if GCS is enabled
+    storage = new Storage({
+      projectId: process.env.GCP_PROJECT_ID,
+      keyFilename: process.env.GCP_KEY_FILE_PATH
+    });
+    const bucketName = process.env.GCS_BUCKET_NAME || 'user-profile-pictures-sushflix';
+    bucket = storage.bucket(bucketName);
+    logger.info('Google Cloud Storage initialized with bucket:', { bucket: bucketName });
+  } catch (error) {
+    logger.error('Failed to initialize Google Cloud Storage:', error);
+    throw new Error('Failed to initialize Google Cloud Storage');
+  }
+} else {
+  // Ensure uploads directory exists for local storage
+  const uploadDir = path.join(process.cwd(), 'uploads');
+  if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+  }
+  logger.info('Using local file storage in directory: uploads/');
+}
 
 class StorageService {
   static instance = null;
 
   constructor() {
-    // Get bucket name from environment variable
-    this.bucketName = process.env.GCS_BUCKET_NAME || 'user-profile-pictures-sushflix';
-    this.bucket = storage.bucket(this.bucketName);
-    logger.info('StorageService initialized with bucket:', { bucket: this.bucketName });
+    if (USE_GCS && !bucket) {
+      throw new Error('Google Cloud Storage bucket is not initialized');
+    }
+
+    // Initialize bucket for GCS or use local storage
+    if (USE_GCS) {
+      this.bucket = bucket;
+      this.bucketName = process.env.GCS_BUCKET_NAME || 'user-profile-pictures-sushflix';
+    } else {
+      // Use the configured upload directory or default to 'public/uploads'
+      this.uploadDir = path.resolve(process.env.LOCAL_UPLOAD_DIR || path.join(process.cwd(), 'public', 'uploads'));
+      // Ensure uploads directory exists
+      if (!fs.existsSync(this.uploadDir)) {
+        fs.mkdirSync(this.uploadDir, { recursive: true });
+        logger.info(`Created upload directory: ${this.uploadDir}`);
+      }
+    }
   }
 
   static getInstance() {
@@ -31,6 +65,7 @@ class StorageService {
 
   async uploadFile(username, file) {
     let fileName = null;
+    let fileUrl = null;
 
     try {
       if (!file || !file.originalname || !file.mimetype || !file.size || !file.buffer) {
@@ -48,75 +83,112 @@ class StorageService {
         size: file.size
       });
 
+      // Generate a unique filename
       fileName = `${username}-${uuidv4()}${path.extname(file.originalname)}`;
 
       if (!ALLOWED_FILE_TYPES.includes(file.mimetype)) {
-        logger.error('Invalid file type', {
-          username,
-          mimetype: file.mimetype,
-          allowedTypes: ALLOWED_FILE_TYPES,
-          fileName
+        logger.error('Invalid file type', { 
+          username, 
+          fileName, 
+          mimetype: file.mimetype 
         });
-        return { success: false, error: 'Only JPEG, PNG, and WebP images are allowed.' };
+        return { success: false, error: 'Invalid file type. Only JPEG, PNG, and WebP images are allowed.' };
       }
 
       if (file.size > MAX_FILE_SIZE) {
-        logger.error('File size too large', {
-          username,
+        logger.error('File size exceeds limit', { 
+          username, 
+          fileName, 
           size: file.size,
-          maxSize: MAX_FILE_SIZE,
-          fileName
+          maxSize: MAX_FILE_SIZE 
         });
-        return { success: false, error: 'Maximum allowed file size is 2MB.' };
+        return { success: false, error: 'File size exceeds the 2MB limit.' };
       }
 
-      logger.info('File passed validation, starting upload', { fileName });
+      if (USE_GCS) {
+        // Upload to Google Cloud Storage
+        logger.info('Starting file upload to GCS', { username, fileName });
 
-      const fileRef = this.bucket.file(fileName);
-      const fileStream = fileRef.createWriteStream({
-        metadata: {
-          contentType: file.mimetype,
+        const blob = this.bucket.file(fileName);
+        const blobStream = blob.createWriteStream({
           metadata: {
-            username,
-            originalName: file.originalname
-          }
-        }
-      });
+            contentType: file.mimetype,
+            metadata: {
+              originalName: file.originalname,
+              uploadedBy: username,
+              uploadedAt: new Date().toISOString()
+            }
+          },
+          resumable: false
+        });
 
-      await new Promise((resolve, reject) => {
-        fileStream
-          .on('error', (err) => {
-            logger.error('Stream error during file upload', {
-              error: err.message,
-              stack: err.stack,
+        await new Promise((resolve, reject) => {
+          blobStream.on('error', (error) => {
+            logger.error('Stream error during file upload', { 
+              error, 
+              fileName, 
               username,
-              fileName
+              stack: error.stack 
             });
-            reject(err);
-          })
-          .on('finish', () => {
-            logger.info('Upload stream finished', {
-              username,
-              fileName
-            });
-            resolve();
-          })
-          .end(file.buffer);
-      });
+            reject(new Error('Failed to upload file to storage'));
+          });
 
-      // Create public URL directly since bucket has uniform access enabled
-      const publicUrl = `https://storage.googleapis.com/${this.bucketName}/${fileName}`;
-      logger.info('File upload complete', {
-        username,
+          blobStream.on('finish', async () => {
+            try {
+              // Make the file public
+              await blob.makePublic();
+              logger.info('File upload completed successfully', { 
+                username, 
+                fileName,
+                size: file.size
+              });
+              resolve();
+            } catch (error) {
+              logger.error('Failed to make file public', {
+                error: error.message,
+                stack: error.stack,
+                username,
+                fileName
+              });
+              reject(error);
+            }
+          });
+
+          blobStream.end(file.buffer);
+        });
+
+        // Get public URL for the uploaded file
+        fileUrl = `https://storage.googleapis.com/${this.bucketName}/${fileName}`;
+      } else {
+        // Local file storage
+        const filePath = path.join(this.uploadDir, fileName);
+        
+        // Save file to local storage
+        await fs.promises.writeFile(filePath, file.buffer);
+        fileUrl = `/uploads/${fileName}`;
+        
+        logger.info('File saved to local storage', {
+          username,
+          fileName,
+          filePath,
+          size: file.size
+        });
+      }
+
+      logger.info('File upload completed', { 
+        username, 
         fileName,
-        publicUrl
+        fileUrl,
+        storageType: USE_GCS ? 'GCS' : 'local'
       });
 
-      return {
-        success: true,
-        url: publicUrl,
-        filename: fileName,
-        originalName: file.originalname
+      return { 
+        success: true, 
+        fileName,
+        fileUrl,
+        originalName: file.originalname,
+        size: file.size,
+        mimetype: file.mimetype
       };
 
     } catch (error) {
@@ -128,10 +200,19 @@ class StorageService {
         fileName
       });
 
+      // Clean up any partial uploads if possible
       if (fileName) {
         try {
-          await this.bucket.file(fileName).delete();
-          logger.info('Partial file cleaned up from bucket', { fileName });
+          if (USE_GCS) {
+            await this.bucket.file(fileName).delete();
+            logger.info('Partial file cleaned up from GCS', { fileName });
+          } else {
+            const filePath = path.join(this.uploadDir, fileName);
+            if (fs.existsSync(filePath)) {
+              await fs.promises.unlink(filePath);
+              logger.info('Partial file cleaned up from local storage', { fileName });
+            }
+          }
         } catch (cleanupError) {
           logger.error('Failed to clean up partial file', {
             error: cleanupError.message,
@@ -143,7 +224,7 @@ class StorageService {
 
       const errorType = error.name || 'UnknownError';
       const errorMessage = {
-        StorageError: 'Failed to store file in cloud storage',
+        StorageError: 'Failed to store file in storage',
         ValidationError: 'Invalid file data',
         PermissionError: 'Insufficient permissions',
         NetworkError: 'Network error while uploading',
@@ -165,13 +246,25 @@ class StorageService {
         return { success: false, error: 'Invalid filename provided' };
       }
 
-      await this.bucket.file(filename).delete();
-      logger.info('File deleted successfully from GCS', { filename });
+      if (USE_GCS) {
+        await this.bucket.file(filename).delete();
+        logger.info('File deleted successfully from GCS', { filename });
+      } else {
+        const filePath = path.join(this.uploadDir, filename);
+        if (fs.existsSync(filePath)) {
+          await fs.promises.unlink(filePath);
+          logger.info('File deleted successfully from local storage', { filename });
+        } else {
+          logger.warn('File not found for deletion', { filename });
+          return { success: false, error: 'File not found' };
+        }
+      }
 
       return { success: true, message: 'File deleted successfully' };
 
     } catch (error) {
-      logger.error('Failed to delete file from GCS', {
+      const storageType = USE_GCS ? 'GCS' : 'local storage';
+      logger.error(`Failed to delete file from ${storageType}`, {
         error: error.message,
         stack: error.stack,
         filename
@@ -179,7 +272,7 @@ class StorageService {
 
       return {
         success: false,
-        error: error.message || 'Failed to delete file'
+        error: error.message || `Failed to delete file from ${storageType}`
       };
     }
   }

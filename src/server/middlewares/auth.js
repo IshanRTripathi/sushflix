@@ -3,8 +3,10 @@ const jwt = require('jsonwebtoken');
 require('dotenv').config();
 const logger = require('../config/logger');
 
+const User = require('../models/User');
+
 const auth = (roles = []) => {
-  return (req, res, next) => {
+  return async (req, res, next) => {
     logger.info('Auth middleware executed');
 
     // Get token from Authorization header
@@ -18,6 +20,25 @@ const auth = (roles = []) => {
 
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      // Add the username to the user object if it's not already present
+      if (decoded.userId && !decoded.username) {
+        try {
+          const user = await User.findById(decoded.userId).select('username');
+          if (user) {
+            decoded.username = user.username;
+          } else {
+            logger.warn('User not found in database', { userId: decoded.userId });
+            return res.status(401).json({ message: 'User not found' });
+          }
+        } catch (error) {
+          logger.error('Error looking up user', {
+            error: error.message,
+            userId: decoded.userId,
+            stack: error.stack
+          });
+          return res.status(500).json({ message: 'Error authenticating user' });
+        }
+      }
       req.user = decoded;
 
       // Check roles if provided

@@ -37,6 +37,11 @@ app.use(devLogin);
 app.use(requestLogger);
 app.use(morgan('dev'));
 
+// Serve static files from the uploads directory
+const uploadsDir = path.resolve(process.env.LOCAL_UPLOAD_DIR || path.join(process.cwd(), 'public', 'uploads'));
+app.use('/uploads', express.static(uploadsDir));
+logger.info(`Serving static files from: ${uploadsDir}`);
+
 // Request duration/performance monitor
 app.use((req, res, next) => {
   const start = Date.now();

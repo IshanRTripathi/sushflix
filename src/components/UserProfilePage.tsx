@@ -198,7 +198,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
                   try {
                     const formData = new FormData();
                     formData.append('file', file);
-                    formData.append('userId', profile.userId);
+                    formData.append('id', profile.userId);
                     
                     const response = await profileService.uploadProfilePicture(profile.userId, file);
                     

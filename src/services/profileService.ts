@@ -188,19 +188,33 @@ class ProfileService {
     file: File
   ): Promise<ApiResponse<{ profilePicture: string; url?: string }>> {
     try {
+      logger.info(`Uploading profile picture for user: ${username}`, {
+        filename: file.name,
+        size: file.size,
+        type: file.type
+      });
+
       const response = await apiUploadProfilePicture(username, file);
       
+      // Log the raw response for debugging
+      logger.debug('Upload profile picture response:', { response });
+      
       // Ensure we have a profile picture URL
-      if (!response.data?.profilePicture) {
-        throw new Error('No profile picture URL in response');
+      const profilePicture = response.data?.profilePicture || response.data?.url;
+      if (!profilePicture) {
+        const errorMsg = 'No profile picture URL in response';
+        logger.error(errorMsg, { response });
+        throw new Error(errorMsg);
       }
+      
+      logger.info('Successfully uploaded profile picture', { profilePicture });
       
       // Return the response with both profilePicture and url for backward compatibility
       return {
         success: true,
         data: {
-          profilePicture: response.data.profilePicture,
-          url: response.data.profilePicture // Add url for backward compatibility
+          profilePicture,
+          url: profilePicture // For backward compatibility
         }
       };
     } catch (error: any) {

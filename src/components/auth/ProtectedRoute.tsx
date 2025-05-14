@@ -1,6 +1,6 @@
 // Protected route component for authentication and role-based access control
 import React from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
+import { Navigate, useLocation, useMatch } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 import { logger } from '../../utils/logger';
 
@@ -19,11 +19,13 @@ export type UserRole = typeof USER_ROLES[keyof typeof USER_ROLES];
  * @param children - The protected content to render
  * @param requiredRole - Optional role required to access the route
  * @param fallbackRoute - Optional custom fallback route (defaults to '/login')
+ * @param publicPath - Optional path pattern that should be publicly accessible
  */
 interface ProtectedRouteProps {
   children: React.ReactNode;
   requiredRole?: UserRole;
   fallbackRoute?: string;
+  publicPath?: string;
 }
 
 /**
@@ -34,12 +36,19 @@ interface ProtectedRouteProps {
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ 
   children,
   requiredRole,
-  fallbackRoute = '/login'
+  fallbackRoute = '/login',
+  publicPath
 }) => {
   const { isAuthenticated, user } = useAuth();
   const location = useLocation();
+  const isPublicPath = publicPath ? useMatch(publicPath) : false;
 
-  // Check authentication status
+  // Allow access to public paths without authentication
+  if (isPublicPath) {
+    return <>{children}</>;
+  }
+
+  // Check authentication status for protected routes
   if (!isAuthenticated) {
     logger.debug('Unauthenticated access attempt', { 
       path: location.pathname,

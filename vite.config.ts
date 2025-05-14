@@ -1,4 +1,4 @@
-import { defineConfig, loadEnv, type ConfigEnv, splitVendorChunkPlugin } from 'vite';
+import { defineConfig, loadEnv, type ConfigEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 import { visualizer } from 'rollup-plugin-visualizer';
@@ -90,20 +90,6 @@ export default defineConfig(({ mode }: ConfigEnv) => {
       createStyleImportPlugin({
         resolves: [AntdResolve()],
       }),
-      // Bundle splitting and optimization
-      splitVendorChunkPlugin(),
-      chunkSplitPlugin({
-        strategy: 'default',
-        customSplitting: {
-          // Split routes into separate chunks
-          'home': ['src/pages/HomePage.tsx'],
-          'profile': ['src/pages/ProfilePage.tsx'],
-          'explore': ['src/pages/ExplorePage.tsx'],
-          // Split large components
-          'editor': ['src/components/editor/**/*.tsx'],
-          'media': ['src/components/media/**/*.tsx'],
-        },
-      }),
       // PWA support
       VitePWA({
         registerType: 'autoUpdate',
@@ -170,32 +156,6 @@ export default defineConfig(({ mode }: ConfigEnv) => {
         filename: 'dist/bundle-stats.html',
       }),
     ].filter(Boolean),
-    build: {
-      outDir: 'dist',
-      emptyOutDir: true,
-      assetsDir: 'static',
-      sourcemap: mode !== 'production',
-      minify: 'terser',
-      terserOptions: {
-        compress: {
-          drop_console: mode === 'production',
-          drop_debugger: mode === 'production',
-        },
-      },
-      rollupOptions: {
-        output: {
-          manualChunks: {
-            react: ['react', 'react-dom', 'react-router-dom'],
-            vendor: ['lodash', 'axios', 'date-fns'],
-            ui: ['@mui/material', '@mui/icons-material', '@emotion/react', '@emotion/styled'],
-          },
-          assetFileNames: 'static/[name]-[hash][extname]',
-          chunkFileNames: 'static/[name]-[hash].js',
-          entryFileNames: 'static/[name]-[hash].js',
-        },
-      },
-      chunkSizeWarningLimit: 1000,
-    },
     server: {
       port: 5173,
       host: true,
