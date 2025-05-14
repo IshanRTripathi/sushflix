@@ -7,6 +7,7 @@ const asyncHandler = require('express-async-handler');
 const logger = require('../config/logger');
 const User = require('../models/User');
 const { isOwner } = require('../middlewares/authorization');
+const auth = require('../middlewares/auth');
 
 // Configure multer for file uploads
 const upload = multer({
@@ -50,7 +51,9 @@ router.get('/:username/posts', asyncHandler(userController.getUserPosts));
 // Profile Picture Routes
 router.post(
   '/:username/picture',
-  // Ensure user is authenticated and is the owner of the profile
+  // Ensure user is authenticated
+  auth(),
+  // Ensure user is the owner of the profile
   isOwner('username'),
   // Handle file upload
   upload.single('profilePicture'),

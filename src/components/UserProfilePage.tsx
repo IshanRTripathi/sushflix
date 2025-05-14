@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import { useToast } from '../hooks/useToast';
 import { UserProfile, SocialLinks, ProfileInput } from '../types/user';
 import { profileService } from '../services/profileService';
 import { logger } from '../utils/logger';
@@ -26,8 +28,9 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
   statsData 
 }) => {
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { showToast } = useToast();
   const [isEditing, setIsEditing] = useState(false);
   const { user: currentUser } = useAuth();
   const isOwnProfile = currentUser?.username === username;
@@ -197,21 +200,39 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
                   
                   try {
                     const formData = new FormData();
-                    formData.append('file', file);
-                    formData.append('id', profile.userId);
+                    formData.append('profilePicture', file);
                     
-                    const response = await profileService.uploadProfilePicture(profile.userId, file);
-                    
-                    if (response.success && response.data) {
-                      setProfile(prev => prev && ({
-                        ...prev,
-                        profilePicture: response.data?.profilePicture || ''
-                      }));
-                      return { success: true, imageUrl: response.data.profilePicture };
+                    // Get the token from local storage
+                    const token = localStorage.getItem('token');
+                    if (!token) {
+                      throw new Error('No authentication token found');
                     }
-                    return { success: false, error: 'Failed to update profile picture' };
+                    
+                    const response = await axios.post(
+                      `/api/users/${profile.username}/picture`,
+                      formData,
+                      {
+                        headers: {
+                          'Content-Type': 'multipart/form-data',
+                          'Authorization': `Bearer ${token}`
+                        },
+                        withCredentials: true  // Important for sending cookies
+                      }
+                    );
+                    
+                    if (response.data?.success) {
+                      showToast('Profile picture updated successfully!', 'success');
+                      // Update the local state to show the new picture
+                      setProfile(prev => ({
+                        ...prev!,
+                        profilePicture: response.data?.profilePicture || response.data?.url || ''
+                      }));
+                      return { success: true, imageUrl: response.data?.profilePicture || response.data?.url };
+                    } else {
+                      throw new Error(response.data?.error || 'Failed to update profile picture');
+                    }
                   } catch (error) {
-const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+                    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
                     logger.error('Error uploading profile picture:', { error: errorMessage });
                     return { success: false, error: 'An error occurred while uploading' };
                   }
