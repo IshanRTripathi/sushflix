@@ -1,4 +1,4 @@
-export type ThemeMode = 'light' | 'dark' | 'system';
+export type ThemeMode = 'light' | 'dark';
 
 export interface PaletteOptions {
   mode?: 'light' | 'dark';
@@ -60,5 +60,7 @@ export interface ThemeContextType {
   isDark: boolean;
   toggleTheme: () => void;
   setTheme: (theme: ThemeMode) => void;
+  getTheme: () => ThemeMode;
+  getEffectiveTheme: () => ThemeMode;
   themeOptions: ThemeOptions;
 }

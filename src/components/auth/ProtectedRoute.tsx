@@ -41,7 +41,8 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 }) => {
   const { isAuthenticated, user } = useAuth();
   const location = useLocation();
-  const isPublicPath = publicPath ? useMatch(publicPath) : false;
+  const match = useMatch(publicPath || '');
+  const isPublicPath = publicPath ? !!match : false;
 
   // Allow access to public paths without authentication
   if (isPublicPath) {
