@@ -3,7 +3,7 @@ import { useToast } from '@/hooks/useToast';
 import { ProfileFormData } from './types';
 import { UserProfile } from '../../types/user';
 import { EditProfileModal } from './EditProfileModal';
-import { useProfileUpdate } from '../../hooks/useProfileUpdate';
+import { useProfile } from '../../hooks/useProfile';
 
 interface EditProfileProps {
   user: UserProfile;
@@ -19,10 +19,9 @@ const EditProfile: React.FC<EditProfileProps> = ({ user, onProfileUpdate, onClos
   const [isModalOpen, setIsModalOpen] = React.useState(true);
   const { 
     updateProfile, 
-    updateProfilePicture, 
-    isLoading, 
-    error: updateError 
-  } = useProfileUpdate(user, onProfileUpdate);
+    isUpdating: isLoading,
+    error: updateError
+  } = useProfile(user.username);
 
   const handleSave = async (formData: ProfileFormData) => {
     try {
@@ -35,16 +34,14 @@ const EditProfile: React.FC<EditProfileProps> = ({ user, onProfileUpdate, onClos
         isCreator: formData.isCreator
       };
       
-      const success = await updateProfile(updateData);
-      
-      if (success) {
-        showToast('Profile updated successfully', 'success');
-        // Close the modal after a short delay to show the success message
-        setTimeout(() => {
-          setIsModalOpen(false);
-          onClose?.();
-        }, 1000);
-      }
+      await updateProfile(updateData);
+      showToast('Profile updated successfully', 'success');
+      // Close the modal after a short delay to show the success message
+      setTimeout(() => {
+        setIsModalOpen(false);
+        onClose?.();
+        onProfileUpdate?.();
+      }, 1000);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to update profile';
       showToast(errorMessage, 'error');
@@ -64,11 +61,14 @@ const EditProfile: React.FC<EditProfileProps> = ({ user, onProfileUpdate, onClos
     <EditProfileModal
       isOpen={isModalOpen}
       onClose={handleClose}
-      user={user}
       onSave={handleSave}
-      onProfilePictureUpdate={updateProfilePicture}
+      onProfilePictureUpdate={async () => {
+        // TODO: Implement profile picture upload
+        return true;
+      }}
       loading={isLoading}
-      error={updateError || undefined}
+      error={updateError?.message || ''}
+      user={user}
     />
   );
 };

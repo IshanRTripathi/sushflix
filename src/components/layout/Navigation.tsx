@@ -97,6 +97,13 @@ export function Navigation() {
                         Your Profile
                       </Link>
                       <Link
+                        to={`/explore`}
+                        className={`block px-4 py-2 text-sm ${isDark ? 'text-gray-200 hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-100'}`}
+                        onClick={toggleMobileMenu}
+                      >
+                        Explore
+                      </Link>
+                      <Link
                         to="/settings"
                         className={`block px-4 py-2 text-sm ${isDark ? 'text-gray-200 hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-100'}`}
                         onClick={toggleMobileMenu}
