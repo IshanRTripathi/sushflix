@@ -1,97 +1,64 @@
 import { createTheme } from '@mui/material/styles';
 import { baseTheme } from './base';
 
-/**
- * Light theme configuration
- */
-const lightPalette = {
+export const lightPalette = {
   mode: 'light' as const,
   primary: {
-    main: '#1976d2',
-    light: '#bbdefb',
-    dark: '#1565c0',
+    main: '#e91e63', // bold pink
+    light: '#f06292',
+    dark: '#c2185b',
     contrastText: '#ffffff',
   },
   secondary: {
-    main: '#9c27b0',
-    light: '#e1bee7',
-    dark: '#7b1fa2',
-    contrastText: '#ffffff',
+    main: '#ff9800',
+    light: '#ffb74d',
+    dark: '#f57c00',
+    contrastText: '#000000',
   },
   error: {
-    main: '#d32f2f',
-    light: '#ef5350',
-    dark: '#c62828',
+    main: '#f44336',
+    light: '#e57373',
+    dark: '#d32f2f',
     contrastText: '#ffffff',
   },
   warning: {
-    main: '#ed6c02',
-    light: '#ff9800',
-    dark: '#e65100',
-    contrastText: 'rgba(0, 0, 0, 0.87)',
+    main: '#ffb300',
+    light: '#ffe082',
+    dark: '#ffa000',
+    contrastText: '#000000',
   },
   info: {
-    main: '#0288d1',
-    light: '#03a9f4',
-    dark: '#01579b',
+    main: '#2196f3',
+    light: '#64b5f6',
+    dark: '#1976d2',
     contrastText: '#ffffff',
   },
   success: {
-    main: '#2e7d32',
-    light: '#4caf50',
-    dark: '#1b5e20',
+    main: '#4caf50',
+    light: '#81c784',
+    dark: '#388e3c',
     contrastText: '#ffffff',
   },
   background: {
-    default: '#f5f5f5',
+    default: '#fff8f9',
     paper: '#ffffff',
   },
   text: {
-    primary: 'rgba(0, 0, 0, 0.87)',
-    secondary: 'rgba(0, 0, 0, 0.6)',
-    disabled: 'rgba(0, 0, 0, 0.38)',
+    primary: '#2a2a2a',
+    secondary: '#5f5f5f',
+    disabled: '#9e9e9e',
   },
-  divider: 'rgba(0, 0, 0, 0.12)',
+  divider: '#e0e0e0',
   action: {
-    active: 'rgba(0, 0, 0, 0.54)',
-    hover: 'rgba(0, 0, 0, 0.04)',
+    active: '#000000',
+    hover: 'rgba(0, 0, 0, 0.05)',
     selected: 'rgba(0, 0, 0, 0.08)',
     disabled: 'rgba(0, 0, 0, 0.26)',
     disabledBackground: 'rgba(0, 0, 0, 0.12)',
   },
 };
 
-/**
- * Create and export the light theme
- */
 export const lightTheme = createTheme({
   ...baseTheme,
   palette: lightPalette,
-  components: {
-    ...baseTheme.components,
-    MuiAppBar: {
-      ...baseTheme.components?.MuiAppBar,
-      styleOverrides: {
-        root: {
-          backgroundColor: lightPalette.background.paper,
-          color: lightPalette.text.primary,
-          borderBottom: `1px solid ${lightPalette.divider}`,
-        },
-      },
-    },
-    MuiCard: {
-      ...baseTheme.components?.MuiCard,
-      styleOverrides: {
-        root: {
-          backgroundColor: lightPalette.background.paper,
-          color: lightPalette.text.primary,
-          boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
-          '&:hover': {
-            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-          },
-        },
-      },
-    },
-  },
 });
-

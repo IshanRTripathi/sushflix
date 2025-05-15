@@ -1,37 +1,13 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { API_BASE_URL, useTheme } from '../../config/index';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../auth/AuthContext';
+import { API_BASE_URL } from '../../config/index';
+import { useTheme } from '../../theme/hooks/useTheme';
 import ErrorBoundary from '../ui/ErrorBoundary';
+import { useLoadingContext } from '../../contexts/LoadingContext';
+import { USER_ROLES, UserProfile, FeaturedProfile } from '../../types/user';
 import Loading from '../ui/Loading';
 import FeaturedProfilesSection from './FeaturedProfilesSection';
-import { useLoadingContext } from '../../contexts/LoadingContextV2';
-import { USER_ROLES, UserPreferences } from '../../types/user';
-
-interface UserProfile {
-  username: string;
-  email: string;
-  posts: number;
-  subscribers: number;
-  profilePicture?: string;
-  name?: string;
-  bio?: string;
-  followers?: number;
-  following?: number;
-  isFollowing?: boolean;
-}
-
-interface FeaturedProfile {
-  userId: string;
-  username: string;
-  displayName: string;
-  profilePicture: string;
-  bio: string;
-  socialLinks: {
-    instagram?: string;
-    twitter?: string;
-    website?: string;
-  };
-}
 
 interface HomePageState {
   profile: UserProfile | null;
@@ -57,14 +33,14 @@ export const HomePageModern = () => {
     id: profile.userId,
     userId: profile.userId,
     username: profile.username,
-    displayName: profile.displayName,
+    displayName: profile.displayName || profile.username,
     email: `${profile.username}@example.com`, // Placeholder email
-    role: USER_ROLES.USER,
+    role: USER_ROLES.CREATOR,
     emailVerified: true,
     profilePicture: profile.profilePicture,
     coverPhoto: '', // Default empty cover photo
-    bio: profile.bio,
-    socialLinks: profile.socialLinks,
+    bio: profile.bio || '',
+    socialLinks: profile.socialLinks || {},
     isCreator: true,
     isVerified: false, // Default to not verified
     isFollowing: false,
@@ -73,17 +49,17 @@ export const HomePageModern = () => {
       postCount: 0,
       followerCount: 0,
       followingCount: 0,
-      subscriberCount: 0
+      subscriberCount: 0,
     },
     preferences: {
       theme: 'system' as const,
       notifications: {
         email: true,
-        push: true
-      }
-    } as UserPreferences,
+        push: true,
+      },
+    },
     createdAt: new Date(),
-    updatedAt: new Date()
+    updatedAt: new Date(),
   }));
 
   const { startLoading, stopLoading } = useLoadingContext();
@@ -153,8 +129,10 @@ export const HomePageModern = () => {
     }
   };
 
-  const [currentIndex, setCurrentIndex] = useState(0);
   const { isDark } = useTheme();
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const { isAuthenticated, openAuthModal } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchProfile();
@@ -176,7 +154,8 @@ export const HomePageModern = () => {
       setState(prev => ({
         ...prev,
         profiles: prev.profiles,
-        rotatingProfiles: rotatingProfiles
+        rotatingProfiles: rotatingProfiles,
+        error: prev.error
       }));
     }
   }, [state.profiles, currentIndex]);
@@ -194,8 +173,8 @@ export const HomePageModern = () => {
       }`}>
         <main className="container mx-auto px-6 md:px-12 py-12">
           {state.isLoading ? (
-            <div className="flex items-center justify-center min-h-[50vh]">
-              <Loading size={40} />
+            <div className="flex items-center justify-center h-64">
+              <Loading />
             </div>
           ) : (
             <>
@@ -232,23 +211,35 @@ export const HomePageModern = () => {
                         Join our community of creators and start earning from your content today.
                       </p>
                       <div className="flex flex-wrap gap-4">
-                        <Link
-                          to="/signup?type=creator"
+                        <button
+                          onClick={() => {
+                            if (isAuthenticated) {
+                              navigate('/create-post');
+                            } else {
+                              openAuthModal('signup');
+                            }
+                          }}
                           className="bg-gradient-to-r from-red-600 to-red-700 text-white px-8 py-4 rounded-full font-medium 
                             hover:from-red-700 hover:to-red-800 transition-all duration-300"
                         >
-                          Start Creating
-                        </Link>
-                        <Link
-                          to="/signup?type=fan"
+                          {isAuthenticated ? 'Create Content' : 'Start Creating'}
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (isAuthenticated) {
+                              navigate('/explore');
+                            } else {
+                              openAuthModal('login');
+                            }
+                          }}
                           className={`px-8 py-4 rounded-full font-medium border transition-all duration-300 ${
                             isDark 
                               ? 'text-white border-gray-600 hover:bg-gray-700' 
                               : 'text-red-600 border-red-600 hover:bg-red-50'
                           }`}
                         >
-                          Join as Fan
-                        </Link>
+                          {isAuthenticated ? 'Browse Content' : 'Join as Fan'}
+                        </button>
                       </div>
                     </div>
                     <div className="w-full md:w-1/2">
@@ -263,10 +254,11 @@ export const HomePageModern = () => {
               </div>
 
               {/* Featured Creators Section */}
-              <FeaturedProfilesSection
+ <FeaturedProfilesSection
                 profiles={mappedProfiles}
                 isLoading={state.isLoading}
-                error={state.error || undefined}
+                error={state.error}
+                isDark={isDark}
               />
             </>
           )}

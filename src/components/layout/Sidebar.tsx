@@ -1,7 +1,9 @@
 import React from 'react';
-import Link from 'next/link';
+import { Link } from 'react-router-dom';
+import { useUI } from '../../contexts/UIContext';
 
-const Sidebar = () => {
+const Sidebar: React.FC = () => {
+  const { closeAllMenus } = useUI();
   return (
     <nav className="h-full flex flex-col">
       {/* Logo */}
@@ -13,22 +15,22 @@ const Sidebar = () => {
       <div className="flex-1">
         <ul className="space-y-2">
           <li>
-            <Link href="/" className="text-white hover:bg-gray-800 p-3 rounded">
+            <Link to="/" className="text-white hover:bg-gray-800 p-3 rounded block">
               Home
             </Link>
           </li>
           <li>
-            <Link href="/explore" className="text-white hover:bg-gray-800 p-3 rounded">
+            <Link to="/explore" className="text-white hover:bg-gray-800 p-3 rounded block">
               Explore
             </Link>
           </li>
           <li>
-            <Link href="/notifications" className="text-white hover:bg-gray-800 p-3 rounded">
+            <Link to="/notifications" className="text-white hover:bg-gray-800 p-3 rounded block">
               Notifications
             </Link>
           </li>
           <li>
-            <Link href="/messages" className="text-white hover:bg-gray-800 p-3 rounded">
+            <Link to="/messages" className="text-white hover:bg-gray-800 p-3 rounded block">
               Messages
             </Link>
           </li>
@@ -37,7 +39,10 @@ const Sidebar = () => {
 
       {/* Bottom Section */}
       <div className="mt-auto p-4">
-        <button className="w-full bg-red-600 text-white rounded-lg py-2">
+        <button 
+          className="w-full bg-red-600 hover:bg-red-700 text-white rounded-lg py-2 transition-colors"
+          onClick={closeAllMenus}
+        >
           Create Post
         </button>
       </div>

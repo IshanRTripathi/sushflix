@@ -1,11 +1,11 @@
-import React, { useEffect, useMemo, useCallback } from 'react';
+import React, { useEffect, useMemo, useCallback, useState, useRef } from 'react';
 import { ThemeProvider as MuiThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { ThemeContext } from '../context/ThemeContext';
 import { themeManager } from '../managers/ThemeManager';
 import { lightTheme } from '../themes/light';
 import { darkTheme } from '../themes/dark';
-import type { ThemeMode, ThemeOptions } from '../types';
+import type { ThemeOptions } from '../types';
 
 interface ThemeProviderProps {
   /** Child components that will have access to the theme context */
@@ -31,8 +31,11 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
   children, 
   onError = (error) => console.error('Theme Error:', error) 
 }) => {
-  const theme = themeManager.getTheme();
-  const isDark = themeManager.getEffectiveTheme() === 'dark';
+  // Use ref to store the current theme to avoid stale closures
+  const themeRef = useRef(themeManager.getTheme());
+  const [theme, setThemeState] = useState(themeManager.getTheme());
+  const [isDark, setIsDark] = useState(themeManager.getEffectiveTheme() === 'dark');
+  const [isMounted, setIsMounted] = useState(false);
   const themeOptions = themeManager.getThemeOptions();
 
   // Create MUI theme based on dark/light mode with error handling
@@ -49,26 +52,53 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
     }
   }, [isDark, themeOptions, onError]);
 
-  // Memoize the theme update function to prevent unnecessary recreations
+  // Memoize the theme update function with stable references
   const updateTheme = useCallback(() => {
     try {
-      const effectiveTheme = themeManager.getEffectiveTheme();
+      const currentTheme = themeManager.getTheme();
+      const newIsDark = currentTheme === 'dark';
       
-      // Update data-theme attribute for CSS variables
-      document.documentElement.setAttribute('data-theme', effectiveTheme);
-      document.documentElement.classList.toggle('dark', effectiveTheme === 'dark');
+      // Update ref and state if theme changed
+      if (themeRef.current !== currentTheme) {
+        themeRef.current = currentTheme;
+        
+        // Batch state updates
+        setThemeState(currentTheme);
+        setIsDark(newIsDark);
+        
+        // Update DOM attributes
+        const html = document.documentElement;
+        if (html.getAttribute('data-theme') !== currentTheme) {
+          html.setAttribute('data-theme', currentTheme);
+        }
+        
+        // Toggle classes only if needed
+        if (newIsDark) {
+          html.classList.add('dark');
+          html.classList.remove('light');
+        } else {
+          html.classList.add('light');
+          html.classList.remove('dark');
+        }
+        
+        // Update color scheme
+        html.style.colorScheme = newIsDark ? 'dark' : 'light';
+      }
     } catch (error) {
       onError(error instanceof Error ? error : new Error(String(error)));
     }
   }, [onError]);
 
-  // Set up theme change subscription
+  // Set up theme change subscription with stable reference
   useEffect(() => {
-    // Initial setup
+    // Initial theme application
     updateTheme();
-
+    setIsMounted(true);
+    
     // Subscribe to theme changes
     const unsubscribe = themeManager.subscribe(updateTheme);
+    
+    // Cleanup function
     return () => {
       try {
         unsubscribe();
@@ -78,31 +108,49 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
     };
   }, [updateTheme, onError]);
 
-  const contextValue = useMemo(() => ({
-    theme,
-    isDark,
-    toggleTheme: () => {
+  const contextValue = useMemo(() => {
+    const toggleTheme = () => {
       try {
         themeManager.toggleTheme();
       } catch (error) {
         onError(error instanceof Error ? error : new Error(String(error)));
       }
-    },
-    setTheme: (newTheme: ThemeMode) => {
+    };
+
+    const setTheme = (newTheme: 'light' | 'dark') => {
       try {
         themeManager.setTheme(newTheme);
       } catch (error) {
         onError(error instanceof Error ? error : new Error(String(error)));
       }
-    },
-    themeOptions: themeOptions as ThemeOptions,
-  }), [theme, isDark, themeOptions, onError]);
+    };
+
+    const getTheme = () => themeManager.getTheme();
+    const getEffectiveTheme = () => themeManager.getEffectiveTheme();
+
+    return {
+      theme,
+      isDark,
+      toggleTheme,
+      setTheme,
+      getTheme,
+      getEffectiveTheme,
+      themeOptions: themeOptions as ThemeOptions,
+    };
+  }, [theme, isDark, themeOptions, onError]);
+
+  // Only render children after initial theme is applied
+  if (!isMounted) {
+    return null;
+  }
 
   return (
     <ThemeContext.Provider value={contextValue}>
       <MuiThemeProvider theme={muiTheme}>
-        <CssBaseline />
-        {children}
+        <CssBaseline enableColorScheme />
+        <div className={`theme-${isDark ? 'dark' : 'light'}`}>
+          {children}
+        </div>
       </MuiThemeProvider>
     </ThemeContext.Provider>
   );

@@ -105,57 +105,45 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         body: JSON.stringify(loginData)
       });
 
-      const responseBody = await response.text();
-      
-      if (!response.ok) {
-        logger.error('Login failed with status', {
-          status: response.status,
-          statusText: response.statusText,
-          url: response.url,
-          headers: Object.fromEntries(response.headers.entries()),
-          responseBody: responseBody || 'Empty response body',
-          requestData: loginData
-        });
-        throw new Error(responseBody || 'Login failed');
-      }
-
+      let responseData;
       try {
-        const data = responseBody ? JSON.parse(responseBody) : {};
-        
-        if (!response.ok) {
-          const errorMsg = data.message || `HTTP error! status: ${response.status}`;
-          logger.error('Login request failed', { 
-            status: response.status,
-            error: errorMsg,
-            response: data,
-            requestUrl: AUTH_ENDPOINTS.LOGIN
-          });
-          throw new Error(errorMsg);
-        }
-
-        const { token, user: userData } = data;
-        
-        if (!token || !userData) {
-          const errorMsg = 'Invalid response from server';
-          logger.error(errorMsg, { response: data });
-          throw new Error(errorMsg);
-        }
-
-        logger.info('Login successful', { userId: userData.id });
-        localStorage.setItem('token', token);
-        localStorage.setItem('user', JSON.stringify(userData));
-        setUser(userData);
-        setError(null);
-        return userData;
+        responseData = await response.json();
       } catch (parseError) {
         logger.error('Failed to parse response', {
           status: response.status,
-          responseBody,
           error: parseError,
           requestUrl: AUTH_ENDPOINTS.LOGIN
         });
-        throw new Error(`Server returned invalid response (status ${response.status})`);
+        throw new Error('Invalid response from server');
       }
+      
+      if (!response.ok) {
+        const errorMessage = responseData?.message || `Login failed with status ${response.status}`;
+        logger.error('Login failed', {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorMessage,
+          response: responseData,
+          requestUrl: AUTH_ENDPOINTS.LOGIN,
+          requestData: { ...loginData, password: '***' } // Mask password in logs
+        });
+        throw new Error(errorMessage);
+      }
+
+      const { token, user: userData } = responseData;
+      
+      if (!token || !userData) {
+        const errorMsg = 'Invalid response from server: missing token or user data';
+        logger.error(errorMsg, { response: responseData });
+        throw new Error(errorMsg);
+      }
+
+      logger.info('Login successful', { userId: userData.id });
+      localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(userData));
+      setUser(userData);
+      setError(null);
+      return userData;
     } catch (error) {
       logger.error('Login process failed', {
         error: error instanceof Error ? error.message : String(error),

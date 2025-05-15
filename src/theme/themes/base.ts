@@ -1,11 +1,8 @@
 import { ThemeOptions } from '@mui/material/styles';
 
-/**
- * Base theme configuration that doesn't change between light/dark modes
- */
 export const baseTheme: Omit<ThemeOptions, 'palette'> = {
   shape: {
-    borderRadius: 8,
+    borderRadius: 10,
   },
   spacing: 8,
   typography: {
@@ -18,16 +15,13 @@ export const baseTheme: Omit<ThemeOptions, 'palette'> = {
       '"Helvetica Neue"',
       'Arial',
       'sans-serif',
-      '"Apple Color Emoji"',
-      '"Segoe UI Emoji"',
-      '"Segoe UI Symbol"',
     ].join(','),
-    h1: { fontWeight: 600, fontSize: '2.5rem', lineHeight: 1.2 },
-    h2: { fontWeight: 600, fontSize: '2rem', lineHeight: 1.2 },
-    h3: { fontWeight: 600, fontSize: '1.75rem', lineHeight: 1.2 },
-    h4: { fontWeight: 600, fontSize: '1.5rem', lineHeight: 1.2 },
-    h5: { fontWeight: 600, fontSize: '1.25rem', lineHeight: 1.2 },
-    h6: { fontWeight: 600, fontSize: '1rem', lineHeight: 1.2 },
+    h1: { fontWeight: 700, fontSize: '2.5rem', lineHeight: 1.2 },
+    h2: { fontWeight: 600, fontSize: '2rem', lineHeight: 1.3 },
+    h3: { fontWeight: 600, fontSize: '1.75rem', lineHeight: 1.3 },
+    h4: { fontWeight: 600, fontSize: '1.5rem', lineHeight: 1.3 },
+    h5: { fontWeight: 500, fontSize: '1.25rem', lineHeight: 1.4 },
+    h6: { fontWeight: 500, fontSize: '1rem', lineHeight: 1.4 },
   },
   components: {
     MuiButton: {
@@ -49,7 +43,7 @@ export const baseTheme: Omit<ThemeOptions, 'palette'> = {
       },
       styleOverrides: {
         root: {
-          borderRadius: 12,
+          borderRadius: 16,
           transition: 'box-shadow 0.3s ease-in-out',
         },
       },

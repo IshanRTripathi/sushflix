@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { UserProfile, UserStats, SocialLinks } from '../types/user';
 import { profileService } from '../services/profileService';
 import { useAuth } from '../components/auth/AuthContext';
-import { useLoading } from '../contexts/LoadingContext';
+import { useLoadingContext } from '../contexts/LoadingContext';
 
 /**
  * @typedef {Object} UseProfileReturn
@@ -49,7 +49,7 @@ interface UseProfileReturn {
 export const useProfile = (username?: string): UseProfileReturn => {
   const { username: urlUsername } = useParams<{ username: string }>();
   const { user: currentUser } = useAuth();
-  const { startLoading, stopLoading } = useLoading();
+  const { startLoading, stopLoading } = useLoadingContext();
   const navigate = useNavigate();
 
   const targetUsername = username || urlUsername || '';

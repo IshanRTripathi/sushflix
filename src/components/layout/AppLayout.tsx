@@ -1,17 +1,18 @@
-import React, { useState } from 'react';
+import React, { ReactNode } from 'react';
 import Sidebar from './Sidebar';
 import { Navigation } from './Navigation';
 import MoreMenu from './MoreMenu';
+import { useUI } from '../../contexts/UIContext';
 
 interface AppLayoutProps {
-  children: React.ReactNode;
+  children: ReactNode;
 }
 
 const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
-  const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
+  const { isMoreMenuOpen, closeAllMenus } = useUI();
   
   return (
-    <div className="flex h-screen bg-gray-900">
+    <div className="flex h-screen bg-gray-900" onClick={closeAllMenus}>
       {/* Sidebar */}
       <div className="w-64 bg-black border-r border-gray-800">
         <Sidebar />
@@ -23,15 +24,13 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
         <Navigation />
 
         {/* Content */}
-        <main className="flex-1 overflow-y-auto p-4">
+        <main className="flex-1 overflow-y-auto p-4" onClick={(e) => e.stopPropagation()}>
           {children}
         </main>
       </div>
 
       {/* More Menu Overlay */}
-      {isMoreMenuOpen && (
-        <MoreMenu onClose={() => setIsMoreMenuOpen(false)} />
-      )}
+      {isMoreMenuOpen && <MoreMenu />}
     </div>
   );
 };

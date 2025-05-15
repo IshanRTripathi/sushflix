@@ -6,6 +6,8 @@ const path = require('path');
 const asyncHandler = require('express-async-handler');
 const logger = require('../config/logger');
 const User = require('../models/User');
+const { isOwner } = require('../middlewares/authorization');
+const auth = require('../middlewares/auth');
 
 // Configure multer for file uploads
 const upload = multer({
@@ -49,18 +51,25 @@ router.get('/:username/posts', asyncHandler(userController.getUserPosts));
 // Profile Picture Routes
 router.post(
   '/:username/picture',
+  // Ensure user is authenticated
+  auth(),
+  // Ensure user is the owner of the profile
+  isOwner('username'),
+  // Handle file upload
   upload.single('profilePicture'),
   asyncHandler(async (req, res) => {
     const { username } = req.params;
     const file = req.file;
     
-    if (!username) {
+    // Validate username parameter
+    if (!username || typeof username !== 'string') {
       return res.status(400).json({
         success: false,
-        error: 'Username is required'
+        error: 'Valid username is required'
       });
     }
     
+    // Validate file
     if (!file) {
       return res.status(400).json({
         success: false,
@@ -69,26 +78,10 @@ router.post(
     }
 
     try {
-      const uploadResponse = await userController.uploadProfilePicture(username, file, req);
-      
-      if (!uploadResponse || !uploadResponse.success) {
-        const statusCode = uploadResponse?.statusCode || 500;
-        return res.status(statusCode).json({
-          success: false,
-          error: uploadResponse?.error || 'Failed to upload profile picture',
-          profilePicture: null
-        });
-      }
-
-      // Return the response with both profilePicture and url for backward compatibility
-      return res.status(200).json({
-        success: true,
-        message: uploadResponse.message || 'Profile picture updated successfully',
-        profilePicture: uploadResponse.url,
-        url: uploadResponse.url // For backward compatibility
-      });
+      // Call the controller function and let it handle the response
+      return await userController.uploadProfilePicture(req, res);
     } catch (error) {
-      logger.error('Profile picture upload error', {
+      logger.error('Profile picture upload error in route handler', {
         error: error.message,
         username,
         stack: error.stack
@@ -96,8 +89,7 @@ router.post(
       
       return res.status(500).json({
         success: false,
-        error: 'An unexpected error occurred while uploading the profile picture',
-        profilePicture: null
+        error: 'An unexpected error occurred while uploading the profile picture'
       });
     }
   })

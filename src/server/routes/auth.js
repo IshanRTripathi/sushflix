@@ -60,21 +60,16 @@ router.post('/signup', [
         }
         logger.info('Username available');
 
-        // Hash the password
-        logger.info('Hashing password');
-        const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash(password, salt);
-        logger.info('Password hashed successfully');
-
-        // Create a new user
+        // Create a new user with plain password - the pre-save hook will hash it
         logger.info('Creating new user instance');
         const newUser = new User({
           username,
           email,
-          password: hashedPassword,
-          isCreator: isCreator ?? false,
-
+          password, // Will be hashed by the pre-save hook
+          isCreator: isCreator ?? false
         });
+        
+        // The password will be hashed by the pre-save hook in the User model
         logger.info(`Attempting to save new user to DB: ${newUser.username}`);
 
         await newUser.save();
@@ -170,7 +165,33 @@ router.post('/login', [
         }
         
         logger.info(`Comparing password for user: ${user.username}`);
+        
+        // Log detailed password comparison info
+        const comparisonDetails = {
+          providedPassword: password,
+          providedPasswordLength: password.length,
+          storedHash: user.password,
+          hashStartsWith: user.password ? user.password.substring(0, 10) : 'null',
+          hashLength: user.password ? user.password.length : 0,
+          isBcryptHash: user.password && user.password.startsWith('$2a$'),
+          passwordChars: Array.from(password).map(c => c.charCodeAt(0)),
+          passwordRaw: password.split('').map(c => `${c} (${c.charCodeAt(0)})`).join(' ')
+        };
+        
+        logger.debug('Password comparison details:', comparisonDetails);
+        
+        // Try direct comparison first for debugging
+        if (user.password === password) {
+          logger.debug('Direct password match!');
+        } else {
+          logger.debug('No direct password match');
+        }
+        
+        // Try bcrypt comparison
         const isMatch = await bcrypt.compare(password, user.password);
+        logger.debug('Bcrypt comparison result:', { isMatch });
+        
+        // If bcrypt fails, try with trimmed password
         if (!isMatch) {
             logger.warn(`Login attempt with invalid password for user: ${user.username}`);
             return res.status(401).json({ message: 'Invalid credentials' });
@@ -179,16 +200,23 @@ router.post('/login', [
 
         // Create JWT token
         logger.info(`Generating JWT token for user: ${user.username}`);
-        const token = jwt.sign({ userId: user._id, roles: user.roles }, process.env.JWT_SECRET, {
-            expiresIn: '10h',
-        });
-        logger.info('JWT token generated');
+        const expiresIn = process.env.JWT_EXPIRES_IN || '10h';
+        const token = jwt.sign(
+          { userId: user._id, roles: user.roles },
+          process.env.JWT_SECRET,
+          { expiresIn }
+        );
+        logger.info(`JWT token generated with expiration: ${expiresIn}`);
 
         // Log the user object sent in the response (excluding password)
         const userResponse = user.toObject();
         delete userResponse.password;
         logger.info(`Sending success response for login: ${JSON.stringify({ user: userResponse, token: '[REDACTED]' })}`);
-        return res.status(200).json({ user: userResponse, token, expiresIn: '10h' });
+        return res.status(200).json({ 
+          user: userResponse, 
+          token, 
+          expiresIn: expiresIn 
+        });
     } catch (err) {
         logger.error(`Error during login process for username or email ${usernameOrEmail}: ${err.message}`);
         next(err);

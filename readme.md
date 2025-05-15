@@ -4,6 +4,10 @@
 
 Sushflix is a content sharing and subscription platform designed to connect creators with their fans. Creators can upload various types of content and manage their subscriptions, while fans can subscribe to their favorite creators and enjoy exclusive content. The platform uses a modern tech stack, including React for the frontend, Node.js/Express for the backend, MongoDB Atlas for the database, and AWS S3 for storage.
 
+## Documentation
+
+- [UI State Management](./docs/architecture/UI_STATE_MANAGEMENT.md) - Architecture and patterns for managing UI state
+
 ## Features
 
 ### Existing Features

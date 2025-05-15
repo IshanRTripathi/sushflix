@@ -1,7 +1,7 @@
-import React from 'react';
 import { useAuth } from '../auth/AuthContext';
-import { Container, Typography, Box, Button, List, ListItem, ListItemText, ListItemIcon, Divider, Paper, useTheme, styled, ListItemButton } from '@mui/material';
+import { Container, Typography, Box, Button, List, ListItem, ListItemText, ListItemIcon, Divider, Paper, styled, ListItemButton } from '@mui/material';
 import Grid from '@mui/material/Grid';
+import { useTheme as useMuiTheme } from '@mui/material/styles';
 import {
   AccountCircle,
   Lock,
@@ -28,7 +28,7 @@ const StyledContainer = styled('div')(({ theme }) => ({
 
 const SettingsPage = () => {
   const { user, logout } = useAuth();
-  const theme = useTheme();
+  const muiTheme = useMuiTheme();
 
   if (!user) return null;
 
@@ -119,7 +119,7 @@ const SettingsPage = () => {
                 fullWidth
                 onClick={handleLogout}
                 startIcon={<Logout />}
-                sx={{ mt: 2, '&:hover': { backgroundColor: theme.palette.error.dark } }}
+                sx={{ mt: 2, '&:hover': { backgroundColor: muiTheme.palette.error.dark } }}
               >
                 Logout
               </Button>

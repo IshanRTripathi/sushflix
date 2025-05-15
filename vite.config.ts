@@ -1,163 +1,108 @@
-import { defineConfig, loadEnv, type ConfigEnv } from 'vite';
+import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-import { VitePWA } from 'vite-plugin-pwa';
-import { visualizer } from 'rollup-plugin-visualizer';
-import { createHtmlPlugin } from 'vite-plugin-html';
-import { ViteImageOptimizer } from 'vite-plugin-image-optimizer';
-import { createStyleImportPlugin, AntdResolve } from 'vite-plugin-style-import';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { z } from 'zod';
+import path from 'path';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// Environment variables schema
-const envSchema = z.object({
-  VITE_API_URL: z.string().url().default('https://sushflix-backend-796527544626.us-central1.run.app'),
-  VITE_APP_NAME: z.string().default('Sushflix'),
-  VITE_APP_DESCRIPTION: z.string().default('Content sharing platform'),
-  VITE_APP_THEME_COLOR: z.string().default('#ffffff'),
-});
-
-export default defineConfig(({ mode }: ConfigEnv) => {
-  // Load environment variables
-  const env = loadEnv(mode, process.cwd(), '');
+// https://vitejs.dev/config/
+export default defineConfig(({ command, mode }) => ({
+  // Base configuration
+  base: '/',
   
-  // Validate environment variables
-  try {
-    envSchema.parse(env);
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      console.error('❌ Invalid environment variables:', error.errors);
-      process.exit(1);
-    }
-  }
-
-  return {
-    resolve: {
-      alias: {
-        '@': path.resolve(__dirname, 'src'),
+  // Plugins
+  plugins: [
+    react({
+      // Enable Fast Refresh
+      fastRefresh: true,
+      // Only use React's new JSX transform in development
+      jsxRuntime: 'automatic',
+      // Only enable babel in development for faster builds
+      babel: mode === 'development' ? {
+        plugins: [
+          ['@babel/plugin-transform-runtime', {
+            regenerator: true,
+          }],
+        ],
+      } : undefined,
+    }),
+  ],
+  
+  // Development server configuration
+  server: {
+    port: 5173,
+    open: true,
+    strictPort: true,
+    hmr: {
+      overlay: true,
+    },
+    proxy: {
+      '/api': {
+        target: 'https://sushflix-backend-796527544626.us-central1.run.app',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, ''),
+        secure: false,
       },
     },
-    define: {
-      __APP_ENV__: JSON.stringify(env.NODE_ENV || 'development'),
+  },
+  
+  // Resolve configuration
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, 'src'),
     },
-    plugins: [
-      react({
-        babel: {
-          plugins: [
-            ['@babel/plugin-proposal-decorators', { legacy: true }],
-            ['@babel/plugin-proposal-class-properties', { loose: true }],
-          ],
-        },
-      }),
-      createStyleImportPlugin({
-        resolves: [AntdResolve()],
-      }),
-      VitePWA({
-        registerType: 'autoUpdate',
-        includeAssets: ['favicon.ico', 'robots.txt', 'apple-touch-icon.png', 'static/**/*'],
-        manifest: {
-          name: env.VITE_APP_NAME,
-          short_name: env.VITE_APP_NAME,
-          description: env.VITE_APP_DESCRIPTION,
-          theme_color: env.VITE_APP_THEME_COLOR,
-          icons: [
-            {
-              src: 'pwa-192x192.png',
-              sizes: '192x192',
-              type: 'image/png',
-            },
-            {
-              src: 'pwa-512x512.png',
-              sizes: '512x512',
-              type: 'image/png',
-            },
-          ],
-        },
-      }),
-      ViteImageOptimizer({
-        png: { quality: 80 },
-        jpeg: { quality: 80 },
-        jpg: { quality: 80 },
-        webp: { lossless: false },
-      }),
-      createHtmlPlugin({
-        minify: true,
-        inject: {
-          data: {
-            title: env.VITE_APP_NAME,
-            description: env.VITE_APP_DESCRIPTION,
-          },
-        },
-      }),
-      mode === 'analyze' && visualizer({
-        open: true,
-        filename: 'dist/bundle-analyzer-report.html',
-        gzipSize: true,
-        brotliSize: true,
-      }),
-    ].filter(Boolean),
-    build: {
-      outDir: 'dist',
-      emptyOutDir: true,
-      assetsDir: 'static',
-      sourcemap: mode !== 'production',
-      minify: 'terser',
-      terserOptions: {
-        compress: {
-          drop_console: mode === 'production',
-          drop_debugger: mode === 'production',
-        },
-      },
-      rollupOptions: {
-        output: {
-          manualChunks: {
-            react: ['react', 'react-dom', 'react-router-dom'],
-            vendor: ['lodash', 'axios', 'date-fns'],
-            ui: ['@mui/material', '@mui/icons-material', '@emotion/react', '@emotion/styled'],
-          },
-          assetFileNames: 'static/[name]-[hash][extname]',
-          chunkFileNames: 'static/[name]-[hash].js',
-          entryFileNames: 'static/[name]-[hash].js',
-        },
-      },
-      chunkSizeWarningLimit: 1000,
-    },
-    server: {
-      port: 5173,
-      host: true,
-      open: true,
-      proxy: {
-        '/api': {
-          target: env.VITE_API_URL,
-          changeOrigin: true,
-          secure: false,
-          rewrite: (path) => path.replace(/^\/api/, ''),
+    // Reduce file system calls
+    dedupe: ['react', 'react-dom'],
+  },
+  
+  // Build configuration
+  build: {
+    outDir: 'dist',
+    // Only generate sourcemaps in development
+    sourcemap: mode === 'development',
+    // Enable minification in production only
+    minify: mode === 'production' ? 'esbuild' : false,
+    // Enable CSS code splitting
+    cssCodeSplit: true,
+    // Optimize dependencies
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Split vendor modules
+          vendor: ['react', 'react-dom', 'react-router-dom'],
+          // Split MUI components
+          mui: ['@mui/material', '@mui/icons-material', '@mui/lab'],
         },
       },
     },
-    preview: {
-      port: 5173,
-      host: true,
+  },
+  
+  // CSS configuration
+  css: {
+    // Only generate sourcemaps in development
+    devSourcemap: mode === 'development',
+    // Enable CSS modules
+    modules: {
+      localsConvention: 'camelCase',
     },
-    optimizeDeps: {
-      include: ['react', 'react-dom', 'react-router-dom'],
-      esbuildOptions: {
-        target: 'es2020',
-      },
-    },
-    css: {
-      devSourcemap: true,
-      modules: {
-        localsConvention: 'camelCaseOnly',
-      },
-      preprocessorOptions: {
-        scss: {
-          additionalData: `@import "@/styles/variables.scss";`,
-        },
-      },
-    },
-  };
-});
+  },
+  
+  // Optimize deps
+  optimizeDeps: {
+    // Pre-bundle these dependencies for faster dev server starts
+    include: [
+      'react',
+      'react-dom',
+      'react-router-dom',
+      '@mui/material',
+      '@mui/icons-material',
+      '@emotion/react',
+      '@emotion/styled',
+    ],
+    // Don't force include these in the bundle
+    exclude: [],
+  },
+  
+  // Log level
+  logLevel: 'warn',
+  
+  // Clear screen
+  clearScreen: true,
+}));

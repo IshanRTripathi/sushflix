@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { useTheme } from '@mui/material/styles';
 import {
+  Box,
   CircularProgress,
   Dialog,
   DialogTitle,
@@ -8,7 +8,10 @@ import {
   DialogActions,
   Button,
   Alert,
+  keyframes,
+  styled as muiStyled,
 } from '@mui/material';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import { logger } from '@/utils/logger';
 
@@ -20,21 +23,62 @@ export interface UploadResponse {
 }
 
 export interface ProfilePictureUploadProps {
+  /**
+   * Whether the upload controls should be visible
+   * @default true
+   */
   isVisible?: boolean;
+  
+  /**
+   * Whether the upload is in progress
+   * @default false
+   */
   isUploading?: boolean;
+  
+  /**
+   * The current profile picture URL
+   */
   currentImageUrl?: string;
+  
+  /**
+   * Callback function when a file is selected for upload
+   * @param file - The file to be uploaded
+   * @returns Promise with upload result
+   */
   onUpload: (file: File) => Promise<UploadResponse>;
+  
+  /**
+   * Callback function when upload is successful
+   * @param data - Object containing the uploaded image URL
+   * @returns Promise that resolves when the success handler completes
+   */
   onUploadSuccess?: (data: { imageUrl: string }) => Promise<boolean>;
+  
+  /**
+   * Whether to show the edit overlay on hover
+   * @default true
+   */
+  showEditOnHover?: boolean;
+  
+  /**
+   * Additional CSS class name for the root element
+   */
+  className?: string;
 }
 
+/**
+ * A component for uploading and displaying a user's profile picture.
+ * Handles file selection, validation, and upload process with proper loading states.
+ */
 const ProfilePictureUpload: React.FC<ProfilePictureUploadProps> = ({
   isVisible = true,
   isUploading = false,
   currentImageUrl = '',
   onUpload,
   onUploadSuccess,
+  showEditOnHover = true,
+  className = '',
 }) => {
-  const theme = useTheme();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>('');
   const [error, setError] = useState<string>('');
@@ -121,7 +165,7 @@ const ProfilePictureUpload: React.FC<ProfilePictureUploadProps> = ({
         
         // Close the dialog
         setIsDialogOpen(false);
-        setPreviewUrl('');
+        setPreviewUrl(imageUrl);
         setSelectedFile(null);
       } else {
         throw new Error(response.error || 'Failed to upload image');
@@ -148,8 +192,6 @@ const ProfilePictureUpload: React.FC<ProfilePictureUploadProps> = ({
     };
   }, [previewUrl]);
 
-  if (!isVisible) return null;
-
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const handleClick = () => {
@@ -158,40 +200,94 @@ const ProfilePictureUpload: React.FC<ProfilePictureUploadProps> = ({
       fileInputRef.current.click();
     }
   };
+  
+  if (!isVisible) return null;
 
   return (
-    <div className="relative group">
+    <Box 
+      className={`profile-picture-upload ${className}`}
+      sx={{ 
+        position: 'relative', 
+        display: 'inline-block',
+        '&:hover .edit-overlay': {
+          opacity: showEditOnHover ? 1 : 0,
+        },
+      }}
+    >
       <input
         ref={fileInputRef}
         type="file"
-        accept="image/*"
+        accept="image/jpeg,image/png,image/webp"
         onChange={handleFileSelect}
-        className="hidden"
+        style={{ display: 'none' }}
         id="profile-picture-upload"
+        aria-label="Upload profile picture"
       />
-      <div 
+      <Box 
         onClick={handleClick}
-        className="relative w-32 h-32 rounded-full overflow-hidden border-2 border-gray-200 cursor-pointer"
+        sx={{
+          position: 'relative',
+          width: 120,
+          height: 120,
+          borderRadius: '50%',
+          overflow: 'hidden',
+          border: '2px solid',
+          borderColor: 'divider',
+          cursor: 'pointer',
+          transition: 'border-color 0.3s ease',
+          '&:hover .edit-overlay': {
+            opacity: showEditOnHover && !isUploading ? 1 : 0,
+          }
+        }}
+        aria-label={isUploading ? 'Uploading profile picture' : 'Change profile picture'}
       >
-        {previewUrl || currentImageUrl ? (
-          <img
+        {!(previewUrl || currentImageUrl) ? (
+          <Box 
+            sx={{
+              width: '100%',
+              height: '100%',
+              bgcolor: 'grey.100',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <CloudUploadIcon sx={{ width: 48, height: 48, color: 'grey.400' }} />
+          </Box>
+        ) : (
+          <Box
+            component="img"
             src={previewUrl || currentImageUrl}
             alt="Profile preview"
-            className="w-full h-full object-cover"
-            onError={(e) => {
-              const target = e.target as HTMLImageElement;
-              target.src = 'https://via.placeholder.com/128';
+            sx={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
             }}
           />
-        ) : (
-          <div className="w-full h-full bg-gray-100 flex items-center justify-center">
-            <CloudUploadIcon className="w-12 h-12 text-gray-400" />
-          </div>
         )}
-        <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
-          <CloudUploadIcon className="text-white w-8 h-8" />
-        </div>
-      </div>
+        {showEditOnHover && (
+          <Box 
+            className="edit-overlay"
+            sx={{
+              position: 'absolute',
+              inset: 0,
+              bgcolor: 'rgba(0, 0, 0, 0.5)',
+              opacity: 0,
+              transition: 'opacity 0.2s ease-in-out',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'white',
+              '&:hover': {
+                opacity: 1,
+              },
+            }}
+          >
+            <CloudUploadIcon sx={{ width: 32, height: 32 }} />
+          </Box>
+        )}
+      </Box>
       <Dialog open={isDialogOpen} onClose={() => setIsDialogOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle>Upload Profile Picture</DialogTitle>
         <DialogContent>
@@ -214,7 +310,7 @@ const ProfilePictureUpload: React.FC<ProfilePictureUploadProps> = ({
           <Button 
             onClick={() => {
               setIsDialogOpen(false);
-              setPreviewUrl('');
+              setPreviewUrl(previewUrl);
               setSelectedFile(null);
             }} 
             disabled={isUploadingState}
@@ -232,11 +328,10 @@ const ProfilePictureUpload: React.FC<ProfilePictureUploadProps> = ({
           </Button>
         </DialogActions>
       </Dialog>
-    </div>
+    </Box>
   );
 };
 
-// Export the component as default and named export for flexibility
 // Export the component as default and named export for flexibility
 export default ProfilePictureUpload;
 export { ProfilePictureUpload };

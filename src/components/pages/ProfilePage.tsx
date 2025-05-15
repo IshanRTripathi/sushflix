@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
-  Box, 
+  Box,
   Button, 
   Typography, 
   Container, 
@@ -12,12 +12,12 @@ import {
 } from '@mui/material';
 import GridOnIcon from '@mui/icons-material/GridOn';
 import BookmarkBorderIcon from '@mui/icons-material/BookmarkBorder';
-import EditIcon from '@mui/icons-material/Edit';
+import Settings from '@mui/icons-material/Edit';
 import VerifiedIcon from '@mui/icons-material/Verified';
 import { useAuth } from '../auth/AuthContext';
 import profileService from '../../services/profileService';
 import { logger } from '../../utils/logger';
-import { useLoadingContext } from '../../contexts/LoadingContextV2';
+import { useLoadingContext } from '../../contexts/LoadingContext';
 import { useQuery, useQueryClient, UseQueryOptions } from '@tanstack/react-query';
 import type { ApiResponse, UserProfile } from '../../types/user';
 import EditProfile from '../profile/EditProfile';
@@ -65,19 +65,27 @@ const ProfileStats = styled('div')(({ theme }) => ({
   borderBottom: `1px solid ${theme.palette.divider}`,
 }));
 
-const StatItem = styled('div')({
+const StatItem = styled('div')(({ theme }) => ({
   display: 'flex',
   flexDirection: 'column',
   alignItems: 'center',
+  flex: 1,
   '& > span:first-of-type': {
-    fontWeight: 600,
-    fontSize: '1.2rem',
+    fontWeight: 700,
+    fontSize: '1.25rem',
+    color: theme.palette.text.primary,
   },
   '& > span:last-child': {
-    color: 'rgba(0, 0, 0, 0.6)',
+    color:
+      theme.palette.mode === 'dark'
+        ? theme.palette.grey[400]
+        : theme.palette.grey[600],
     fontSize: '0.875rem',
+    marginTop: '4px',
+    letterSpacing: '0.5px',
   },
-});
+}));
+
 
 const ActionButtons = styled('div')(({ theme }) => ({
   display: 'flex',
@@ -111,6 +119,8 @@ export default function ProfilePage(): React.ReactElement {
   const [isFollowing, setIsFollowing] = useState(false);
 
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploadSuccess, setUploadSuccess] = useState(false);
   
   // Fetch user profile data
   const queryOptions: UseQueryOptions<ApiResponse<UserProfile>, Error> = {
@@ -205,7 +215,14 @@ export default function ProfilePage(): React.ReactElement {
     }
   };
   
+  /**
+   * Handles the profile picture upload process
+   * @param file - The file to upload
+   * @returns Promise with upload result
+   */
   const handleProfilePictureUpload = async (file: File) => {
+    setUploadError(null);
+    setUploadSuccess(false);
     if (!username) {
       const errorMsg = 'Cannot upload profile picture: missing username';
       logger.warn(errorMsg);
@@ -223,48 +240,83 @@ export default function ProfilePage(): React.ReactElement {
         type: file.type
       });
       
+      // Validate file type and size
+      const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
+      if (!validTypes.includes(file.type)) {
+        const errorMsg = 'Invalid file type. Please upload a JPEG, PNG, or WebP image.';
+        logger.warn(errorMsg, { type: file.type });
+        return { success: false, error: errorMsg };
+      }
+      
+      // Check file size (5MB max)
+      const maxSize = 5 * 1024 * 1024; // 5MB
+      if (file.size > maxSize) {
+        const errorMsg = 'Image size exceeds 5MB limit. Please choose a smaller file.';
+        logger.warn(errorMsg, { size: file.size });
+        return { success: false, error: errorMsg };
+      }
+      
       // Upload the file using the service
       const response = await profileService.uploadProfilePicture(username, file);
       
       if (!response.success) {
         const errorMsg = response.error || 'Failed to upload profile picture';
-        throw new Error(errorMsg);
+        logger.error('Upload failed', { error: errorMsg, response });
+        return { success: false, error: errorMsg };
       }
       
       // The server returns the URL in response.data.profilePicture
       const imageUrl = response.data?.profilePicture;
       
       if (!imageUrl) {
-        logger.error('No image URL in response', { response });
-        throw new Error('No image URL returned from server');
+        const errorMsg = 'No image URL in response from server';
+        logger.error(errorMsg, { response });
+        return { success: false, error: errorMsg };
       }
       
       logger.info('Successfully uploaded profile picture', { imageUrl });
       
       // Invalidate and refetch profile data
-      await queryClient.invalidateQueries({ queryKey: ['userProfile', username] });
+      await queryClient.invalidateQueries({ 
+        queryKey: ['userProfile', username],
+        refetchType: 'active'
+      });
       
       // Update the current user's profile picture in the auth context
       if (isCurrentUserProfile) {
         updateUser({ profilePicture: imageUrl });
       }
       
-      // Return success with the updated profile picture URL
-      // Using both url and imageUrl for maximum compatibility
+      // Show success state
+      setUploadSuccess(true);
+      logger.info('Profile picture updated successfully', { username });
+      
+      // Reset success state after 3 seconds
+      setTimeout(() => setUploadSuccess(false), 3000);
+      
       return { 
         success: true, 
-        url: imageUrl,
-        imageUrl: imageUrl
+        imageUrl,
+        // For backward compatibility
+        url: imageUrl
       };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const userFriendlyError = 'Failed to upload profile picture. Please try again.';
+      setUploadError(userFriendlyError);
+      
       logger.error('Error uploading profile picture:', { 
         error: errorMessage,
-        stack: error instanceof Error ? error.stack : undefined
+        stack: error instanceof Error ? error.stack : undefined,
+        username
       });
+      
+      // Clear error after 5 seconds
+      setTimeout(() => setUploadError(null), 5000);
+      
       return { 
         success: false,
-        error: errorMessage
+        error: userFriendlyError
       };
     } finally {
       stopLoading('profile-picture-upload');
@@ -305,34 +357,97 @@ export default function ProfilePage(): React.ReactElement {
 
   const profile = userProfile.data;
 
+  // Ensure we have a valid profile picture URL or default to empty string
+  const profilePictureUrl = profile.profilePicture || '';
+  
   return (
     <Container maxWidth="md">
       <ProfileHeader>
-        <ProfilePictureUpload
-          currentImageUrl={profile.profilePicture}
-          onUpload={handleProfilePictureUpload}
-          isUploading={isUploading}
-        />
+        <Box sx={{ position: 'relative', mb: 2 }}>
+          {isCurrentUserProfile ? (
+            <>
+              <ProfilePictureUpload
+                currentImageUrl={profilePictureUrl}
+                onUpload={handleProfilePictureUpload}
+                isUploading={isUploading}
+                showEditOnHover={true}
+                className={uploadSuccess ? 'upload-success' : ''}
+              />
+              {/* Upload Status Feedback */}
+              <Box sx={{ 
+                mt: 1,
+                minHeight: 24,
+                textAlign: 'center'
+              }}>
+                {isUploading && (
+                  <Box display="flex" alignItems="center" justifyContent="center" gap={1}>
+                    <CircularProgress size={16} />
+                    <Typography variant="caption" color="textSecondary">
+                      Uploading...
+                    </Typography>
+                  </Box>
+                )}
+                
+                {uploadError && (
+                  <Typography variant="caption" color="error">
+                    {uploadError}
+                  </Typography>
+                )}
+                
+                {uploadSuccess && (
+                  <Typography variant="caption" color="success.main">
+                    Profile picture updated successfully!
+                  </Typography>
+                )}
+              </Box>
+            </>
+          ) : (
+            <Box 
+              sx={{
+                width: 120,
+                height: 120,
+                borderRadius: '50%',
+                overflow: 'hidden',
+                border: '2px solid',
+                borderColor: 'divider',
+              }}
+            >
+              <Box sx={{ width: '100%', height: '100%' }}>
+                <Box
+                  component="img"
+                  src={profilePictureUrl || '/default-avatar.png'}
+                  alt={profile.displayName || 'Profile'}
+                  sx={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                  }}
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.src = '/default-avatar.png';
+                  }}
+                />
+              </Box>
+            </Box>
+          )}
+        </Box>
         
         <ProfileInfo>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
             <Typography variant="h5" component="h1">
-              {profile.displayName || profile.username}
+              {profile.displayName}
             </Typography>
-            {profile.isVerified && (
+            {!profile.isVerified && (
               <VerifiedIcon color="primary" fontSize="small" />
             )}
-          </Box>
           
           <ActionButtons>
             {isCurrentUserProfile ? (
               <ActionButton 
-                variant="outlined" 
                 size="small"
                 onClick={handleEditProfile}
-                startIcon={<EditIcon />}
+                startIcon={<Settings />}
               >
-                Edit Profile
               </ActionButton>
             ) : (
               <ActionButton 
@@ -346,6 +461,17 @@ export default function ProfilePage(): React.ReactElement {
               </ActionButton>
             )}
           </ActionButtons>
+          </Box>
+          <Box>
+            <Typography variant="subtitle2" fontWeight={400}>
+              {"@" + profile.username}
+            </Typography>
+            {profile.bio && (
+              <Bio variant="body2">
+                {profile.bio}
+              </Bio>
+            )}
+          </Box>
           
           <ProfileStats>
             <StatItem>
@@ -361,17 +487,6 @@ export default function ProfilePage(): React.ReactElement {
               <span>Following</span>
             </StatItem>
           </ProfileStats>
-          
-          <Box>
-            <Typography variant="subtitle1" fontWeight={600}>
-              {profile.displayName || profile.username}
-            </Typography>
-            {profile.bio && (
-              <Bio variant="body2">
-                {profile.bio}
-              </Bio>
-            )}
-          </Box>
         </ProfileInfo>
       </ProfileHeader>
       

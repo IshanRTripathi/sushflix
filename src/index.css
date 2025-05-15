@@ -4,26 +4,100 @@
 
 /* Base styles */
 :root {
-  --bg-color: #ffffff;
-  --text-color: #1a1a1a;
-  --border-color: #e5e7eb;
-  --hover-bg: #f3f4f6;
+  --background: #ffffff;
+  --foreground: #1a1a1a;
+  --background-paper: #ffffff;
+  --text-primary: #1a1a1a;
+  --text-secondary: #4b5563;
+  --primary: #3b82f6;
+  color-scheme: light;
+  
+  /* Smooth transitions */
+  --transition-duration: 0.3s;
+  --transition-timing: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Dark mode styles */
+/* Dark theme overrides */
 [data-theme="dark"],
 .dark {
-  --bg-color: #121212;
-  --text-color: #f3f4f6;
-  --border-color: #374151;
-  --hover-bg: #1f2937;
+  --background: #121212;
+  --foreground: #f3f4f6;
+  --background-paper: #1e1e1e;
+  --text-primary: #f3f4f6;
+  --text-secondary: #9ca3af;
+  --primary: #60a5fa;
+  color-scheme: dark;
 }
 
-/* Apply theme colors */
+/* Apply theme colors with optimized transitions */
 body {
-  background-color: var(--bg-color);
-  color: var(--text-color);
-  transition: background-color 0.3s ease, color 0.3s ease;
+  background-color: var(--background);
+  color: var(--foreground);
+  transition: 
+    background-color var(--transition-duration) var(--transition-timing),
+    color var(--transition-duration) var(--transition-timing);
+}
+
+/* Disable transitions during initial page load */
+body:not(.theme-transition) *,
+body:not(.theme-transition) *::before,
+body:not(.theme-transition) *::after {
+  transition: none !important;
+}
+
+/* Optimize transitions for performance */
+*, *::before, *::after {
+  transition-property: background-color, border-color, color, fill, stroke, opacity, box-shadow, transform;
+  transition-duration: var(--transition-duration);
+  transition-timing-function: var(--transition-timing);
+}
+
+/* Disable transitions for performance-critical elements */
+input,
+button,
+textarea,
+select,
+[role="button"],
+[role="tab"],
+[role="slider"] {
+  transition: none !important;
+}
+
+/* MUI Component Overrides */
+.MuiPaper-root {
+  background-color: var(--background-paper);
+  color: var(--text-primary);
+}
+
+.MuiButton-root {
+  color: var(--text-primary);
+}
+
+.MuiInputBase-root {
+  color: var(--text-primary);
+}
+
+.MuiInputBase-root .MuiOutlinedInput-notchedOutline {
+  border-color: var(--text-secondary);
+  opacity: 0.5;
+}
+
+.MuiInputBase-root:hover .MuiOutlinedInput-notchedOutline {
+  border-color: var(--primary);
+  opacity: 0.8;
+}
+
+.MuiInputBase-root.Mui-focused .MuiOutlinedInput-notchedOutline {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.MuiInputLabel-root {
+  color: var(--text-secondary);
+}
+
+.MuiInputLabel-root.Mui-focused {
+  color: var(--primary);
 }
 
 /* Custom scrollbar */
@@ -33,34 +107,25 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--bg-color);
+  background-color: var(--background);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #888;
+  background-color: rgba(156, 163, 175, 0.8);
   border-radius: 4px;
 }
 
+.dark ::-webkit-scrollbar-thumb {
+  background-color: rgba(75, 85, 99, 0.8);
+}
+
 ::-webkit-scrollbar-thumb:hover {
-  background: #666;
+  background-color: rgba(107, 114, 128, 0.8);
 }
 
-/* Custom styles for dark mode */
-.dark .MuiPaper-root {
-  background-color: #1e1e1e;
-  color: #ffffff;
-}
-
-.dark .MuiAppBar-root {
-  background-color: #1e1e1e !important;
-}
-
-.dark .MuiDrawer-paper {
-  background-color: #1e1e1e !important;
-  color: #ffffff !important;
-}
-
-/* Smooth transitions */
+/* Smooth transitions for theme changes */
 * {
-  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+  transition-property: background-color, border-color, color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
 }

@@ -229,33 +229,64 @@ const getUserStats = async (req, res) => {
 };
 
 // Upload profile picture
-const uploadProfilePicture = async (username, file, req) => {
-    try {
-      // Validate request parameters
-      if (!username || typeof username !== 'string') {
-        logger.error('Invalid username parameter', {
-          username,
-          params: req.params
-        });
-        return {
-          success: false,
-          error: 'Invalid username parameter'
-        };
-      }
+const uploadProfilePicture = async (req, res, next) => {
+  const { username } = req.params;
+  const file = req.file;
+  
+  try {
+    // Validate request parameters
+    if (!username || typeof username !== 'string') {
+      logger.error('Invalid username parameter', {
+        username,
+        params: req.params
+      });
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid username parameter'
+      });
+    }
 
-      if (!file) {
-        logger.error('No file uploaded in request', {
-          headers: req.headers,
-          body: req.body
-        });
-        return {
-          success: false,
-          error: 'No file uploaded'
-        };
-      }
+    if (!file) {
+      logger.error('No file uploaded in request', {
+        headers: req.headers,
+        body: req.body,
+        files: req.files
+      });
+      return res.status(400).json({
+        success: false,
+        error: 'No file uploaded'
+      });
+    }
 
-    // Upload to Google Cloud Storage
-    const uploadResponse = await uploadFile(username, file);
+    // Ensure file has required properties
+    if (!file.originalname || !file.mimetype || !file.size || !file.buffer) {
+      logger.error('Invalid file properties', {
+        username,
+        fileProps: Object.keys(file),
+        hasBuffer: !!file.buffer
+      });
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid file properties'
+      });
+    }
+
+    // Log file info for debugging
+    logger.info('Processing file upload', {
+      username,
+      filename: file.originalname,
+      mimetype: file.mimetype,
+      size: file.size,
+      bufferLength: file.buffer?.length
+    });
+
+    // Upload the file to storage (GCS or local)
+    const uploadResponse = await uploadFile(username, {
+      buffer: file.buffer,
+      originalname: file.originalname,
+      mimetype: file.mimetype,
+      size: file.size
+    });
     
     if (!uploadResponse.success) {
       logger.error('Failed to upload to storage', {
@@ -268,66 +299,71 @@ const uploadProfilePicture = async (username, file, req) => {
           size: file.size
         }
       });
-      return {
+      return res.status(500).json({
         success: false,
-        error: uploadResponse.error || 'Failed to upload file to storage',
-        statusCode: 500
-      };
+        error: uploadResponse.error || 'Failed to upload file to storage'
+      });
     }
 
     // Find user first
     const user = await User.findOne({ username });
     if (!user) {
       logger.error('User not found', { username });
-      return {
+      return res.status(404).json({
         success: false,
-        error: 'User not found',
-        statusCode: 404
-      };
+        error: 'User not found'
+      });
     }
 
     try {
       // Save the old picture URL for cleanup
       const oldPictureUrl = user.profilePicture;
+      const oldFileName = oldPictureUrl ? oldPictureUrl.split('/').pop() : null;
 
-      user.profilePicture = uploadResponse.url;
+      // Update user's profile picture URL
+      user.profilePicture = uploadResponse.fileUrl; // Use fileUrl from the upload response
       await user.save();
 
       // If there was an old picture, delete it from storage
       if (oldPictureUrl) {
         try {
-          await deleteFile(oldPictureUrl);
+          // Extract just the filename from the URL
+          const oldFileName = oldPictureUrl.split('/').pop();
+          if (oldFileName) {
+            await deleteFile(oldFileName);
+            logger.info('Old profile picture deleted', { username, oldFileName });
+          }
         } catch (deleteError) {
           // Log but don't fail the request if deletion fails
           logger.error('Failed to delete old profile picture', {
             error: deleteError.message,
             url: oldPictureUrl,
-            username
+            username,
+            stack: deleteError.stack
           });
         }
       }
 
       logger.info('Profile picture updated successfully', {
         username,
-        newPictureUrl: uploadResponse.url
+        newPictureUrl: uploadResponse.fileUrl
       });
 
-      return {
+      return res.json({
         success: true,
-        url: uploadResponse.url,
+        url: uploadResponse.fileUrl,
         message: 'Profile picture updated successfully'
-      };
+      });
     } catch (error) {
       logger.error('Failed to update user profile with new picture', {
         error: error.message,
         username,
         stack: error.stack
       });
-      return {
+      return res.status(500).json({
         success: false,
-        error: 'Failed to update profile with new picture',
-        statusCode: 500
-      };
+        error: 'Failed to update profile with new picture'
+      });
     }
   } catch (error) {
     logger.error('Profile picture upload error', {
@@ -336,11 +372,10 @@ const uploadProfilePicture = async (username, file, req) => {
       username: username || 'unknown'
     });
     
-    return {
+    return res.status(500).json({
       success: false,
-      error: 'An unexpected error occurred while uploading the profile picture',
-      statusCode: 500
-    };
+      error: 'An unexpected error occurred while uploading the profile picture'
+    });
   }
 };
 
