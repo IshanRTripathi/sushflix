@@ -214,7 +214,7 @@ export const useProfile = (username?: string): UseProfileReturn => {
     try {
       setIsUpdating(true);
       // The updateProfile method returns the updated UserProfile directly
-      const updatedProfile = await profileService.updateProfile(profile.id, updates);
+      const updatedProfile = await profileService.updateProfile(profile.username, updates);
       
       if (!updatedProfile) {
         throw new Error('Failed to update profile');

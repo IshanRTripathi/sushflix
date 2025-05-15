@@ -64,7 +64,7 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({
     try {
       setIsLoading(true);
       setError(null);
-      logger.info('Profile picture upload success', { userId: user.id, updates });
+      logger.info('Profile picture upload success', { username: user.username, updates });
       
       if (onProfileUpdate) {
         await onProfileUpdate({
@@ -74,7 +74,7 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({
         });
       }
     } catch (error) {
-      logger.error('Error updating profile picture', { error, userId: user.id });
+      logger.error('Error updating profile picture', { error, username: user.username });
       setError('Failed to update profile picture. Please try again.');
       throw error;
     } finally {

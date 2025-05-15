@@ -97,31 +97,6 @@ router.post('/signup', [
     }
 });
 
-router.get('/me', auth(), async (req, res) => { // Applying auth middleware
-    logger.info(`Executing route: GET /api/me`); // Corrected log path
-    // The auth middleware should populate req.user if authenticated
-    if (!req.user) {
-         // This case should ideally be handled by the auth middleware sending a 401
-         // but adding a log and return here for clarity if auth middleware is skipped or fails silently
-        logger.warn('GET /me: User not authenticated after middleware');
-        return res.status(401).json({ message: 'User not authenticated' });
-    }
-    logger.info(`Fetching profile for user ID: ${req.user.userId}`);
-
-    try {
-        const user = await User.findById(req.user.userId).select('-password'); // Exclude password
-        if (!user) {
-             logger.warn(`GET /me: User not found in DB for ID: ${req.user.userId}`);
-            return res.status(404).json({ message: 'User not found' });
-        }
-        logger.info(`Successfully fetched profile for user: ${user.username}`);
-        res.json(user);
-    } catch (err) {
-        logger.error(`Error fetching user profile for ID ${req.user.userId}: ${err.message}`);
-        next(err);
-    }
-});
-
 router.post('/login', [
     body('usernameOrEmail').custom(value => {
         if (!value) {
