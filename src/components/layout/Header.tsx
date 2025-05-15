@@ -17,6 +17,12 @@ interface HeaderMenuItem {
 
 const MENU_ITEMS: HeaderMenuItem[] = [
   {
+    label: 'Explore',
+    onClick: () => {},
+    to: '/explore',
+    className: 'block px-4 py-2 text-gray-400 hover:text-white hover:bg-gray-800'
+  },
+  {
     label: 'Profile',
     onClick: () => {},
     to: '/profile',

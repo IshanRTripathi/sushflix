@@ -4,7 +4,7 @@ import { useToast } from '../hooks/useToast';
 import { UserProfile, SocialLinks, ProfileInput } from '../types/user';
 import { profileService } from '../services/profileService';
 import { logger } from '../utils/logger';
-import LoadingSpinner from '../components/LoadingSpinner';
+import LoadingSpinner from './common/LoadingSpinner';
 import { Edit as EditIcon } from '@mui/icons-material';
 import { Button as MuiButton } from '@mui/material';
 import ProfilePictureUpload from './profile/ProfilePictureUpload';
