@@ -99,25 +99,39 @@ class ThemeManager {
 
   private applyTheme(): void {
     try {
-      // Update document attributes
-      if (typeof document !== 'undefined') {
-        const html = document.documentElement;
-        
-        // Remove all theme classes first
-        html.classList.remove('light', 'dark');
-        
-        // Add the current theme class
-        html.classList.add(this.currentTheme);
-        
-        // Set data-theme attribute for CSS variables
-        html.setAttribute('data-theme', this.currentTheme);
-        
-        // Set color-scheme for form controls and system UI
-        html.style.colorScheme = this.currentTheme;
-      }
+      if (typeof document === 'undefined') return;
       
-      // Notify subscribers
-      this.notifySubscribers();
+      const html = document.documentElement;
+      
+      // Add transition class for smooth theme changes
+      html.classList.add('theme-transition');
+      
+      // Update theme classes and attributes in the next frame
+      requestAnimationFrame(() => {
+        // Remove all theme classes and attributes first
+        const currentTheme = this.currentTheme;
+        
+        // Add the new theme class and attributes
+        html.classList.remove('light', 'dark');
+        html.classList.add(currentTheme);
+        html.setAttribute('data-theme', currentTheme);
+        
+        // Update color scheme
+        html.style.colorScheme = currentTheme;
+        
+        // Remove transition class after animation completes
+        const onTransitionEnd = () => {
+          html.classList.remove('theme-transition');
+          html.removeEventListener('transitionend', onTransitionEnd);
+        };
+        
+        html.addEventListener('transitionend', onTransitionEnd, { once: true });
+        
+        // Notify subscribers after a small delay to allow for smooth transition
+        requestAnimationFrame(() => {
+          this.notifySubscribers();
+        });
+      });
     } catch (error) {
       console.error('Failed to apply theme:', error);
     }

@@ -11,6 +11,10 @@
   --text-secondary: #4b5563;
   --primary: #3b82f6;
   color-scheme: light;
+  
+  /* Smooth transitions */
+  --transition-duration: 0.3s;
+  --transition-timing: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* Dark theme overrides */
@@ -25,11 +29,38 @@
   color-scheme: dark;
 }
 
-/* Apply theme colors */
+/* Apply theme colors with optimized transitions */
 body {
   background-color: var(--background);
   color: var(--foreground);
-  transition: background-color 0.3s ease, color 0.3s ease;
+  transition: 
+    background-color var(--transition-duration) var(--transition-timing),
+    color var(--transition-duration) var(--transition-timing);
+}
+
+/* Disable transitions during initial page load */
+body:not(.theme-transition) *,
+body:not(.theme-transition) *::before,
+body:not(.theme-transition) *::after {
+  transition: none !important;
+}
+
+/* Optimize transitions for performance */
+*, *::before, *::after {
+  transition-property: background-color, border-color, color, fill, stroke, opacity, box-shadow, transform;
+  transition-duration: var(--transition-duration);
+  transition-timing-function: var(--transition-timing);
+}
+
+/* Disable transitions for performance-critical elements */
+input,
+button,
+textarea,
+select,
+[role="button"],
+[role="tab"],
+[role="slider"] {
+  transition: none !important;
 }
 
 /* MUI Component Overrides */

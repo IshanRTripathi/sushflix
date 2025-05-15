@@ -35,6 +35,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
   const themeRef = useRef(themeManager.getTheme());
   const [theme, setThemeState] = useState(themeManager.getTheme());
   const [isDark, setIsDark] = useState(themeManager.getEffectiveTheme() === 'dark');
+  const [isMounted, setIsMounted] = useState(false);
   const themeOptions = themeManager.getThemeOptions();
 
   // Create MUI theme based on dark/light mode with error handling
@@ -90,23 +91,15 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
 
   // Set up theme change subscription with stable reference
   useEffect(() => {
-    let mounted = true;
-    
-    const safeUpdate = () => {
-      if (mounted) {
-        updateTheme();
-      }
-    };
-    
-    // Initial setup
-    safeUpdate();
+    // Initial theme application
+    updateTheme();
+    setIsMounted(true);
     
     // Subscribe to theme changes
-    const unsubscribe = themeManager.subscribe(safeUpdate);
-
+    const unsubscribe = themeManager.subscribe(updateTheme);
+    
     // Cleanup function
     return () => {
-      mounted = false;
       try {
         unsubscribe();
       } catch (error) {
@@ -146,16 +139,10 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
     };
   }, [theme, isDark, themeOptions, onError]);
 
-  // Apply theme class to body
-  useEffect(() => {
-    const body = document.body;
-    body.classList.toggle('dark-theme', isDark);
-    body.classList.toggle('light-theme', !isDark);
-    
-    return () => {
-      body.classList.remove('dark-theme', 'light-theme');
-    };
-  }, [isDark]);
+  // Only render children after initial theme is applied
+  if (!isMounted) {
+    return null;
+  }
 
   return (
     <ThemeContext.Provider value={contextValue}>
