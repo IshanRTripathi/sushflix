@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useToast } from '../hooks/useToast';
+import { useLoading } from '../hooks/useLoading';
 import { UserProfile, SocialLinks, ProfileInput } from '../types/user';
 import { profileService } from '../services/profileService';
 import { logger } from '../utils/logger';
@@ -28,12 +28,24 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
   statsData 
 }) => {
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const { showToast } = useToast();
   const [isEditing, setIsEditing] = useState(false);
+  const { showToast } = useToast();
   const { user: currentUser } = useAuth();
   const isOwnProfile = currentUser?.username === username;
+  
+  const { 
+    isLoading, 
+    error, 
+    startLoading, 
+    stopLoading, 
+    setError: setLoadingError 
+  } = useLoading({ 
+    trackTime: true,
+    resetErrorOnStart: true 
+  });
+  
+  // Convert error to string for display
+  const errorMessage = error ? error.message : '';
 
   const [formData, setFormData] = useState<{
     displayName: string;
@@ -77,6 +89,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
     if (!profile || !formData.socialLinks) return;
 
     try {
+      startLoading();
       const updates: ProfileInput = {
         displayName: formData.displayName || profile.displayName,
         bio: formData.bio || profile.bio,
@@ -100,35 +113,41 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
           lastUpdated: new Date()
         } as UserProfile));
         setIsEditing(false);
+        showToast('Profile updated successfully', 'success');
       } else {
-        setError('Failed to update profile');
+        throw new Error(response.error || 'Failed to update profile');
       }
     } catch (err) {
-      setError('Failed to update profile');
-      logger.error('Error updating profile:', { error: err instanceof Error ? err.message : String(err) });
+      const errorMessage = err instanceof Error ? err.message : 'Failed to update profile';
+      setLoadingError(new Error(errorMessage));
+      logger.error('Error updating profile:', { error: errorMessage });
+      showToast(errorMessage, 'error');
+    } finally {
+      stopLoading();
     }
   };
 
-  useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        const response = await profileService.getUserProfile(username);
-        const profileData = response.data;
-        if (profileData) {
-          setProfile(profileData);
-        } else {
-          setError('Profile not found');
-        }
-      } catch (err) {
-        setError('Failed to load profile');
-        logger.error('Error fetching profile:', { error: err instanceof Error ? err.message : String(err) });
-      } finally {
-        setIsLoading(false);
+  const fetchProfile = useCallback(async () => {
+    try {
+      startLoading();
+      const response = await profileService.getUserProfile(username);
+      if (response.success && response.data) {
+        setProfile(response.data);
+      } else {
+        throw new Error(response.error || 'Profile not found');
       }
-    };
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load profile';
+      setLoadingError(new Error(errorMessage));
+      logger.error('Error fetching profile:', { error: errorMessage });
+    } finally {
+      stopLoading();
+    }
+  }, [username, startLoading, stopLoading, setLoadingError]);
 
+  useEffect(() => {
     fetchProfile();
-  }, [username]);
+  }, [fetchProfile]);
 
   if (isLoading) {
     return (
@@ -141,7 +160,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
   if (error) {
     return (
       <div className="w-full max-w-md mx-auto" role="region" aria-label="User profile section">
-        <div className="text-red-500">{error}</div>
+        <div className="text-red-500">{errorMessage}</div>
       </div>
     );
   }
@@ -208,28 +227,34 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
                       throw new Error('No authentication token found');
                     }
                     
-                    const response = await axios.post(
+                    const response = await fetch(
                       `/api/users/${profile.username}/picture`,
-                      formData,
                       {
+                        method: 'POST',
+                        body: formData,
                         headers: {
-                          'Content-Type': 'multipart/form-data',
                           'Authorization': `Bearer ${token}`
                         },
-                        withCredentials: true  // Important for sending cookies
+                        credentials: 'include'  // Important for sending cookies
                       }
                     );
                     
-                    if (response.data?.success) {
+                    const responseData = await response.json();
+                    
+                    if (!response.ok) {
+                      throw new Error(responseData.error || 'Failed to upload profile picture');
+                    }
+                    
+                    if (responseData?.success) {
                       showToast('Profile picture updated successfully!', 'success');
                       // Update the local state to show the new picture
                       setProfile(prev => ({
                         ...prev!,
-                        profilePicture: response.data?.profilePicture || response.data?.url || ''
+                        profilePicture: responseData.url
                       }));
-                      return { success: true, imageUrl: response.data?.profilePicture || response.data?.url };
+                      return { success: true, imageUrl: responseData.url };
                     } else {
-                      throw new Error(response.data?.error || 'Failed to update profile picture');
+                      throw new Error(responseData?.error || 'Failed to update profile picture');
                     }
                   } catch (error) {
                     const errorMessage = error instanceof Error ? error.message : 'Unknown error';

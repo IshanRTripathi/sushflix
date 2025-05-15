@@ -3,7 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { UserProfile, UserStats, SocialLinks } from '../types/user';
 import { profileService } from '../services/profileService';
 import { useAuth } from '../components/auth/AuthContext';
-import { useLoadingContext } from '../contexts/LoadingContext';
+import { useLoading } from './useLoading';
+import { logger } from '../utils/logger';
 
 /**
  * @typedef {Object} UseProfileReturn
@@ -49,21 +50,38 @@ interface UseProfileReturn {
 export const useProfile = (username?: string): UseProfileReturn => {
   const { username: urlUsername } = useParams<{ username: string }>();
   const { user: currentUser } = useAuth();
-  const { startLoading, stopLoading } = useLoadingContext();
   const navigate = useNavigate();
-
   const targetUsername = username || urlUsername || '';
+
+  // Loading states
+  const { 
+    isLoading, 
+    startLoading, 
+    stopLoading, 
+    error, 
+    setError: setLoadingError 
+  } = useLoading({ trackTime: true });
+  
+  const { 
+    isLoading: isUpdating, 
+    startLoading: startUpdating, 
+    stopLoading: stopUpdating 
+  } = useLoading({ trackTime: true });
+  
+  const { 
+    isLoading: isUploading, 
+    startLoading: startUploading, 
+    stopLoading: stopUploading 
+  } = useLoading({ trackTime: true });
+
+  // Derived state
   const isCurrentUser = useMemo(
     () => !username && !urlUsername || currentUser?.username === targetUsername,
     [username, urlUsername, currentUser, targetUsername]
   );
 
-  // State management
+  // Profile state
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [isUpdating, setIsUpdating] = useState<boolean>(false);
-  const [isUploading, setIsUploading] = useState<boolean>(false);
-  const [error, setError] = useState<Error | null>(null);
   const [isFollowing, setIsFollowing] = useState<boolean>(false);
   const [isCreator, setIsCreator] = useState<boolean>(false);
   const [stats, setStats] = useState<UserStats>({
@@ -78,14 +96,16 @@ export const useProfile = (username?: string): UseProfileReturn => {
    * Fetches the user profile data
    * @private
    */
+  /**
+   * Fetches the user profile data
+   * @private
+   */
   const fetchProfile = useCallback(async () => {
     if (!targetUsername) return;
 
     try {
       startLoading();
-      setIsLoading(true);
-      setError(null);
-
+      
       let profileData: UserProfile;
       
       if (isCurrentUser) {
@@ -102,6 +122,7 @@ export const useProfile = (username?: string): UseProfileReturn => {
         profileData = response;
       }
       
+      // Update all related state in a single batch
       setProfile(profileData);
       setStats({
         postCount: profileData.stats?.postCount || 0,
@@ -112,20 +133,22 @@ export const useProfile = (username?: string): UseProfileReturn => {
       setSocialLinks(profileData.socialLinks || {});
       setIsFollowing(profileData.isFollowing || false);
       setIsCreator(profileData.isCreator || false);
+      
+      return profileData;
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Failed to load profile');
-      console.error('Failed to fetch profile:', error);
-      setError(error);
+      logger.error('Failed to fetch profile:', { error });
+      setLoadingError(error);
       
       // Redirect to 404 if profile doesn't exist
       if ((err as any)?.status === 404) {
         navigate('/404', { replace: true });
       }
+      throw error;
     } finally {
-      setIsLoading(false);
       stopLoading();
     }
-  }, [targetUsername, isCurrentUser, navigate, startLoading, stopLoading]);
+  }, [targetUsername, isCurrentUser, navigate, startLoading, stopLoading, setLoadingError]);
 
   useEffect(() => {
     fetchProfile();
@@ -135,10 +158,24 @@ export const useProfile = (username?: string): UseProfileReturn => {
    * Refreshes the profile data
    * @public
    */
+  /**
+   * Refreshes the profile data
+   * @public
+   */
   const refreshProfile = useCallback(async () => {
-    await fetchProfile();
+    try {
+      await fetchProfile();
+    } catch (error) {
+      // Error is already handled in fetchProfile
+      logger.error('Failed to refresh profile:', { error });
+    }
   }, [fetchProfile]);
 
+  /**
+   * Follows the current profile's user
+   * @public
+   * @throws {Error} If the operation fails
+   */
   /**
    * Follows the current profile's user
    * @public
@@ -151,24 +188,32 @@ export const useProfile = (username?: string): UseProfileReturn => {
 
     try {
       startLoading();
-      // The followUser method doesn't return an ApiResponse, so we don't check for response.success
+      
       await profileService.followUser(currentUser.id, profile.id);
       
+      // Optimistically update the UI
       setIsFollowing(true);
       setStats(prev => ({
         ...prev,
         followerCount: prev.followerCount + 1,
       }));
+      
+      return true;
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Failed to follow user');
-      console.error('Failed to follow user:', error);
-      setError(error);
+      logger.error('Failed to follow user:', { error });
+      setLoadingError(error);
       throw error;
     } finally {
       stopLoading();
     }
-  }, [profile, currentUser, startLoading, stopLoading]);
+  }, [profile, currentUser, startLoading, stopLoading, setLoadingError]);
 
+  /**
+   * Unfollows the current profile's user
+   * @public
+   * @throws {Error} If the operation fails
+   */
   /**
    * Unfollows the current profile's user
    * @public
@@ -181,24 +226,34 @@ export const useProfile = (username?: string): UseProfileReturn => {
 
     try {
       startLoading();
-      // The unfollowUser method doesn't return an ApiResponse, so we don't check for response.success
+      
       await profileService.unfollowUser(currentUser.id, profile.id);
       
+      // Optimistically update the UI
       setIsFollowing(false);
       setStats(prev => ({
         ...prev,
         followerCount: Math.max(0, prev.followerCount - 1),
       }));
+      
+      return true;
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Failed to unfollow user');
-      console.error('Failed to unfollow user:', error);
-      setError(error);
+      logger.error('Failed to unfollow user:', { error });
+      setLoadingError(error);
       throw error;
     } finally {
       stopLoading();
     }
-  }, [profile, currentUser, startLoading, stopLoading]);
+  }, [profile, currentUser, startLoading, stopLoading, setLoadingError]);
 
+  /**
+   * Updates the user's profile with the provided updates
+   * @public
+   * @param {Partial<UserProfile>} updates - The updates to apply to the profile
+   * @returns {Promise<UserProfile>} The updated profile
+   * @throws {Error} If the operation fails
+   */
   /**
    * Updates the user's profile with the provided updates
    * @public
@@ -212,17 +267,18 @@ export const useProfile = (username?: string): UseProfileReturn => {
     }
 
     try {
-      setIsUpdating(true);
-      // The updateProfile method returns the updated UserProfile directly
+      startUpdating();
+      // The updateProfile method returns the user object directly
       const updatedProfile = await profileService.updateProfile(profile.username, updates);
       
       if (!updatedProfile) {
-        throw new Error('Failed to update profile');
+        throw new Error('Failed to update profile: No data returned');
       }
       
+      // Update local state
       setProfile(updatedProfile);
       
-      // Update local state if relevant fields were updated
+      // Update related state if needed
       if (updates.socialLinks) {
         setSocialLinks(updates.socialLinks);
       }
@@ -234,13 +290,13 @@ export const useProfile = (username?: string): UseProfileReturn => {
       return updatedProfile;
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Failed to update profile');
-      console.error('Failed to update profile:', error);
-      setError(error);
+      logger.error('Failed to update profile:', { error });
+      setLoadingError(error);
       throw error;
     } finally {
-      setIsUpdating(false);
+      stopUpdating();
     }
-  }, [profile]);
+  }, [profile, startUpdating, stopUpdating, setLoadingError]);
 
   /**
    * Uploads a new profile picture
@@ -253,15 +309,15 @@ export const useProfile = (username?: string): UseProfileReturn => {
     if (!profile) throw new Error('No profile loaded');
 
     try {
-      setIsUploading(true);
-      // The uploadProfilePicture method returns the URL directly
+      startUploading();
+      
       const response = await profileService.uploadProfilePicture(profile.id, file);
       
-      if (!response?.data?.profilePicture) {
-        throw new Error('Failed to upload avatar');
+      if (!response?.['success'] || !response?.['data']?.profilePicture) {
+        throw new Error(response?.['error'] || 'Failed to upload avatar');
       }
       
-      const { profilePicture } = response.data;
+      const profilePicture = response['data'].profilePicture;
       
       // Update local state
       setProfile(prev => prev ? { ...prev, profilePicture } : null);
@@ -269,13 +325,13 @@ export const useProfile = (username?: string): UseProfileReturn => {
       return profilePicture;
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Failed to upload avatar');
-      console.error('Failed to upload avatar:', error);
-      setError(error);
+      logger.error('Failed to upload avatar:', { error });
+      setLoadingError(error);
       throw error;
     } finally {
-      setIsUploading(false);
+      stopUploading();
     }
-  }, [profile]);
+  }, [profile, startUploading, stopUploading, setLoadingError]);
 
   /**
    * Uploads a new cover photo
@@ -288,15 +344,15 @@ export const useProfile = (username?: string): UseProfileReturn => {
     if (!profile) throw new Error('No profile loaded');
 
     try {
-      setIsUploading(true);
-      // The uploadCoverPhoto method returns the URL in the response data
+      startUploading();
+      
       const response = await profileService.uploadCoverPhoto(profile.id, file);
       
-      if (!response?.data?.coverPhoto) {
-        throw new Error('Failed to upload cover photo');
+      if (!response?.['success'] || !response?.['data']?.coverPhoto) {
+        throw new Error(response?.['error'] || 'Failed to upload cover photo');
       }
       
-      const { coverPhoto } = response.data;
+      const coverPhoto = response['data'].coverPhoto;
       
       // Update local state
       setProfile(prev => prev ? { ...prev, coverPhoto } : null);
@@ -304,13 +360,22 @@ export const useProfile = (username?: string): UseProfileReturn => {
       return coverPhoto;
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Failed to upload cover photo');
-      console.error('Failed to upload cover photo:', error);
-      setError(error);
+      logger.error('Failed to upload cover photo:', { error });
+      setLoadingError(error);
       throw error;
     } finally {
-      setIsUploading(false);
+      stopUploading();
     }
-  }, [profile]);
+  }, [profile, startUploading, stopUploading, setLoadingError]);
+
+  // Create a wrapper to convert Promise<boolean> to Promise<void>
+  const followUserWrapper = useCallback(async (): Promise<void> => {
+    await followUser();
+  }, [followUser]);
+
+  const unfollowUserWrapper = useCallback(async (): Promise<void> => {
+    await unfollowUser();
+  }, [unfollowUser]);
 
   return {
     profile,
@@ -322,8 +387,8 @@ export const useProfile = (username?: string): UseProfileReturn => {
     stats,
     socialLinks,
     refreshProfile,
-    followUser,
-    unfollowUser,
+    followUser: followUserWrapper,
+    unfollowUser: unfollowUserWrapper,
     updateProfile,
     uploadAvatar,
     uploadCoverPhoto,
