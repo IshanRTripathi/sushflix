@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../auth/AuthContext';
 import { API_BASE_URL } from '../../config/index';
 import { useTheme } from '../../theme/hooks/useTheme';
 import ErrorBoundary from '../ui/ErrorBoundary';
@@ -130,6 +131,8 @@ export const HomePageModern = () => {
 
   const { isDark } = useTheme();
   const [currentIndex, setCurrentIndex] = useState(0);
+  const { isAuthenticated, openAuthModal } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchProfile();
@@ -208,23 +211,35 @@ export const HomePageModern = () => {
                         Join our community of creators and start earning from your content today.
                       </p>
                       <div className="flex flex-wrap gap-4">
-                        <Link
-                          to="/signup?type=creator"
+                        <button
+                          onClick={() => {
+                            if (isAuthenticated) {
+                              navigate('/create-post');
+                            } else {
+                              openAuthModal('signup');
+                            }
+                          }}
                           className="bg-gradient-to-r from-red-600 to-red-700 text-white px-8 py-4 rounded-full font-medium 
                             hover:from-red-700 hover:to-red-800 transition-all duration-300"
                         >
-                          Start Creating
-                        </Link>
-                        <Link
-                          to="/signup?type=fan"
+                          {isAuthenticated ? 'Create Content' : 'Start Creating'}
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (isAuthenticated) {
+                              navigate('/explore');
+                            } else {
+                              openAuthModal('login');
+                            }
+                          }}
                           className={`px-8 py-4 rounded-full font-medium border transition-all duration-300 ${
                             isDark 
                               ? 'text-white border-gray-600 hover:bg-gray-700' 
                               : 'text-red-600 border-red-600 hover:bg-red-50'
                           }`}
                         >
-                          Join as Fan
-                        </Link>
+                          {isAuthenticated ? 'Browse Content' : 'Join as Fan'}
+                        </button>
                       </div>
                     </div>
                     <div className="w-full md:w-1/2">
