@@ -95,23 +95,41 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
       onClose={handleModalClose}
       title="Edit Profile"
       size="lg"
-      maxWidth={800}
+      maxWidth={600}
       closeOnOutsideClick={!loading}
       className="w-full max-w-3xl mx-auto my-4 max-h-[90vh] overflow-y-auto"
+      paperClassName="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-xl"
+      sx = {{position: 'absolute'}}
     >
-      {error && (
-        <Box sx={{ color: 'error.main', textAlign: 'center', mb: 2 }}>
-          {error}
-        </Box>
-      )}
-      {pictureError && (
-        <Box sx={{ color: 'error.main', textAlign: 'center', mb: 2 }}>
-          {pictureError}
-        </Box>
-      )}
-      <Box sx={{ p: { xs: 2, sm: 3 }, maxWidth: '800px', margin: '0 auto' }}>
-        <Box sx={{ display: 'flex', justifyContent: 'center', mb: 4 }}>
-          <Box sx={{ position: 'relative' }}>
+      <Box sx={{ 
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 4,
+        p: 0,
+        top: 10,
+        maxWidth: '100%',
+        margin: 0,
+        width: '100%',
+        bgcolor: 'transparent',
+        position: 'relative',
+        color: 'text.primary'
+      }}>
+        {(error || pictureError) && (
+          <Box
+            className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-200 px-4 py-3 rounded-lg mb-4 text-sm"
+            sx={{
+              '&:not(:empty)': {
+                display: 'block',
+                width: '100%',
+                textAlign: 'center',
+              }
+            }}
+          >
+            {error || pictureError}
+          </Box>
+        )}
+        <Box className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-600 transition-all duration-200 hover:shadow-md mb-4">
+          <Box sx={{ position: 'relative',textAlign: 'center', }}>
             <ProfilePictureUpload
               currentImageUrl={user.profilePicture}
               onUpload={async (file) => {
@@ -193,19 +211,21 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
         </Box>
 
 
-        <ProfileFormUI
-          formData={formData}
-          errors={errors}
-          loading={loading}
-          onInputChange={handleInputChange}
-          onCreatorToggle={(e) => {
-            setFormData(prev => ({
-              ...prev,
-              isCreator: e.target.value === 'creator'
-            }));
-          }}
-          onSubmit={handleSubmit}
-        />
+        <Box className="bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
+          <ProfileFormUI
+            formData={formData}
+            errors={errors}
+            loading={loading}
+            onInputChange={handleInputChange}
+            onCreatorToggle={(e) => {
+              setFormData(prev => ({
+                ...prev,
+                isCreator: e.target.value === 'creator'
+              }));
+            }}
+            onSubmit={handleSubmit}
+          />
+        </Box>
       </Box>
     </Modal>
   );

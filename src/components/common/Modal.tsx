@@ -37,6 +37,7 @@ interface ModalProps {
   variant?: typeof MODAL_VARIANTS[keyof typeof MODAL_VARIANTS];
   title?: string;
   className?: string;
+  paperClassName?: string;
   closeOnOutsideClick?: boolean;
   closeOnEscape?: boolean;
   maxWidth?: string | number;
@@ -56,6 +57,7 @@ const Modal: React.FC<ModalProps> = ({
   variant = MODAL_VARIANTS.DEFAULT,
   title,
   className = '',
+  paperClassName = '',
   closeOnOutsideClick = true,
   closeOnEscape = true,
   maxWidth,
@@ -91,9 +93,9 @@ const Modal: React.FC<ModalProps> = ({
 
   // Variant classes
   const variantClasses = {
-    [MODAL_VARIANTS.DEFAULT]: 'bg-white rounded-2xl shadow-xl',
-    [MODAL_VARIANTS.DIALOG]: 'bg-white rounded-xl shadow-lg',
-    [MODAL_VARIANTS.PANEL]: 'bg-white rounded-lg shadow-md'
+    [MODAL_VARIANTS.DEFAULT]: 'bg-white dark:bg-gray-800 rounded-2xl shadow-xl',
+    [MODAL_VARIANTS.DIALOG]: 'bg-white dark:bg-gray-800 rounded-xl shadow-lg',
+    [MODAL_VARIANTS.PANEL]: 'bg-white dark:bg-gray-800 rounded-lg shadow-md'
   };
 
   return (
@@ -106,8 +108,8 @@ const Modal: React.FC<ModalProps> = ({
       style={sx}
     >
       <div
-        className={`relative w-full ${sizeClasses[size]} ${variantClasses[variant]} ${className}`}
-        style={maxWidth ? { maxWidth: typeof maxWidth === 'number' ? `${maxWidth}px` : maxWidth } : {}}
+        className={`relative w-full m-4 ${sizeClasses[size]} ${variantClasses[variant]} ${className} ${paperClassName}`}
+        style={{ maxWidth, ...sx }}
         onClick={(e) => e.stopPropagation()}
       >
         {title && (
