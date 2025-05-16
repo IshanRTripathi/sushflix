@@ -1,53 +1,100 @@
+/**
+ * Represents the available theme modes
+ */
 export type ThemeMode = 'light' | 'dark';
 
-export interface PaletteOptions {
-  mode?: 'light' | 'dark';
-  primary?: {
-    main: string;
-    light: string;
-    dark: string;
-    contrastText: string;
-  };
-  secondary?: {
-    main: string;
-    light: string;
-    dark: string;
-    contrastText: string;
-  };
-  error?: {
-    main: string;
-    light: string;
-    dark: string;
-  };
-  warning?: {
-    main: string;
-  };
-  info?: {
-    main: string;
-  };
-  success?: {
-    main: string;
-  };
-  background: {
-    default: string;
-    paper: string;
-  };
-  text: {
-    primary: string;
-    secondary: string;
-    disabled: string;
-  };
-  divider: string;
+/**
+ * Color variant with main, light, dark, and contrast text colors
+ */
+export interface ColorVariant {
+  /** Main color */
+  main: string;
+  /** Lighter shade of the main color */
+  light: string;
+  /** Darker shade of the main color */
+  dark: string;
+  /** Text color that contrasts with the main color */
+  contrastText: string;
 }
 
-export interface ThemeOptions {
-  palette: PaletteOptions;
-  components?: {
-    [key: string]: any;
+/**
+ * Extended color palette options
+ */
+export interface PaletteOptions {
+  /** Current theme mode */
+  mode: ThemeMode;
+  
+  /** Primary color palette */
+  primary: ColorVariant;
+  
+  /** Secondary color palette */
+  secondary: ColorVariant;
+  
+  /** Error state color palette */
+  error: Pick<ColorVariant, 'main' | 'light' | 'dark'> & { contrastText: string };
+  
+  /** Warning state color palette */
+  warning: Pick<ColorVariant, 'main' | 'light' | 'dark'> & { contrastText: string };
+  
+  /** Info state color palette */
+  info: Pick<ColorVariant, 'main' | 'light' | 'dark'> & { contrastText: string };
+  
+  /** Success state color palette */
+  success: Pick<ColorVariant, 'main' | 'light' | 'dark'> & { contrastText: string };
+  
+  /** Background colors */
+  background: {
+    /** Default background color */
+    default: string;
+    /** Background color for paper/card components */
+    paper: string;
   };
+  
+  /** Text colors */
+  text: {
+    /** Primary text color */
+    primary: string;
+    /** Secondary text color */
+    secondary: string;
+    /** Disabled text color */
+    disabled: string;
+  };
+  
+  /** Divider color */
+  divider: string;
+  
+  /** Action colors */
+  action?: {
+    /** Active state color */
+    active: string;
+    /** Hover state color */
+    hover: string;
+    /** Selected state color */
+    selected: string;
+    /** Disabled state color */
+    disabled: string;
+    /** Background color for disabled elements */
+    disabledBackground: string;
+  };
+}
+
+/**
+ * Theme options that can be extended by specific themes
+ */
+export interface ThemeOptions {
+  /** Color palette configuration */
+  palette: PaletteOptions;
+  
+  /** Component-specific style overrides */
+  components?: {
+    [key: string]: unknown;
+  };
+  
+  /** Typography configuration */
   typography?: {
+    /** Default font family */
     fontFamily?: string;
-    [key: string]: any;
+    [key: string]: unknown;
   };
   spacing: (factor: number) => string;
   shape?: {

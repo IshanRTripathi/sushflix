@@ -98,17 +98,29 @@ class ProfileService {
   // Profile methods
   public async getCurrentUser(): Promise<ApiResponse<UserProfile>> {
     try {
-      const response = await apiGetProfile('me');
+      // Get user data from localStorage
+      const storedUser = localStorage.getItem('user');
+      
+      if (!storedUser) {
+        throw new Error('No user session found');
+      }
+      
+      const userData = JSON.parse(storedUser) as UserProfile;
+      
+      if (!userData || !userData.id) {
+        throw new Error('Invalid user data in storage');
+      }
+      
       return {
         success: true,
-        data: response.data
+        data: userData
       };
     } catch (error: any) {
-      logger.error('Failed to get current user:', error);
+      logger.error('Failed to get current user from session:', error);
       return {
         success: false,
-        error: error.response?.data?.message || 'Failed to fetch current user',
-        status: error.response?.status
+        error: error.message || 'Failed to fetch current user from session',
+        status: 401 // Unauthorized
       };
     }
   }

@@ -17,6 +17,12 @@ interface HeaderMenuItem {
 
 const MENU_ITEMS: HeaderMenuItem[] = [
   {
+    label: 'Explore',
+    onClick: () => {},
+    to: '/explore',
+    className: 'block px-4 py-2 text-gray-400 hover:text-white hover:bg-gray-800'
+  },
+  {
     label: 'Profile',
     onClick: () => {},
     to: '/profile',
@@ -33,12 +39,15 @@ const MENU_ITEMS: HeaderMenuItem[] = [
 export function Header({
   className = '',
   onMenuToggle,
+  closeOnOutsideClick = true,
 }: {
   className?: string;
   onMenuToggle?: () => void;
+  closeOnOutsideClick?: boolean;
 } = {}) {
   const { isAuthenticated, logout, user, openAuthModal } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
   const prevProfilePictureRef = useRef<string | undefined>();
   const profilePicture = user?.profilePicture || '';
 
@@ -61,6 +70,23 @@ export function Header({
     onMenuToggle?.();
   };
 
+  // Handle clicks outside the menu to close it
+  useEffect(() => {
+    if (!isMenuOpen || !closeOnOutsideClick) return;
+
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        logger.debug('Clicked outside menu, closing it');
+        setIsMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isMenuOpen, closeOnOutsideClick]);
+
   return (
     <header
       className={`${HEADER_HEIGHT} ${HEADER_CLASSES} ${className}`}
@@ -73,7 +99,7 @@ export function Header({
 
         <div className="flex items-center space-x-4">
           {isAuthenticated ? (
-            <div className="relative">
+            <div className="relative" ref={menuRef}>
               <button
                 onClick={handleMenuClick}
                 className="flex items-center space-x-2 focus:outline-none"

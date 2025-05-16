@@ -1,4 +1,4 @@
-import type { ThemeOptions } from '../types';
+import type { ThemeOptions, ThemeMode } from '../types';
 
 // Base color type for theme colors
 type ColorVariant = {
@@ -54,14 +54,18 @@ class ThemeManager {
   // Debug flag - set to false in production
   private static instance: ThemeManager;
 
-  private currentTheme: 'light' | 'dark' = 'light';
-  private readonly storageKey = 'theme';
-  private subscribers: Array<(theme: 'light' | 'dark') => void> = [];
+  private currentTheme: ThemeMode = 'light';
+  private readonly storageKey = 'sushflix-theme';
+  private subscribers: Array<(theme: ThemeMode) => void> = [];
+  private mediaQuery: MediaQueryList | null = null;
+  private mediaQueryListener: ((e: MediaQueryListEvent) => void) | null = null;
 
+  /**
+   * Log debug messages when debug mode is enabled
+   */
   private static log(...args: unknown[]): void {
-    // Only log if debug mode is enabled in localStorage
-    if (typeof localStorage !== 'undefined' && localStorage.getItem('theme:debug') === 'true') {
-      console.log('[ThemeManager]', ...args);
+    if (typeof window !== 'undefined' && localStorage.getItem('theme:debug') === 'true') {
+      console.debug('[ThemeManager]', ...args);
     }
   }
 
@@ -72,20 +76,22 @@ class ThemeManager {
 
   private initialize(): void {
     try {
+      // Set up media query for system preference changes
+      if (typeof window !== 'undefined' && window.matchMedia) {
+        this.mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+        this.mediaQuery.addEventListener('change', this.handleSystemPreferenceChange);
+      }
+
       // Try to get theme from localStorage first
-      const savedTheme = localStorage.getItem(this.storageKey) as 'light' | 'dark' | null;
+      const savedTheme = this.getThemeFromStorage();
       
-      if (savedTheme && this.isValidTheme(savedTheme)) {
+      if (savedTheme) {
         this.currentTheme = savedTheme;
         ThemeManager.log('Loaded theme from localStorage:', this.currentTheme);
       } else {
-        // Check browser's preferred color scheme
-        const prefersDark = typeof window !== 'undefined' && 
-          window.matchMedia && 
-          window.matchMedia('(prefers-color-scheme: dark)').matches;
-        
-        this.currentTheme = prefersDark ? 'dark' : 'light';
-        ThemeManager.log(`Using ${prefersDark ? 'browser dark' : 'default light'} theme`);
+        // Fall back to system preference
+        this.currentTheme = this.getSystemPreference();
+        ThemeManager.log(`Using system preference: ${this.currentTheme} mode`);
       }
       
       // Apply the theme
@@ -94,6 +100,36 @@ class ThemeManager {
       console.error('Failed to initialize theme:', error);
       this.currentTheme = 'light';
       this.applyTheme();
+    }
+  }
+
+  private getThemeFromStorage(): ThemeMode | null {
+    try {
+      const savedTheme = localStorage.getItem(this.storageKey) as ThemeMode | null;
+      return savedTheme && this.isValidTheme(savedTheme) ? savedTheme : null;
+    } catch (error) {
+      ThemeManager.log('Error reading theme from storage:', error);
+      return null;
+    }
+  }
+
+  private getSystemPreference(): ThemeMode {
+    return this.mediaQuery?.matches ? 'dark' : 'light';
+  }
+
+  private handleSystemPreferenceChange = (event: MediaQueryListEvent): void => {
+    try {
+      if (!localStorage.getItem(this.storageKey)) {
+        // Only update if user hasn't set a preference
+        const newTheme = event.matches ? 'dark' : 'light';
+        if (this.currentTheme !== newTheme) {
+          this.currentTheme = newTheme;
+          this.applyTheme();
+          this.notifySubscribers();
+        }
+      }
+    } catch (error) {
+      ThemeManager.log('Error handling system preference change:', error);
     }
   }
 
@@ -140,14 +176,27 @@ class ThemeManager {
   /**
    * Get the singleton instance of ThemeManager
    */
+  /**
+   * Get the singleton instance of ThemeManager
+   */
   public static getInstance(): ThemeManager {
     if (!ThemeManager.instance) {
-      ThemeManager.log('Creating new ThemeManager instance');
       ThemeManager.instance = new ThemeManager();
-    } else {
-      ThemeManager.log('Returning existing ThemeManager instance');
     }
     return ThemeManager.instance;
+  }
+
+  /**
+   * Enable or disable debug logging
+   */
+  public static setDebug(enabled: boolean): void {
+    if (typeof window !== 'undefined') {
+      if (enabled) {
+        localStorage.setItem('theme:debug', 'true');
+      } else {
+        localStorage.removeItem('theme:debug');
+      }
+    }
   }
 
   /**
@@ -277,8 +326,15 @@ class ThemeManager {
    * Clean up event listeners when the theme is no longer needed
    */
   public cleanup(): void {
-    // Clear subscribers
-    this.subscribers = [];
+    try {
+      // Clean up event listeners
+      if (this.mediaQuery && this.mediaQueryListener) {
+        this.mediaQuery.removeEventListener('change', this.mediaQueryListener);
+      }
+      this.subscribers = [];
+    } catch (error) {
+      ThemeManager.log('Error during cleanup:', error);
+    }
   }
 
   private notifySubscribers(): void {
