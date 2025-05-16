@@ -219,7 +219,7 @@ export const HomePage = () => {
                               openAuthModal('signup');
                             }
                           }}
-                          className="bg-gradient-to-r from-red-600 to-red-700 text-white px-8 py-4 rounded-full font-medium 
+                          className="bg-gradient-to-r from-red-600 to-red-700 text-white px-11 py-4 rounded-full font-medium 
                             hover:from-red-700 hover:to-red-800 transition-all duration-300"
                         >
                           {isAuthenticated ? 'Create Content' : 'Start Creating'}
@@ -232,13 +232,13 @@ export const HomePage = () => {
                               openAuthModal('login');
                             }
                           }}
-                          className={`px-8 py-4 rounded-full font-medium border transition-all duration-300 ${
+                          className={`bg-gradient-to-r from-red-0 to-red-100 px-10 py-4 rounded-full font-medium border transition-all duration-300 ${
                             isDark 
                               ? 'text-white border-gray-600 hover:bg-gray-700' 
                               : 'text-red-600 border-red-600 hover:bg-red-50'
                           }`}
                         >
-                          {isAuthenticated ? 'Browse Content' : 'Join as Fan'}
+                          {isAuthenticated ? 'Browse Creators' : 'Join as Fan'}
                         </button>
                       </div>
                     </div>
