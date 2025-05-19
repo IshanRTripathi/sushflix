@@ -1,12 +1,12 @@
 // Signup form component with enhanced validation and error handling
 import React, { useState, useCallback } from 'react';
-import { useAuth } from './AuthContext';
+import { useAuth } from '../context/AuthContext';
 import { AlertCircle, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { logger } from '../../utils/logger';
-import SubmitButton from '../common/SubmitButton';
-import FormField from '../common/FormField';
-import { API_BASE_URL } from '../../config/index';
+import { logger } from '../../../utils/logger';
+import SubmitButton from '../../../components/common/SubmitButton';
+import FormField from '../../../components/common/FormField';
+import { API_BASE_URL } from '../../../config/index';
 
 // Form field validation rules
 const VALIDATION_RULES = {
@@ -90,7 +90,6 @@ export function SignupForm({ onClose, openLoginModal }: SignupFormProps) {
   });
   const [errors, setErrors] = useState<FormErrors>({});
   const [isLoading, setIsLoading] = useState(false);
-  const [retryCount, setRetryCount] = useState(0);
   const { login } = useAuth();
   const navigate = useNavigate();
 
@@ -182,8 +181,7 @@ export function SignupForm({ onClose, openLoginModal }: SignupFormProps) {
         formData: {
           email: formData.email.substring(0, 3) + '***@***',
           username: formData.username.substring(0, 3) + '***'
-        },
-        retryCount
+        }
       });
       
       // Handle specific error cases
@@ -195,18 +193,10 @@ export function SignupForm({ onClose, openLoginModal }: SignupFormProps) {
       } else {
         setErrors({ general: errorMessage });
       }
-
-      // Retry logic
-      if (retryCount < 3) {
-        setRetryCount(prev => prev + 1);
-        setTimeout(() => {
-          setErrors(prev => ({ ...prev, general: undefined }));
-        }, 2000);
-      }
     } finally {
       setIsLoading(false);
     }
-  }, [formData, retryCount, login, navigate, onClose]);
+  }, [formData, login, navigate, onClose]);
 
   return (
     <div className="relative w-full">
@@ -231,7 +221,7 @@ export function SignupForm({ onClose, openLoginModal }: SignupFormProps) {
           type="email"
           value={formData.email}
           onChange={(e) => setFormData({...formData, email: e.target.value})}
-          error={errors.email}
+          error={errors.email || 'no email'}
           required
         />
 
@@ -241,7 +231,7 @@ export function SignupForm({ onClose, openLoginModal }: SignupFormProps) {
           type="text"
           value={formData.username}
           onChange={(e) => setFormData({...formData, username: e.target.value})}
-          error={errors.username}
+          error={errors.username || 'no username'}
           minLength={3}
           required
         />
@@ -252,7 +242,7 @@ export function SignupForm({ onClose, openLoginModal }: SignupFormProps) {
           type="password"
           value={formData.password}
           onChange={(e) => setFormData({...formData, password: e.target.value})}
-          error={errors.password}
+          error={errors.password || 'no password'}
           minLength={8}
           required
         />

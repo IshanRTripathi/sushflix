@@ -1,7 +1,7 @@
 // Content card component with enhanced user interaction and error handling
 import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../auth/AuthContext';
+import { useAuth } from '../../../modules/auth/context/AuthContext';
 import { logger } from '../../../utils/logger';
 import { Skeleton } from '@mui/material';
 import { styled } from '@mui/material/styles';

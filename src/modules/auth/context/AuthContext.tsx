@@ -4,9 +4,9 @@
  */
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { API_BASE_URL } from '../../config/index';
-import { UserProfile } from '../../types/user';
-import { logger } from '../../utils/logger';
+import { API_BASE_URL } from '../../../config/index';
+import { UserProfile } from '../../../types/user';
+import { logger } from '../../../utils/logger';
 
 // Authentication endpoints
 const AUTH_ENDPOINTS = {

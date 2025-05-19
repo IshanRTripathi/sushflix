@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo } from 'react';
-import { useAuth } from '../auth/AuthContext';
+import { useAuth } from '../../modules/auth/context/AuthContext';
 import { CreditCard, Users, TrendingUp, Image } from 'lucide-react';
 import { logger } from '../../utils/logger';
 

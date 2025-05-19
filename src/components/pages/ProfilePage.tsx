@@ -14,7 +14,7 @@ import GridOnIcon from '@mui/icons-material/GridOn';
 import BookmarkBorderIcon from '@mui/icons-material/BookmarkBorder';
 import Settings from '@mui/icons-material/Edit';
 import VerifiedIcon from '@mui/icons-material/Verified';
-import { useAuth } from '../auth/AuthContext';
+import { useAuth } from '../../modules/auth/context/AuthContext';
 import profileService from '../../services/profileService';
 import { logger } from '../../utils/logger';
 import { useLoadingContext } from '../../contexts/LoadingContext';

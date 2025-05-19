@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { UserProfile, UserStats, SocialLinks } from '../types/user';
 import { profileService } from '../services/profileService';
-import { useAuth } from '../components/auth/AuthContext';
+import { useAuth } from '../modules/auth/context/AuthContext';
 import { useLoading } from './useLoading';
 import { logger } from '../utils/logger';
 

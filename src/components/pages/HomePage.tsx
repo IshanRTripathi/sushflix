@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../auth/AuthContext';
+import { useAuth } from '../../modules/auth/context/AuthContext';
 import { API_BASE_URL } from '../../config/index';
 import { useTheme } from '../../theme/hooks/useTheme';
 import ErrorBoundary from '../ui/ErrorBoundary';

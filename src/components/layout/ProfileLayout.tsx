@@ -1,6 +1,6 @@
 import React from 'react';
 import { useParams } from 'react-router-dom';
-import { useAuth } from '../auth/AuthContext';
+import { useAuth } from '../../modules/auth/context/AuthContext';
 import ProfilePage from '../pages/ProfilePage';
 import { UserProfile, USER_ROLES } from '../../types/user';
 import { DEFAULT_IMAGES } from '../../config/images';

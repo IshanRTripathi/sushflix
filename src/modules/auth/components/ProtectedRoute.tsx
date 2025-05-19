@@ -1,8 +1,8 @@
 // Protected route component for authentication and role-based access control
 import React from 'react';
 import { Navigate, useLocation, useMatch } from 'react-router-dom';
-import { useAuth } from './AuthContext';
-import { logger } from '../../utils/logger';
+import { useAuth } from '../context/AuthContext';
+import { logger } from '../../../utils/logger';
 
 // User roles
 export const USER_ROLES = {

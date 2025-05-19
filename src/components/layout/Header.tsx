@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { useAuth } from '../auth/AuthContext';
+import { useAuth } from '../../modules/auth/context/AuthContext';
 import { logger } from '../../utils/logger';
 import { DEFAULT_IMAGES } from '../../config/images';
 

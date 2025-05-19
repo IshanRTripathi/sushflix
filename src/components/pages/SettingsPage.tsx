@@ -1,4 +1,4 @@
-import { useAuth } from '../auth/AuthContext';
+import { useAuth } from '../../modules/auth/context/AuthContext';
 import { Container, Typography, Box, Button, List, ListItem, ListItemText, ListItemIcon, Divider, Paper, styled, ListItemButton } from '@mui/material';
 import Grid from '@mui/material/Grid';
 import { useTheme as useMuiTheme } from '@mui/material/styles';

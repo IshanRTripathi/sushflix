@@ -1,10 +1,10 @@
 // Authentication modal component for login and signup
 import React from 'react';
-import { useAuth } from './AuthContext';
+import { useAuth } from '../context/AuthContext';
 import { LoginForm } from './LoginForm';
 import { SignupForm } from './SignupForm';
-import { Modal } from '../common/Modal';
-import { logger } from '../../utils/logger';
+import { Modal } from '../../../components/common/Modal';
+import { logger } from '../../../utils/logger';
 
 /**
  * Authentication modal component
