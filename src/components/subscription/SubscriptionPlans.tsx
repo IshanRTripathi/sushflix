@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Check } from 'lucide-react';
-import { useAuth } from '../auth/AuthContext';
+import { useAuth } from '../../modules/auth/context/AuthContext';
 import { API_BASE_URL } from '../../config/index';
 
 interface Plan {

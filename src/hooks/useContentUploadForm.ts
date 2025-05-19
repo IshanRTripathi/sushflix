@@ -1,5 +1,5 @@
 import React, { useState, ChangeEvent, useCallback, useEffect, useMemo } from 'react';
-import { useAuth } from '../components/auth/AuthContext';
+import { useAuth } from '../modules/auth/context/AuthContext';
 import apiService from '../services/apiService';
 import type { AxiosError, AxiosProgressEvent, AxiosResponse } from 'axios';
 

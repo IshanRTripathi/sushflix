@@ -8,7 +8,7 @@ import LoadingSpinner from './common/LoadingSpinner';
 import { Edit as EditIcon } from '@mui/icons-material';
 import { Button as MuiButton } from '@mui/material';
 import ProfilePictureUpload from './profile/ProfilePictureUpload';
-import { useAuth } from './auth/AuthContext';
+import { useAuth } from '../modules/auth/context/AuthContext';
 
 interface UserProfilePageProps {
   username: string;
