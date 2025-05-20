@@ -6,8 +6,8 @@ import { logger } from '../../../utils/logger';
 import { Skeleton } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import { ContentCardProps } from './types';
-import { IconButton } from '@/components/ui/IconButton';
-import { Icons } from '@/components/icons';
+import { IconButton } from '@/modules/ui/components/IconButton';
+import { Icons } from '@/modules/ui/components/icons';
 // Comment type is defined in the types file
 
 /**

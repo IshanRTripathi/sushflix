@@ -4,7 +4,7 @@
  */
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { API_BASE_URL } from '../../../config/index';
+import { API_BASE_URL } from '../../shared/config/index';
 import { UserProfile } from '../../../types/user';
 import { logger } from '../../../utils/logger';
 

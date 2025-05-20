@@ -2,19 +2,19 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from './modules/auth/context/AuthContext';
 import { ThemeProvider } from './modules/settings/components/ThemeProvider';
-import { LoadingProvider } from './contexts/LoadingContext';
-import { UIProvider } from './contexts/UIContext';
+import { LoadingProvider } from './modules/ui/contexts/LoadingContext';
+import { UIProvider } from './modules/ui/contexts/UIContext';
 import { ProtectedRoute } from './modules/auth/components/ProtectedRoute';
-import ProfileLayout from './components/layout/ProfileLayout';
-import { Footer } from './components/layout/Footer';
-import Toast from './components/Toast';
-import HomePage from './components/pages/HomePage';
+import ProfileLayout from './modules/profile/components/profile/ProfileLayout';
+import { Footer } from './modules/ui/components/footer/Footer';
+import Toast from './modules/ui/components/Toast';
+import HomePage from './modules/ui/components/home/HomePage';
 import { ExplorePage } from './modules/creator/components/content/ExplorePage';
 import { ContentDetail } from './modules/creator/components/content/ContentDetail';
 import SettingsPage from './modules/settings/components/SettingsPage';
-import ProfilePage from './components/pages/ProfilePage';
+import ProfilePage from './modules/profile/components/ProfilePage';
 import { AuthModal } from './modules/auth/components/AuthModal';
-import { Navigation } from './components/layout/Navigation';
+import { Navigation } from './modules/ui/components/header/Navigation';
 
 function App() {
   const queryClient = new QueryClient({

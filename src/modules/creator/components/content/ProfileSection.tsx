@@ -1,11 +1,11 @@
 import React, { useCallback, useState } from 'react';
 import { UserProfile, PartialProfileUpdate } from '../../types/user';
-import Card from "@/components/ui/Card";
-import Button from "@/components/ui/Button";
-import { Icons } from "@/components/icons";
+import Card from "@/modules/ui/components/Card";
+import Button from "@/modules/ui/components/Button";
+import { Icons } from "@/modules/ui/components/icons";
 import { ProfilePictureUpload } from '../profile/ProfilePictureUpload';
 import { logger } from '../../utils/logger';
-import Loading from '@/components/ui/Loading';
+import Loading from '@/modules/ui/components/Loading';
 import { Alert } from '@mui/material';
 import { LoadingButton } from '@mui/lab';
 import { Edit as EditIcon } from '@mui/icons-material';

@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { logger } from '../../../utils/logger';
 import SubmitButton from '../../../components/common/SubmitButton';
 import FormField from '../../../components/common/FormField';
-import { API_BASE_URL } from '../../../config/index';
+import { API_BASE_URL } from '../../shared/config/index';
 
 // Form field validation rules
 const VALIDATION_RULES = {

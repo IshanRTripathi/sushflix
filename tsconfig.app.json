@@ -47,8 +47,15 @@
     /* Path Aliases */
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["src/*"],
+      "@config/*": ["src/config/*"],
+      "@modules/*": ["src/modules/*"]
     },
+    "typeRoots": [
+      "./node_modules/@types",
+      "./src/types"
+    ],
+    "types": ["node"],
 
     /* Completeness */
     "skipDefaultLibCheck": true
@@ -56,6 +63,6 @@
   "include": [
     "src",
     "vite-env.d.ts"
-  ],
+, "temp_js_backup/featuredProfiles.js", "temp_js_backup/FeaturedProfile.js"  ],
   "exclude": ["node_modules", "dist", "build"]
 }
