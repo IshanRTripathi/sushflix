@@ -1,4 +1,4 @@
-import { useAuth } from '../../modules/auth/context/AuthContext';
+import { useAuth } from '../../auth/context/AuthContext';
 import { Container, Typography, Box, Button, List, ListItem, ListItemText, ListItemIcon, Divider, Paper, styled, ListItemButton } from '@mui/material';
 import Grid from '@mui/material/Grid';
 import { useTheme as useMuiTheme } from '@mui/material/styles';
@@ -9,7 +9,7 @@ import {
   PrivacyTip,
   Logout,
 } from '@mui/icons-material';
-import { ThemeSettings } from '../settings/ThemeSettings';
+import { ThemeSettings } from './ThemeSettings';
 
 const StyledGrid = styled('div')(({ theme }) => ({
   display: 'flex',

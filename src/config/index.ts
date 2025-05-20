@@ -1,12 +1,12 @@
 export const API_BASE_URL = 'https://sushflix-backend-796527544626.us-central1.run.app';
 
 // Theme configuration
-export { ThemeProvider } from '../theme/components/ThemeProvider';
-export { ThemeContext } from '../theme/context/ThemeContext';
-export { useTheme } from '../theme/hooks/useTheme';
-export type { ThemeMode, ThemeOptions, ThemeContextType } from '../theme/types';
-export { lightTheme, darkTheme } from '../theme/themes';
-export { themeManager } from '../theme/managers/ThemeManager';
+export { ThemeProvider } from '../modules/settings/components/ThemeProvider';
+export { ThemeContext } from '../modules/settings/context/ThemeContext';
+export { useTheme } from '../modules/settings/hooks/useTheme';
+export type { ThemeMode, ThemeOptions, ThemeContextType } from '../modules/settings/types/types';
+export { lightTheme, darkTheme } from '../modules/settings/themes';
+export { themeManager } from '../modules/settings/managers/ThemeManager';
 
 export const DEFAULT_THEME = 'dark';
 

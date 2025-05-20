@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../modules/auth/context/AuthContext';
 import { API_BASE_URL } from '../../config/index';
-import { useTheme } from '../../theme/hooks/useTheme';
+import { useTheme } from '../../modules/settings/hooks/useTheme';
 import ErrorBoundary from '../ui/ErrorBoundary';
 import { useLoadingContext } from '../../contexts/LoadingContext';
 import { USER_ROLES, UserProfile, FeaturedProfile } from '../../types/user';

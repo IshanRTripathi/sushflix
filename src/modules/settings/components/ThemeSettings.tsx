@@ -1,6 +1,6 @@
 import React from 'react';
-import { useTheme } from '../../theme/hooks/useTheme';
-import ThemeToggle from '../ui/ThemeToggle';
+import { useTheme } from '../../../theme';
+import ThemeToggle from './ThemeToggle';
 
 /**
  * Theme settings section that includes theme toggle and status

@@ -6,7 +6,7 @@ const PORT = process.env.PORT || 8080;
 const express = require('express');
 const cors = require('cors');
 const morgan = require('morgan');
-const connectDB = require('./config/db');
+import { connectDB } from '../server/config/db'
 const logger = require('./config/logger');
 const requestLogger = require('./middlewares/requestLogger');
 const errorHandler = require('./middlewares/errorHandler');

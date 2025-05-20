@@ -1,5 +1,5 @@
 import { createContext } from 'react';
-import type { ThemeContextType, ThemeMode } from '../types';
+import type { ThemeContextType, ThemeMode } from '../types/types';
 
 /**
  * Theme context that provides theme-related functionality throughout the application.

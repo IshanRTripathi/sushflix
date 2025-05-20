@@ -1,4 +1,4 @@
-import type { ThemeOptions, ThemeMode } from '../types';
+import type { ThemeOptions, ThemeMode } from '../types/types';
 
 // Base color type for theme colors
 type ColorVariant = {

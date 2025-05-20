@@ -1,7 +1,7 @@
 import React, { useCallback } from 'react';
 import { Check } from 'lucide-react';
-import type { SubscriptionLevel } from '../../types';
-import { logger } from '../../utils/logger';
+import type { SubscriptionLevel } from '../../../types';
+import { logger } from '../../../utils/logger';
 
 /**
  * Interface for subscription level

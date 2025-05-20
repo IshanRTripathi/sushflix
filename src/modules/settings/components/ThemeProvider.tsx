@@ -5,7 +5,7 @@ import { ThemeContext, defaultThemeContextValue } from '../context/ThemeContext'
 import { themeManager } from '../managers/ThemeManager';
 import { lightTheme } from '../themes/light';
 import { darkTheme } from '../themes/dark';
-import type { ThemeMode, ThemeOptions } from '../types';
+import type { ThemeMode, ThemeOptions } from '../types/types';
 
 interface ThemeProviderProps {
   /** Child components that will have access to the theme context */

@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { logger } from '../../utils/logger';
-import { ContentCard } from '../content/ContentCard';
+import { logger } from '../../../utils/logger';
+import { ContentCard } from './content/ContentCard';
 
 interface Creator {
   id: string;
@@ -264,7 +264,8 @@ export const CreatorProfile = () => {
                       username: 'sample_user',
                       text: 'Great content!',
                       timestamp: new Date().toLocaleDateString(),
-                      userId: '1'
+                      userId: '1',
+                      id: '1'
                     }
                   ]}
                   className="cursor-pointer hover:opacity-90 transition-opacity"

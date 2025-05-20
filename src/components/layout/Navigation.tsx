@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../modules/auth/context/AuthContext';
-import { useTheme } from '../../theme/hooks/useTheme';
+import { useTheme } from '../../modules/settings/hooks/useTheme';
 import { DEFAULT_IMAGES } from '../../config/images';
 import { useUI } from '../../contexts/UIContext';
 

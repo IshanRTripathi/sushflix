@@ -1,5 +1,5 @@
 import React from 'react';
-import { useTheme } from '../../theme/hooks/useTheme';
+import { useTheme } from '../hooks/useTheme';
 
 interface ThemeToggleProps {
   /**

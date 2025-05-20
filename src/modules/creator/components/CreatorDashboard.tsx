@@ -1,7 +1,7 @@
 import React, { useCallback, useMemo } from 'react';
-import { useAuth } from '../../modules/auth/context/AuthContext';
+import { useAuth } from '../../../modules/auth/context/AuthContext';
 import { CreditCard, Users, TrendingUp, Image } from 'lucide-react';
-import { logger } from '../../utils/logger';
+import { logger } from '../../../utils/logger';
 
 /**
  * Props interface for CreatorDashboard component
