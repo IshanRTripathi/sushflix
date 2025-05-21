@@ -1,9 +1,9 @@
 import { Types } from 'mongoose';
 import logger from '../../shared/config/logger';
 
-// Import models - using require to handle potential circular dependencies
-const FeaturedProfileModel = require('./models/FeaturedProfile');
-const UserModel = require('../../../server/models/User');
+// Import models using ES module imports
+import FeaturedProfileModel from './models/FeaturedProfile';
+import UserModel from './models/User';
 
 // Types
 interface IFeaturedProfile {
@@ -66,7 +66,7 @@ class FeaturedProfileService {
 
       // Get user IDs from featured profiles with validation
       const userIds = featuredProfiles
-        .map((profile: IFeaturedProfile) => {
+        .map((profile: { userId?: Types.ObjectId | null }) => {
           if (!profile || !profile.userId) {
             logger.warn('Invalid profile data:', profile);
             return null;
@@ -107,17 +107,18 @@ class FeaturedProfileService {
       
       // Map the profiles to include user data
       const mappedProfiles = featuredProfiles
-        .map((profile: IFeaturedProfile) => {
+        .map((profile: { userId: Types.ObjectId; _id: Types.ObjectId } | null): IFeaturedProfileResponse | null => {
+          if (!profile) return null;
           const user = userMap[profile.userId.toString()];
           
           if (!user) {
-            logger.warn(`No user found for featured profile with userId: ${profile.userId}`);
+            logger.warn('User not found for profile:', { profileId: profile._id, userId: profile.userId });
             return null;
           }
-
+          
           return {
             userId: user._id,
-            profilePicture: user.profilePicture || 'https://via.placeholder.com/150',
+            profilePicture: user.profilePicture || '/default-avatar.png',
             username: user.username || 'Unknown User',
             displayName: user.displayName || user.username || 'Anonymous Creator',
             bio: user.bio || 'No bio available',
@@ -126,7 +127,7 @@ class FeaturedProfileService {
             subscribers: user.subscribersCount || 0
           };
         })
-        .filter((profile): profile is IFeaturedProfileResponse => profile !== null);
+        .filter((profile: IFeaturedProfileResponse | null): profile is IFeaturedProfileResponse => profile !== null);
       
       return mappedProfiles;
     } catch (error: any) {

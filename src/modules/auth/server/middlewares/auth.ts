@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
+import { RequestHandler } from 'express';
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
 // @ts-ignore - We'll handle the logger type separately
@@ -40,22 +40,39 @@ if (!JWT_SECRET) {
  * @param roles - Array of role strings that are allowed to access the route
  * @returns Express middleware function
  */
-const auth = (roles: string[] = []) => {
-  return async (req: Request, res: Response, next: NextFunction) => {
+// Import Response type from express
+import { Response } from 'express';
+
+// Helper function to send error response and stop execution
+const sendError = (res: Response, status: number, message: string): never => {
+  res.status(status).json({ message });
+  throw new Error('Response sent'); // This will be caught by the outer try-catch
+};
+
+const auth = (roles: string[] = []): RequestHandler => {
+  return async (req, res, next) => {
     logger.info('Auth middleware executed');
 
     // Get token from Authorization header
     const authHeader = req.headers?.authorization;
-    const token = authHeader ? authHeader.replace('Bearer ', '') : null;
-
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      logger.warn('Auth middleware: No token provided or invalid format');
+      return sendError(res, 401, 'No token, authorization denied');
+    }
+    
+    const token = authHeader.replace('Bearer ', '').trim();
     if (!token) {
-      logger.warn('Auth middleware: No token provided');
-      return res.status(401).json({ message: 'No token, authorization denied' });
+      logger.warn('Auth middleware: Empty token');
+      return sendError(res, 401, 'No token, authorization denied');
     }
 
     try {
-      // Verify token
-      const decoded = jwt.verify(token, JWT_SECRET) as JwtPayload;
+      // Verify token with proper type assertion
+      const decoded = jwt.verify(token, JWT_SECRET) as unknown as JwtPayload;
+      
+      if (!decoded || typeof decoded !== 'object' || !decoded.userId) {
+        throw new Error('Invalid token payload');
+      }
       
       // Add the username to the user object if it's not already present
       if (decoded.userId && !decoded.username) {
@@ -65,7 +82,7 @@ const auth = (roles: string[] = []) => {
             decoded.username = user.username;
           } else {
             logger.warn('User not found in database', { userId: decoded.userId });
-            return res.status(401).json({ message: 'User not found' });
+            return sendError(res, 401, 'User not found');
           }
         } catch (error) {
           const err = error as Error;
@@ -74,7 +91,7 @@ const auth = (roles: string[] = []) => {
             userId: decoded.userId,
             stack: err.stack
           });
-          return res.status(500).json({ message: 'Error authenticating user' });
+          return sendError(res, 500, 'Error authenticating user');
         }
       }
       
@@ -82,21 +99,25 @@ const auth = (roles: string[] = []) => {
       req.user = decoded;
 
       // Check roles if provided
-      if (roles.length > 0 && !decoded.role) {
-        logger.warn('Auth middleware: No role in token');
-        return res.status(403).json({ message: 'Insufficient permissions' });
-      }
-      
-      if (roles.length > 0 && !roles.includes(decoded.role as string)) {
-        logger.warn('Auth middleware: Insufficient permissions');
-        return res.status(403).json({ message: 'Insufficient permissions' });
+      if (roles.length > 0) {
+        if (!decoded.role) {
+          logger.warn('Auth middleware: No role in token');
+          return sendError(res, 403, 'Insufficient permissions');
+        }
+        
+        if (!roles.includes(decoded.role as string)) {
+          logger.warn('Auth middleware: Insufficient permissions');
+          return sendError(res, 403, 'Insufficient permissions');
+        }
       }
 
       next();
     } catch (err) {
       const error = err as Error;
       logger.error('Auth middleware: Token verification failed', error);
-      return res.status(401).json({ message: 'Invalid token' });
+      // Log the error but don't send a response here as it might have been sent already
+      logger.error('Auth middleware: Error processing request', error);
+      next(error);
     }
   };
 };

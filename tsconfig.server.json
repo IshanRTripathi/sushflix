@@ -2,17 +2,33 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "target": "ES2022",
-    "module": "ESNext",
+    "module": "NodeNext",
     "moduleResolution": "NodeNext",
+    "moduleDetection": "force",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
     "outDir": "./dist/server",
     "rootDir": "./server",
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]
     },
-    "esModuleInterop": true,
     "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "strictBindCallApply": true,
+    "strictPropertyInitialization": true,
+    "noImplicitThis": true,
+    "alwaysStrict": true,
+    "isolatedModules": true
+  },
+  "ts-node": {
+    "esm": true,
+    "experimentalSpecifierResolution": "node"
   },
   "include": [
     "server/**/*.ts",

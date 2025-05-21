@@ -2,48 +2,44 @@ import { z } from 'zod';
 
 // Define the schema for environment variables
 export const envSchema = z.object({
-  // Node Environment
+  // Node Environment - Required
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
-  PORT: z.string().default('5173'),
+  PORT: z.string().default('3000'),
   
-  // API Configuration
-  VITE_API_URL: z.string().url(),
-  VITE_APP_NAME: z.string().default('SushFlix'),
-  VITE_APP_VERSION: z.string().default('1.0.0'),
+  // API Configuration - Required
+  VITE_API_URL: z.string().url().default('http://localhost:3000'),
   
-  // Authentication
-  JWT_SECRET: z.string().min(32, 'JWT secret must be at least 32 characters long'),
+  // Authentication - Required
+  JWT_SECRET: z.string().default('dev-secret-key-change-in-production'),
   JWT_EXPIRES_IN: z.string().default('7d'),
-  JWT_REFRESH_EXPIRES_IN: z.string().default('30d'),
   
-  // Database
-  MONGODB_URI: z.string().url(),
-  MONGODB_TEST_URI: z.string().url().optional(),
+  // Database - Required
+  MONGODB_URI: z.string().url().default('mongodb://localhost:27017/sushflix'),
   
-  // AWS S3
-  AWS_ACCESS_KEY_ID: z.string(),
-  AWS_SECRET_ACCESS_KEY: z.string(),
-  AWS_REGION: z.string(),
-  AWS_BUCKET_NAME: z.string(),
+  // AWS S3 - Optional
+  AWS_ACCESS_KEY_ID: z.string().optional(),
+  AWS_SECRET_ACCESS_KEY: z.string().optional(),
+  AWS_REGION: z.string().optional(),
+  AWS_BUCKET_NAME: z.string().optional(),
   AWS_S3_ENDPOINT: z.string().optional(),
   
-  // Email
-  SMTP_HOST: z.string(),
-  SMTP_PORT: z.string(),
-  SMTP_SECURE: z.string().transform(val => val === 'true'),
-  SMTP_USER: z.string(),
-  SMTP_PASS: z.string(),
-  SMTP_FROM: z.string(),
+  // Email - Optional
+  SMTP_HOST: z.string().optional(),
+  SMTP_PORT: z.string().optional(),
+  SMTP_SECURE: z.string().transform(val => val === 'true').optional(),
+  SMTP_USER: z.string().optional(),
+  SMTP_PASS: z.string().optional(),
+  SMTP_FROM: z.string().optional(),
   
-  // Security
-  RATE_LIMIT_WINDOW_MS: z.string().transform(Number),
-  RATE_LIMIT_MAX: z.string().transform(Number),
-  CORS_ORIGIN: z.string(),
+  // Security - Optional with defaults
+  RATE_LIMIT_WINDOW_MS: z.string().transform(Number).default('900000'), // 15 minutes
+  RATE_LIMIT_MAX: z.string().transform(Number).default('100'),
+  CORS_ORIGIN: z.string().default('*'),
   
-  // Feature Flags
-  FEATURE_REGISTRATION: z.string().transform(val => val === 'true'),
-  FEATURE_EMAIL_VERIFICATION: z.string().transform(val => val === 'true'),
-  FEATURE_PASSWORD_RESET: z.string().transform(val => val === 'true'),
+  // Feature Flags - Optional with defaults
+  FEATURE_REGISTRATION: z.string().transform(val => val === 'true').default('true'),
+  FEATURE_EMAIL_VERIFICATION: z.string().transform(val => val === 'true').default('false'),
+  FEATURE_PASSWORD_RESET: z.string().transform(val => val === 'true').default('true'),
   
   // Optional Analytics
   SENTRY_DSN: z.string().optional(),

@@ -49,9 +49,6 @@ FeaturedProfileSchema.pre<IFeaturedProfile>('save', function(next) {
 });
 
 // Create and export the model
-const FeaturedProfile: IFeaturedProfileModel = model<IFeaturedProfile, IFeaturedProfileModel>(
-  'FeaturedProfile',
-  FeaturedProfileSchema
-);
+const FeaturedProfile = model<IFeaturedProfile, IFeaturedProfileModel>('FeaturedProfile', FeaturedProfileSchema);
 
 export default FeaturedProfile;
