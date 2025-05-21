@@ -1,130 +1,177 @@
 import 'dotenv/config';
-import * as path from 'node:path';
-import { fileURLToPath } from 'node:url';
-import express, { type Request, type Response, type NextFunction, type ErrorRequestHandler } from 'express';
-import * as cors from 'cors';
+import express, { Request, Response, NextFunction, Application } from 'express';
 import helmet from 'helmet';
-import connectDB from '../src/modules/shared/config/db.js';
-import { logger } from '../src/modules/shared/utils/logger.js';
+import cors from 'cors';
+import path from 'path';
+import { createServer, Server } from 'http';
+import connectDB from '../src/modules/shared/config/db';
+import { logger } from '../src/modules/shared/utils/logger';
 
-// Get current directory path in a cross-platform way
-const currentDir = process.cwd();
-const uploadsDir = path.resolve(currentDir, process.env.UPLOAD_DIR || 'uploads');
+// Route imports
+import authRoutes from '../src/modules/auth/server/routes/auth';
+import contentRoutes from '../src/modules/creator/server/routes/content';
+import userRoutes from '../src/modules/user/routes/user';
+import featuredProfilesRoutes from '../src/modules/profile/service/routes/featuredProfiles';
 
-// Import routes
-import authRoutes from '../src/modules/auth/server/routes/auth.js';
-import contentRoutes from '../src/modules/creator/server/routes/content.js';
-import userRoutes from '../src/modules/user/routes/user.js';
-import featuredProfilesRoutes from '../src/modules/profile/service/routes/featuredProfiles.js';
+// Constants
+const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3001;
+const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:3000';
+const UPLOAD_DIR = process.env.UPLOAD_DIR || 'uploads';
 
-const loadRoutes = () => {
-  try {
-    return { authRoutes, contentRoutes, userRoutes, featuredProfilesRoutes };
-  } catch (error) {
-    logger.error('Failed to load routes:', error);
-    process.exit(1);
+/**
+ * Main application server class
+ */
+class AppServer {
+  private app: Application;
+  private server: Server;
+  private isProduction: boolean;
+
+  constructor() {
+    this.app = express();
+    this.server = createServer(this.app);
+    this.isProduction = process.env.NODE_ENV === 'production';
+    
+    this.initializeMiddlewares();
+    this.initializeRoutes();
+    this.initializeErrorHandling();
   }
-};
 
-// Initialize the server
-const initializeServer = async () => {
-  try {
-    // Connect to MongoDB
-    await connectDB();
-    
-    // Load routes
-    const { 
-      authRoutes, 
-      contentRoutes, 
-      userRoutes, 
-      featuredProfilesRoutes 
-    } = loadRoutes();
+  /**
+   * Initialize database connection
+   */
+  private async initializeDatabase(): Promise<void> {
+    try {
+      await connectDB();
+      logger.info('Database connected successfully');
+    } catch (error) {
+      logger.error('Database connection error:', error);
+      throw error;
+    }
+  }
 
-    const app = express();
-    const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3001;
-    
+  /**
+   * Configure application middlewares
+   */
+  private initializeMiddlewares(): void {
+    // Security headers
+    this.app.use(helmet());
 
-    // Security middleware
-    app.use(helmet());
-    app.use(cors({
-      origin: process.env['CLIENT_URL'] || 'http://localhost:3000',
-      credentials: true
+    // CORS configuration
+    this.app.use(cors({
+      origin: CLIENT_URL,
+      credentials: true,
     }));
 
     // Request parsing
-    app.use(express.json({ limit: '10kb' }));
-    app.use(express.urlencoded({ extended: true, limit: '10kb' }));
-
-    // Mount routes
-    app.use('/api/auth', authRoutes);
-    app.use('/api/content', contentRoutes);
-    app.use('/api/users', userRoutes);
-    app.use('/api/featured-profiles', featuredProfilesRoutes);
-    
-    logger.info('Routes mounted successfully');
+    this.app.use(express.json({ limit: '10kb' }));
+    this.app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 
     // Request logging
-    app.use((req: Request, res: Response, next: NextFunction) => {
-      const start = Date.now();
-      res.on('finish', () => {
-        const duration = Date.now() - start;
-        logger.info(`${req.method} ${req.originalUrl} - ${res.statusCode} [${duration}ms]`);
-      });
-      next();
-    });
+    this.app.use(this.requestLogger);
 
     // Static files
-    app.use('/uploads', express.static(uploadsDir));
+    const uploadsPath = path.join(process.cwd(), UPLOAD_DIR);
+    this.app.use('/uploads', express.static(uploadsPath));
+  }
 
+  /**
+   * Request logger middleware
+   */
+  private requestLogger(req: Request, res: Response, next: NextFunction): void {
+    const start = Date.now();
+    res.on('finish', () => {
+      const duration = Date.now() - start;
+      logger.info(`${req.method} ${req.originalUrl} - ${res.statusCode} [${duration}ms]`);
+    });
+    next();
+  }
+
+  /**
+   * Configure application routes
+   */
+  private initializeRoutes(): void {
+    // API Routes
+    this.app.use('/api/auth', authRoutes);
+    this.app.use('/api/content', contentRoutes);
+    this.app.use('/api/users', userRoutes);
+    this.app.use('/api/featured-profiles', featuredProfilesRoutes);
+    
     // Health check endpoint
-    app.get('/health', (_req: Request, res: Response) => {
-      res.status(200).json({ 
+    this.app.get('/health', (_req: Request, res: Response) => {
+      res.status(200).json({
         status: 'ok',
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        environment: process.env.NODE_ENV || 'development',
       });
     });
 
     // 404 handler
-    app.use((_req: Request, res: Response) => {
+    this.app.use((_req: Request, res: Response) => {
       res.status(404).json({
         status: 'error',
-        message: 'Not Found'
+        message: 'Not Found',
       });
     });
+  }
 
+  /**
+   * Configure error handling
+   */
+  private initializeErrorHandling(): void {
     // Error handling middleware
-    const errorHandler: ErrorRequestHandler = (err: any, req: Request, res: Response, _next: NextFunction) => {
+    this.app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
       const statusCode = err.statusCode || 500;
-      const message = err.message || 'Internal Server Error';
-      
-      logger.error('Error:', {
-        message,
+      const message = this.isProduction && statusCode === 500 ? 'Internal Server Error' : err.message;
+
+      logger.error('Request error:', {
+        message: err.message,
         status: statusCode,
         path: req.path,
-        method: req.method
+        method: req.method,
+        ...(!this.isProduction && { stack: err.stack }),
       });
 
       res.status(statusCode).json({
         status: 'error',
-        message: process.env.NODE_ENV === 'production' ? 'Something went wrong' : message
+        message,
+        ...(!this.isProduction && { stack: err.stack }),
       });
-    };
-
-    app.use(errorHandler);
-
-    // Start server
-    const server = app.listen(PORT, () => {
-      logger.info(`Server running on port ${PORT}`);
     });
+  }
 
+  /**
+   * Start the server
+   */
+  public async start(): Promise<void> {
+    try {
+      await this.initializeDatabase();
+      
+      this.server.listen(PORT, () => {
+        logger.info(`Server running on port ${PORT}`);
+        logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
+      });
+
+      this.setupProcessHandlers();
+    } catch (error) {
+      logger.error('Failed to start server:', error);
+      process.exit(1);
+    }
+  }
+
+  /**
+   * Setup process event handlers
+   */
+  private setupProcessHandlers(): void {
     // Handle unhandled promise rejections
-    process.on('unhandledRejection', (reason: unknown) => {
+    process.on('unhandledRejection', (reason: any) => {
       const error = reason instanceof Error ? reason : new Error(String(reason));
       logger.error('Unhandled Rejection:', { 
         message: error.message, 
         stack: error.stack 
       });
-      server.close(() => process.exit(1));
+      
+      // Graceful shutdown
+      this.gracefulShutdown(1);
     });
 
     // Handle uncaught exceptions
@@ -133,18 +180,42 @@ const initializeServer = async () => {
         message: error.message, 
         stack: error.stack 
       });
-      server.close(() => process.exit(1));
+      
+      // Graceful shutdown
+      this.gracefulShutdown(1);
     });
 
-    return server;
-  } catch (error) {
-    logger.error('Failed to initialize server:', error);
-    process.exit(1);
+    // Handle termination signals
+    ['SIGTERM', 'SIGINT'].forEach(signal => {
+      process.on(signal, () => {
+        logger.info(`${signal} received. Shutting down gracefully...`);
+        this.gracefulShutdown(0);
+      });
+    });
   }
-};
 
-// Start the server
-initializeServer().catch((error) => {
-  logger.error('Failed to start server:', error);
+  /**
+   * Gracefully shutdown the server
+   */
+  private gracefulShutdown(exitCode: number): void {
+    this.server.close(() => {
+      logger.info('Server closed');
+      process.exit(exitCode);
+    });
+
+    // Force shutdown after timeout
+    setTimeout(() => {
+      logger.error('Forcing shutdown...');
+      process.exit(1);
+    }, 10000);
+  }
+}
+
+// Create and start the server
+const server = new AppServer();
+server.start().catch(error => {
+  logger.error('Fatal error during server startup:', error);
   process.exit(1);
 });
+
+export default server;
