@@ -14,12 +14,12 @@ import GridOnIcon from '@mui/icons-material/GridOn';
 import BookmarkBorderIcon from '@mui/icons-material/BookmarkBorder';
 import Settings from '@mui/icons-material/Edit';
 import VerifiedIcon from '@mui/icons-material/Verified';
-import { useAuth } from '../../auth/context/AuthContext';
+import { useAuth } from '@/modules/auth/context/AuthContext';
 import profileService from '../service/profileService';
-import { logger } from '../../../utils/logger';
-import { useLoadingContext } from '../../ui/contexts/LoadingContext';
 import { useQuery, useQueryClient, UseQueryOptions } from '@tanstack/react-query';
-import type { ApiResponse, UserProfile } from '../../../types/user';
+import { logger } from '@/modules/shared/utils/logger';
+import { useLoadingContext } from '@/modules/ui/contexts/LoadingContext';
+import type { ApiResponse, UserProfile } from '@/modules/shared/types/user';
 import EditProfile from './profile/EditProfile';
 import ProfilePictureUpload from './profile/ProfilePictureUpload';
 

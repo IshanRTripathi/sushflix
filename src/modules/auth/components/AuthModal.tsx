@@ -3,8 +3,8 @@ import React from 'react';
 import { useAuth } from '../context/AuthContext';
 import { LoginForm } from './LoginForm';
 import { SignupForm } from './SignupForm';
-import { Modal } from '../../../components/common/Modal';
-import { logger } from '../../../utils/logger';
+import { Modal } from '../../ui/components/feedback/Modal';
+import { logger } from '../../shared/utils/logger';
 
 /**
  * Authentication modal component

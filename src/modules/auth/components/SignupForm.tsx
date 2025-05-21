@@ -3,10 +3,10 @@ import React, { useState, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { AlertCircle, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { logger } from '../../../utils/logger';
-import SubmitButton from '../../../components/common/SubmitButton';
-import FormField from '../../../components/common/FormField';
-import { API_BASE_URL } from '../../shared/config/index';
+import { logger } from '@/modules/shared/utils/logger';
+import SubmitButton from '@/modules/ui/components/buttons/SubmitButton';
+import FormField from '@/modules/ui/FormField';
+import { API_BASE_URL } from '@/modules/shared/config';
 
 // Form field validation rules
 const VALIDATION_RULES = {

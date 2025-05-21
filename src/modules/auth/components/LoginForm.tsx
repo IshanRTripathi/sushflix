@@ -3,7 +3,7 @@ import React, { useState, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { AlertCircle, X } from 'lucide-react';
-import { logger } from '../../../utils/logger';
+import { logger } from '@/modules/shared/utils/logger';
 
 // Configuration constants
 const DEFAULT_COUNTRY_CODE = '+91';

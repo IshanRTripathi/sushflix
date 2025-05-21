@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useToast } from '../../../hooks/useToast';
-import { useLoading } from '../../../hooks/useLoading';
-import { UserProfile, SocialLinks, ProfileInput } from '../../../types/user';
-import { profileService } from '../service/profileService';
-import { logger } from '../../../utils/logger';
-import LoadingSpinner from '../../../components/common/LoadingSpinner';
+import { useToast } from '@/modules/shared/hooks/useToast';
+import { useLoading } from '@/modules/shared/hooks/useLoading';
+import { UserProfile, SocialLinks, ProfileInput } from '@/modules/shared/types/user';
+import { profileService } from '@/modules/profile/service/profileService';
+import { logger } from '@/modules/shared/utils/logger';
+import LoadingSpinner from '@/modules/ui/components/feedback/LoadingSpinner';
 import { Edit as EditIcon } from '@mui/icons-material';
 import { Button as MuiButton } from '@mui/material';
 import ProfilePictureUpload from './profile/ProfilePictureUpload';

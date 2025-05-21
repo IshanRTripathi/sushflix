@@ -1,6 +1,6 @@
 import React from 'react';
 import { Box, Typography, Card, CardContent } from '@mui/material';
-import { Grid as MuiGrid } from '@mui/material/Grid';
+import Grid from '@mui/material/Grid';
 import { styled } from '@mui/material/styles';
 
 interface StatsSectionProps {
@@ -22,7 +22,7 @@ const StatsSection: React.FC<StatsSectionProps> = ({ user }) => {
       <Typography variant="h6" gutterBottom>
         Stats
       </Typography>
-      <MuiGrid container spacing={2}>
+      <Grid container spacing={2}>
         <MuiGrid xs={12} sm={4}>
           <StyledCard>
             <CardContent>
@@ -59,7 +59,7 @@ const StatsSection: React.FC<StatsSectionProps> = ({ user }) => {
             </CardContent>
           </StyledCard>
         </MuiGrid>
-      </MuiGrid>
+      </Grid>
     </Box>
   );
 };

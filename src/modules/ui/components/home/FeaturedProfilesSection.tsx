@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import FeaturedCard from './FeaturedCard';
 import { motion } from 'framer-motion';
-import { UserProfile } from '../../types/user';
-import LoadingSpinner from '../common/LoadingSpinner';
+import { UserProfile } from '@/modules/shared/types/user';
+import LoadingSpinner from '@/modules/ui/components/feedback/LoadingSpinner';
 
 interface FeaturedProfilesSectionProps {
   profiles: UserProfile[];

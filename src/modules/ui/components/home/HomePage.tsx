@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../modules/auth/context/AuthContext';
-import { API_BASE_URL } from '../../config/index';
-import { useTheme } from '../../modules/settings/hooks/useTheme';
-import ErrorBoundary from '../../modules/ui/components/ErrorBoundary';
-import { useLoadingContext } from '../../modules/ui/contexts/LoadingContext';
-import { USER_ROLES, UserProfile, FeaturedProfile } from '../../types/user';
-import Loading from '../../modules/ui/components/Loading';
+import { useAuth } from '@/modules/auth/context/AuthContext';
+import { API_BASE_URL } from '@/modules/shared/config';
+import { useTheme } from '@/modules/settings/hooks/useTheme';
+import ErrorBoundary from '@/modules/ui/components/ErrorBoundary';
+import { useLoadingContext } from '@/modules/ui/contexts/LoadingContext';
+import { USER_ROLES, UserProfile, FeaturedProfile } from '@/modules/shared/types/user';
+import Loading from '@/modules/ui/components/Loading';
 import FeaturedProfilesSection from './FeaturedProfilesSection';
 
 interface HomePageState {

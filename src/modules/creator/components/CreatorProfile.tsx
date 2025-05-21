@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { logger } from '../../../utils/logger';
+import { logger } from '@/modules/shared/utils/logger';
 import { ContentCard } from './content/ContentCard';
 
 interface Creator {
@@ -257,7 +257,7 @@ export const CreatorProfile = () => {
                   onSubscribe={() => handleSubscribe(currentLevel)}
                   onClick={() => navigate(`/content/${index}`)}
                   initialLikes={Math.floor(Math.random() * 100)}
-                  onComment={() => logger.info('Comment added')}
+                  onComment={async () => { logger.info('Comment added'); }}
                   initialLiked={Math.random() > 0.5}
                   comments={[
                     {

@@ -1,11 +1,11 @@
 import React from 'react';
-import { Modal } from '../../../../components/common/Modal';
+import { Modal } from '@/modules/ui/components/feedback/Modal';
 import { ProfilePictureUpload } from './ProfilePictureUpload';
 import { ProfileFormUI } from './form/ProfileFormUI';
 import { ProfileFormData, ProfileErrors } from './types';
-import { UserProfile } from '../../../../types/user';
+import { UserProfile } from '@/modules/shared/types/user';
 import { Box, CircularProgress } from '@mui/material';
-import { logger } from '../../../../utils/logger';
+import { logger } from '@/modules/shared/utils/logger';
 import profileService from '../../service/profileService';
 
 interface EditProfileModalProps {

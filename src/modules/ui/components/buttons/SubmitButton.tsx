@@ -1,6 +1,6 @@
 // Reusable submit button component with loading state
 import React from 'react';
-import LoadingSpinner from './LoadingSpinner';
+import LoadingSpinner from '@/modules/ui/components/feedback/LoadingSpinner';
 
 // Button size variants
 export const BUTTON_SIZES = {

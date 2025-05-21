@@ -5,8 +5,8 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { API_BASE_URL } from '../../shared/config/index';
-import { UserProfile } from '../../../types/user';
-import { logger } from '../../../utils/logger';
+import { IUserProfile } from '../../profile/service/models/UserProfile';
+import { logger } from '@/modules/shared/utils/logger';
 
 // Authentication endpoints
 const AUTH_ENDPOINTS = {
@@ -23,11 +23,11 @@ export type AuthErrorType = {
 export type AuthModalType = 'login' | 'signup';
 
 export interface AuthContextType {
-  user: UserProfile | null;
+  user: IUserProfile | null;
   isAuthenticated: boolean;
-  login: (username: string, password: string) => Promise<UserProfile>;
+  login: (username: string, password: string) => Promise<IUserProfile>;
   logout: () => void;
-  updateUser: (updates: Partial<UserProfile>) => void;
+  updateUser: (updates: Partial<IUserProfile>) => void;
   error: AuthErrorType | null;
   isAuthModalOpen: boolean;
   authModalType: AuthModalType;
@@ -49,7 +49,7 @@ export const useAuth = (): AuthContextType => {
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<UserProfile | null>(null);
+  const [user, setUser] = useState<IUserProfile | null>(null);
   const [error, setError] = useState<AuthErrorType | null>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authModalType, setAuthModalType] = useState<AuthModalType>('login');
@@ -60,7 +60,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (storedUser) {
       try {
         logger.debug('Found stored user session');
-        const parsedUser = JSON.parse(storedUser) as UserProfile;
+        const parsedUser = JSON.parse(storedUser) as IUserProfile;
         setUser(parsedUser);
         logger.info('Successfully restored user session from storage');
       } catch (err: unknown) {
@@ -77,7 +77,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
-  const login = async (username: string, password: string): Promise<UserProfile> => {
+  const login = async (username: string, password: string): Promise<IUserProfile> => {
     if (!username || !password) {
       throw new Error('Username and password are required');
     }
@@ -156,30 +156,42 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = async () => {
-    logger.info('Logging out user', { userId: user?.userId });
-    await fetch(AUTH_ENDPOINTS.LOGOUT, { method: 'POST' });
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    setUser(null);
-    setError(null);
+    const userId = user?.user?.toString() || 'unknown';
+    logger.info('Logging out user', { userId });
+    
+    try {
+      await fetch(AUTH_ENDPOINTS.LOGOUT, { method: 'POST' });
+    } catch (error) {
+      logger.error('Error during logout', { error });
+    } finally {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      setUser(null);
+      setError(null);
+    }
   };
 
-  const updateUser = (updates: Partial<UserProfile>) => {
+  const updateUser = (updates: Partial<IUserProfile>) => {
     if (!user) return;
     
-    const updatedUser = { ...user, ...updates };
+    // Create a new object with the updates
+    const updatedUser = { ...user.toObject ? user.toObject() : user, ...updates } as IUserProfile;
     logger.debug('Updating user data', { updates });
     
-    // Update localStorage
-    localStorage.setItem('user', JSON.stringify(updatedUser));
-    
-    // Force a state update by creating a new object reference
-    setUser(prevUser => ({
-      ...(prevUser || {}),
-      ...updatedUser
-    }));
-    
-    logger.info('User data updated', { userId: user.userId, updatedFields: Object.keys(updates) });
+    try {
+      const { _id, ...safeUser } = updatedUser as any;
+      localStorage.setItem('user', JSON.stringify(safeUser));
+      
+      // Update state with a new object to trigger re-render
+      setUser(updatedUser);
+      
+      logger.info('User data updated', { 
+        userId: updatedUser.user?.toString() || 'unknown', 
+        updatedFields: Object.keys(updates) 
+      });
+    } catch (error) {
+      logger.error('Error updating user data', { error });
+    }
   };
 
   const openAuthModal = (type: AuthModalType) => {

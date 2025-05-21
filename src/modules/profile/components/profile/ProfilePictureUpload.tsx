@@ -13,7 +13,7 @@ import {
 } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
-import { logger } from '@/utils/logger';
+import { logger } from '@/modules/shared/utils/logger';
 
 export interface UploadResponse {
   success: boolean;

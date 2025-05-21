@@ -1,8 +1,8 @@
 import { useCallback, useState } from 'react';
-import { useToast } from '../../../hooks/useToast';
-import profileService from '../service/profileService';
-import { logger } from '../../../utils/logger';
-import { UserProfile } from '../../../types/user';
+import { useToast } from '@/modules/shared/hooks/useToast';
+import profileService from '@/modules/profile/service/profileService';
+import { logger } from '@/modules/shared/utils/logger';
+import { UserProfile } from '@/modules/shared/types/user';
 
 export interface ProfileUpdateData {
   displayName?: string;

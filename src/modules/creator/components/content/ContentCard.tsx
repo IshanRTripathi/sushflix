@@ -1,8 +1,8 @@
 // Content card component with enhanced user interaction and error handling
 import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../../modules/auth/context/AuthContext';
-import { logger } from '../../../utils/logger';
+import { useAuth } from '@/modules/auth/context/AuthContext';
+import { logger } from '@/modules/shared/utils/logger';
 import { Skeleton } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import { ContentCardProps } from './types';
@@ -85,12 +85,12 @@ const PostImage = styled('div')({
   },
 });
 
-const ActionButtons = styled('div')({
+const ActionButtons = styled('div')(({ theme }) => ({
   display: 'flex',
   padding: '8px 16px',
   gap: '8px',
-  borderBottom: (props: any) => `1px solid ${props.theme.palette.divider}`,
-});
+  borderBottom: `1px solid ${theme.palette.divider}`,
+}));
 
 const ActionButtonGroup = styled('div')({
   display: 'flex',

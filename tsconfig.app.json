@@ -63,6 +63,6 @@
   "include": [
     "src",
     "vite-env.d.ts"
-, "temp_js_backup/featuredProfiles.js", "temp_js_backup/FeaturedProfile.js"  ],
+, "temp_js_backup/featuredProfiles.js", "temp_js_backup/FeaturedProfile.js", "temp_js_backup/UserProfile.js"  ],
   "exclude": ["node_modules", "dist", "build"]
 }

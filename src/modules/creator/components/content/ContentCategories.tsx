@@ -2,8 +2,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronRight } from 'lucide-react';
-import { API_BASE_URL } from '../../config/index';
-import { logger } from '../../utils/logger';
+import { API_BASE_URL } from '@/modules/shared/config';
+import { logger } from '@/modules/shared/utils/logger';
 
 /**
  * Category interface with proper typing

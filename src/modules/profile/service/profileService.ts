@@ -1,4 +1,4 @@
-import { logger } from '../utils/logger';
+import { logger } from '@/modules/shared/utils/logger';
 import { 
   getProfile as apiGetProfile,
   getProfileByUsername as apiGetProfileByUsername,
@@ -10,15 +10,19 @@ import {
   unfollowUser as apiUnfollowUser,
   getUserStats as apiGetUserStats,
   searchUsers as apiSearchUsers
-} from './apiService';
+} from '@/modules/shared/api/profile/profile.api';
 import type { 
   UserProfile, 
   UserStats, 
-  ProfileInput,
   UserSettingsUpdate,
   FeaturedProfileConfig,
-  ApiResponse
-} from '../types/user';
+  ApiResponse,
+  ProfileInput,
+  SocialLinks
+} from '@/modules/shared/types/user';
+
+// Re-export the ProfileData type from the API for consistency
+export type { ProfileData } from '@/modules/shared/api/profile/profile.api';
 // File system operations are only available on the server side
 const isServer = typeof window === 'undefined';
 let fs: any, path: any;

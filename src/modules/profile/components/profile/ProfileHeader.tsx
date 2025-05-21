@@ -19,8 +19,8 @@ import {
   YouTube as YouTubeIcon,
   Language as WebsiteIcon,
 } from '@mui/icons-material';
-import { UserProfile } from '../../../../types/user';
-import { useLoading } from '../../../ui/contexts/LoadingContext';
+import { UserProfile } from '@/modules/shared/types/user';
+import useLoading from '@/modules/ui/contexts/LoadingContext';
 import { ProfilePictureUpload } from './ProfilePictureUpload';
 
 interface ProfileHeaderProps {

@@ -16,7 +16,7 @@ export const getProfile = (userId: string) => {
 };
 
 export const getProfileByUsername = (username: string) => {
-  return apiClient.get(`/api/users/username/${username}`);
+  return apiClient.get(`/api/users/${username}`);
 };
 
 export const updateUserProfile = (userId: string, data: ProfileData) => {

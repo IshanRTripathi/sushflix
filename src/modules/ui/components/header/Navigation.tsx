@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { useAuth } from '../../modules/auth/context/AuthContext';
-import { useTheme } from '../../modules/settings/hooks/useTheme';
-import { DEFAULT_IMAGES } from '../../config/images';
-import { useUI } from '../../modules/ui/contexts/UIContext';
+import { useAuth } from '@/modules/auth/context/AuthContext';
+import { useTheme } from '@/modules/settings/hooks/useTheme';
+import { DEFAULT_IMAGES } from '@/modules/shared/config/images';
+import { useUI } from '@/modules/ui/contexts/UIContext';
 
 export function Navigation() {
   const { isAuthenticated, logout, user, openAuthModal } = useAuth();

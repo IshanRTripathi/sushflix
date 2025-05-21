@@ -17,7 +17,7 @@ export interface ContentCardProps {
   onSubscribe: () => Promise<void>;
   onClick: () => void;
   initialLikes: number;
-  onComment: (text: string) => void;
+  onComment: (text: string) => Promise<void>;
   initialLiked: boolean;
   comments: Comment[];
   className?: string;

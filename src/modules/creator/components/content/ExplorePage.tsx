@@ -1,6 +1,6 @@
 import React from 'react';
-import { ContentCard } from './components/ContentCard';
-import { Comment } from './components/types';
+import { ContentCard } from './ContentCard';
+import { Comment } from './types';
 
 /**
  * Interface for content posts

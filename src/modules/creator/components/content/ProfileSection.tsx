@@ -1,10 +1,10 @@
 import React, { useCallback, useState } from 'react';
-import { UserProfile, PartialProfileUpdate } from '../../types/user';
+import { UserProfile, PartialProfileUpdate } from '@/modules/shared/types/user';
 import Card from "@/modules/ui/components/Card";
 import Button from "@/modules/ui/components/Button";
 import { Icons } from "@/modules/ui/components/icons";
-import { ProfilePictureUpload } from '../profile/ProfilePictureUpload';
-import { logger } from '../../utils/logger';
+import { ProfilePictureUpload } from '@/modules/profile/components/profile/ProfilePictureUpload';
+import { logger } from '@/modules/shared/utils/logger';
 import Loading from '@/modules/ui/components/Loading';
 import { Alert } from '@mui/material';
 import { LoadingButton } from '@mui/lab';

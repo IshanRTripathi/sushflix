@@ -1,6 +1,6 @@
 import React from 'react';
 import { Snackbar, Alert } from '@mui/material';
-import { useToast } from '../../../hooks/useToast';
+import { useToast } from '../../shared/hooks/useToast';
 
 const Toast: React.FC = () => {
   const { toast } = useToast();

@@ -1,9 +1,9 @@
 import React, { useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { UserProfile } from '../../types/user';
-import { logger } from '../../utils/logger';
+import { UserProfile } from '@/modules/shared/types/user';
+import { logger } from '@/modules/shared/utils/logger';
 import { Skeleton } from '@mui/material';
-import { DEFAULT_IMAGES } from '../../config/images';
+import { DEFAULT_IMAGES } from '@/modules/shared/config/images';
 
 // Extend UserProfile type to include ID
 interface ExtendedUserProfile extends UserProfile {

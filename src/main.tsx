@@ -2,7 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import './index.css';
-import { validateBrowserEnv } from './utils/browserEnv';
+import { validateBrowserEnv } from './modules/shared/utils/browserEnv';
 
 // Validate environment variables
 if (import.meta.env.DEV) {

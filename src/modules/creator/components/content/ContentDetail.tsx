@@ -2,8 +2,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { Play, Heart, Share2, BookmarkPlus } from 'lucide-react';
-import { API_BASE_URL } from '../../../config/index';
-import { logger } from '../../../utils/logger';
+import { API_BASE_URL } from '@/modules/shared/config';
+import { logger } from '@/modules/shared/utils/logger';
 import { Skeleton } from '@mui/material';
 /**
  * Content data interface with proper typing

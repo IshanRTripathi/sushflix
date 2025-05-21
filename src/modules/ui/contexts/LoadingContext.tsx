@@ -1,8 +1,5 @@
 import { ReactNode, createContext, useContext } from 'react';
-import { useLoading } from '../../../hooks/useLoading';
-import type { UseLoadingOptions } from '../../../hooks/useLoading';
-
-export type { UseLoadingOptions } from '../../../hooks/useLoading';
+import { useLoading, UseLoadingOptions } from '../../shared/hooks/useLoading';
 
 interface LoadingContextType extends ReturnType<typeof useLoading> {
   /** @deprecated Use isLoading from the hook directly */

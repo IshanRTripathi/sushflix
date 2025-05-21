@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { UserProfile, UserStats, SocialLinks } from '../../../types/user';
+import { UserProfile, UserStats, SocialLinks } from '../../profile/service/models/UserProfile';
 import { profileService } from '../service/profileService';
 import { useAuth } from '../../auth/context/AuthContext';
-import { useLoading } from '../../../hooks/useLoading';
-import { logger } from '../../../utils/logger';
+import { useLoading } from '../../shared/hooks/useLoading';
+import { logger } from '../../shared/utils/logger';
 
 /**
  * @typedef {Object} UseProfileReturn

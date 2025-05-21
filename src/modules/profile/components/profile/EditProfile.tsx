@@ -1,7 +1,7 @@
 import React from 'react';
-import { useToast } from '@/hooks/useToast';
+import { useToast } from '@/modules/shared/hooks/useToast';
 import { ProfileFormData } from './types';
-import { UserProfile } from '../../../../types/user';
+import { UserProfile } from '@/modules/shared/types/user';
 import { EditProfileModal } from './EditProfileModal';
 import { useProfile } from '../../hooks/useProfile';
 
