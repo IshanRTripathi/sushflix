@@ -1,17 +1,15 @@
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import multer from 'multer';
 import path from 'path';
-import { IUser, IUserProfile } from '../../shared/types/user';
-import { IUserStatsSummary } from '../../shared/types/user/user.stats';
+import { User as SharedUser } from '../../shared/types';
 import logger from '../../shared/config/logger';
-import { Types } from 'mongoose';
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
-  destination: (_req, _file, cb) => {
+  destination: (req, file, cb) => {
     cb(null, 'uploads/');
   },
-  filename: (_req, file, cb) => {
+  filename: (req, file, cb) => {
     const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
     cb(null, `${file.fieldname}-${uniqueSuffix}${path.extname(file.originalname)}`);
   },
@@ -20,7 +18,7 @@ const storage = multer.diskStorage({
 const upload = multer({ 
   storage,
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
-  fileFilter: (_req, file, cb) => {
+  fileFilter: (req, file, cb) => {
     const allowedTypes = /jpeg|jpg|png|gif/;
     const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
     const mimetype = allowedTypes.test(file.mimetype);
@@ -33,10 +31,10 @@ const upload = multer({
   }
 });
 
-// Extend Express Request type with our custom user type
+// Extend Express Request type with custom properties
 declare module 'express-serve-static-core' {
   interface Request {
-    user?: IUser & { _id: Types.ObjectId };
+    user?: SharedUser;
     file?: Express.Multer.File;
     files?: { [fieldname: string]: Express.Multer.File[] } | Express.Multer.File[];
   }
@@ -93,6 +91,46 @@ const sendSuccess = <T>(res: Response, data: T, statusCode = 200): void => {
   responseHelpers.success(res, data, statusCode);
 };
 
+// Types
+interface UserStats {
+  posts?: number;
+  followers: number;
+  following: number;
+  subscriberCount?: number;
+  lastUpdated?: string;
+}
+
+interface UserProfile {
+  id: string;
+  userId: string;
+  username: string;
+  email: string;
+  role: string;
+  emailVerified: boolean;
+  displayName: string;
+  bio: string;
+  profilePicture: string;
+  coverPhoto?: string;
+  socialLinks?: Record<string, string>;
+  stats: UserStats;
+  preferences?: {
+    theme: string;
+    notifications: {
+      email: boolean;
+      push: boolean;
+    };
+  };
+  theme: string;
+  notifications: {
+    email: boolean;
+    push: boolean;
+  };
+  isCreator: boolean;
+  isVerified: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 // Get current user's profile
 export const getCurrentUserProfile = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -103,9 +141,9 @@ export const getCurrentUserProfile = async (req: Request, res: Response): Promis
     const user = req.user;
     
     // Format response according to frontend's UserProfile type
-    const userProfile: IUserProfile = {
-      _id: user._id,
-      userId: user._id.toString(),
+    const userProfile: UserProfile = {
+      id: user.id,
+      userId: user.id,
       username: user.username || '',
       email: user.email || '',
       role: user.role || 'user',
@@ -149,8 +187,7 @@ export const getCurrentUserProfile = async (req: Request, res: Response): Promis
 // Get user profile by username
 export const getUserProfile = async (req: Request, res: Response): Promise<void> => {
   try {
-    // Using _ to indicate unused parameter
-    const { username, userId: _ } = req.params;
+    const { username } = req.params;
     
     if (!username) {
       throw new ApiError(400, 'Username is required');
@@ -177,7 +214,7 @@ export const getUserProfile = async (req: Request, res: Response): Promise<void>
     };
 
     // Format response according to frontend's UserProfile type
-    const userProfile: IUserProfile = {
+    const userProfile: UserProfile = {
       id: user.id,
       userId: user.id,
       username: user.username,
@@ -222,91 +259,26 @@ export const getUserProfile = async (req: Request, res: Response): Promise<void>
 
 // Get user stats
 export const getUserStats = async (req: Request, res: Response): Promise<void> => {
-  // Get userId from params but mark as unused with _
-  const { userId: _ } = req.params;
-  
-  // Set default date for the week
-  const now = new Date();
-  const startOfWeek = new Date(now);
-  startOfWeek.setDate(now.getDate() - now.getDay()); // Start of current week (Sunday)
-  const endOfWeek = new Date(now);
-  endOfWeek.setDate(now.getDate() + (6 - now.getDay())); // End of current week (Saturday)
   try {
-    // In a real application, you would fetch this from your database
-    const stats: IUserStatsSummary = {
-      totalPosts: 0,
-      totalFollowers: 0,
-      totalFollowing: 0,
-      totalSubscribers: 0,
-      totalLikes: 0,
-      totalComments: 0,
-      totalViews: 0,
-      engagementRate: 0,
-      followersGrowth: 0,
-      viewsGrowth: 0,
-      engagementGrowth: 0,
-      today: {
-        date: new Date(),
-        postViews: 0,
-        profileViews: 0,
-        newFollowers: 0,
-        newSubscribers: 0,
-        engagementRate: 0
-      },
-      thisWeek: {
-        week: Math.ceil((now.getDate() + new Date(now.getFullYear(), 0, 1).getDay() + 1) / 7),
-        year: now.getFullYear(),
-        startDate: startOfWeek,
-        endDate: endOfWeek,
-        totalViews: 0,
-        totalEngagement: 0,
-        newFollowers: 0,
-        newSubscribers: 0
-      },
-      thisMonth: {
-        month: 0,
-        year: 0,
-        totalViews: 0,
-        totalEngagement: 0,
-        newFollowers: 0,
-        newSubscribers: 0
-      },
-      thisYear: {
-        year: 0,
-        totalViews: 0,
-        totalEngagement: 0,
-        totalFollowers: 0,
-        totalSubscribers: 0
-      }
+    const { username } = req.params;
+    
+    if (!username) {
+      throw new ApiError(400, 'Username is required');
+    }
+    
+    // In a real application, you would fetch the stats from the database
+    // For now, we'll return a mock response
+    const stats = {
+      posts: 10,
+      followers: 100,
+      following: 50,
+      subscriberCount: 25,
+      lastUpdated: new Date().toISOString(),
     };
-    
-    responseHelpers.success(res, stats);
-  } catch (error) {
-    responseHelpers.error(res, 'Failed to fetch user stats');
-  }
-};
 
-// Get user's posts
-export const getUserPosts = async (req: Request, res: Response): Promise<void> => {
-  try {
-    // Using _ to indicate unused parameter
-    const { page = '1', limit = '10' } = req.query;
-    
-    // In a real application, you would fetch the user's posts from the database
-    // with pagination
-    const posts: any[] = [];
-    
-    responseHelpers.success(res, {
-      posts,
-      pagination: {
-        page: Number(page),
-        limit: Number(limit),
-        total: 0,
-        totalPages: 0
-      }
-    });
+    sendSuccess(res, stats);
   } catch (error) {
-    responseHelpers.error(res, 'Failed to fetch user posts');
+    handleError(error, res);
   }
 };
 
@@ -353,94 +325,138 @@ export const deleteUser = async (req: Request, res: Response): Promise<void> => 
   }
 };
 
-// Delete profile picture
-export const deleteProfilePicture = async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { userId } = req.params;
-    
-    // In a real application, you would delete the file from storage
-    // and update the user's profile
-    // await User.findByIdAndUpdate(userId, { profilePicture: '' });
-    
-    responseHelpers.success(res, { message: 'Profile picture deleted successfully' });
-  } catch (error) {
-    responseHelpers.error(res, 'Failed to delete profile picture');
-  }
-};
-
 // Upload profile picture
 export const uploadProfilePicture = [
   upload.single('profilePicture'),
   async (req: Request, res: Response): Promise<void> => {
     try {
-      if (!req.file) {
-        responseHelpers.error(res, 'No file uploaded', 400);
-        return;
+      const { username } = req.params;
+      const file = req.file;
+
+      if (!username) {
+        throw new ApiError(400, 'Username is required');
       }
 
-      if (!req.user) {
-        responseHelpers.error(res, 'User not authenticated', 401);
-        return;
-      }
-
-      const userId = req.user._id;
-      const username = req.user.username;
-      
-      // In a real application, you would save the file path to the user's profile
-      // and handle file storage (e.g., AWS S3, Google Cloud Storage, etc.)
-      const fileUrl = `/uploads/${req.file.filename}`;
-      
-      // Import User model dynamically to avoid circular dependencies
-      const { default: User } = await import('../../profile/service/models/User');
-      
-      // Find user first
-      const user = await User.findById(userId);
-      if (!user) {
-        logger.error('User not found', { userId });
-        responseHelpers.error(res, 'User not found', 404);
-        return;
-      }
-
-      // Save the old picture URL for cleanup
-      const oldPictureUrl = user.profilePicture;
-
-      // Update user's profile picture URL
-      user.profilePicture = fileUrl;
-      await user.save();
-
-      // If there was an old picture, delete it from storage
-      if (oldPictureUrl) {
-        try {
-          // In a real app, you would delete the old file from storage here
-          logger.info('Old profile picture would be deleted', { username, oldPictureUrl });
-        } catch (error) {
-          // Log but don't fail the request if deletion fails
-          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-          logger.error('Failed to delete old profile picture', {
-            error: errorMessage,
-            url: oldPictureUrl,
-            username,
-            stack: error instanceof Error ? error.stack : undefined
-          });
-        }
-      }
-
-      logger.info('Profile picture updated successfully', {
-        username,
-        newPictureUrl: fileUrl
+    if (!file) {
+      logger.error('No file uploaded in request', {
+        headers: req.headers,
+        body: req.body,
+        files: req.files
       });
-
-      responseHelpers.success(res, { fileUrl });
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      logger.error('Failed to upload profile picture', {
-        error: errorMessage,
-        stack: error instanceof Error ? error.stack : undefined
+      res.status(400).json({
+        success: false,
+        error: 'No file uploaded'
       });
-      responseHelpers.error(res, 'Failed to upload profile picture');
+      return;
     }
+
+    // Ensure file has required properties
+    if (!file.originalname || !file.mimetype || !file.size || !file.buffer) {
+      logger.error('Invalid file properties', {
+        username,
+        fileProps: Object.keys(file),
+        hasBuffer: !!file.buffer
+      });
+      res.status(400).json({
+        success: false,
+        error: 'Invalid file properties'
+      });
+      return;
+    }
+
+    // Upload the file to storage (GCS or local)
+    const uploadResponse: UploadResponse = await uploadFile(username, {
+      buffer: file.buffer,
+      originalname: file.originalname,
+      mimetype: file.mimetype,
+      size: file.size
+    });
+    
+    if (!uploadResponse.success) {
+      logger.error('Failed to upload to storage', {
+        error: uploadResponse.error,
+        response: uploadResponse,
+        username,
+        file: {
+          originalname: file.originalname,
+          mimetype: file.mimetype,
+          size: file.size
+        }
+      });
+      res.status(500).json({
+        success: false,
+        error: uploadResponse.error || 'Failed to upload file to storage'
+      });
+      return;
+    }
+
+    // Import User model dynamically to avoid circular dependencies
+    const { default: User } = await import('../../profile/service/models/User');
+    
+    // Find user first
+    const user = await User.findOne({ username });
+    if (!user) {
+      logger.error('User not found', { username });
+      res.status(404).json({
+        success: false,
+        error: 'User not found'
+      });
+      return;
+    }
+
+    // Save the old picture URL for cleanup
+    const oldPictureUrl = user.profilePicture;
+
+    // Update user's profile picture URL
+    user.profilePicture = uploadResponse.fileUrl || '';
+    await user.save();
+
+    // If there was an old picture, delete it from storage
+    if (oldPictureUrl) {
+      try {
+        // Extract just the filename from the URL
+        const oldFileName = oldPictureUrl.split('/').pop();
+        if (oldFileName) {
+          await deleteFile(oldFileName);
+          logger.info('Old profile picture deleted', { username, oldFileName });
+        }
+      } catch (deleteError) {
+        // Log but don't fail the request if deletion fails
+        logger.error('Failed to delete old profile picture', {
+          error: deleteError instanceof Error ? deleteError.message : 'Unknown error',
+          url: oldPictureUrl,
+          username,
+          stack: deleteError instanceof Error ? deleteError.stack : undefined
+        });
+      }
+    }
+
+    logger.info('Profile picture updated successfully', {
+      username,
+      newPictureUrl: uploadResponse.fileUrl
+    });
+
+    res.json({
+      success: true,
+      url: uploadResponse.fileUrl,
+      message: 'Profile picture updated successfully'
+    });
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    
+    logger.error('Profile picture upload error', {
+      error: errorMessage,
+      stack: errorStack,
+      username: username || 'unknown'
+    });
+    
+    res.status(500).json({
+      success: false,
+      error: 'An unexpected error occurred while uploading the profile picture'
+    });
   }
-];
+};
 
 export default {
   getCurrentUserProfile,

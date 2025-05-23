@@ -4,20 +4,13 @@ import bcrypt from 'bcryptjs';
 import jwt, { SignOptions } from 'jsonwebtoken';
 import { Types } from 'mongoose';
 import User, { IUser, IUserModel, UserRole } from '../../../profile/service/models/User';
+import logger from '../../../shared/config/logger'
 
 // Validate JWT_SECRET is set at startup
 const JWT_SECRET = process.env['JWT_SECRET'];
 if (!JWT_SECRET) {
   throw new Error('JWT_SECRET environment variable is not set');
 }
-
-// Logger
-const logger = {
-  info: (message: string, meta?: any) => console.log(`[INFO] ${message}`, meta || ''),
-  error: (message: string, meta?: any) => console.error(`[ERROR] ${message}`, meta || ''),
-  warn: (message: string, meta?: any) => console.warn(`[WARN] ${message}`, meta || ''),
-  debug: (message: string, meta?: any) => console.debug(`[DEBUG] ${message}`, meta || '')
-};
 
 // Extend Express types
 declare global {
@@ -118,10 +111,24 @@ const signupValidation: ValidationChain[] = [
     .withMessage('Password must contain at least one number')
 ];
 
+// Add this interface for the signup response
+interface SignupResponse {
+  success: boolean;
+  token: string;
+  refreshToken: string;
+  user: {
+    id: string;
+    username: string;
+    email: string;
+    role: UserRole;
+    isCreator: boolean;
+  };
+}
+
 router.post(
   '/signup',
   validateRequest(signupValidation),
-  asyncHandler<{}, any, SignupRequestBody, any>(async (req: Request<{}, {}, SignupRequestBody>, res: Response) => {
+  asyncHandler<{}, SignupResponse, SignupRequestBody, any>(async (req, res) => {
     logger.info('Executing route: POST /api/signup');
     logger.info(`Received registration request body: ${JSON.stringify(req.body)}`);
 
@@ -158,21 +165,21 @@ router.post(
       });
 
       await user.save();
-
-      // Create JWT payload with proper typing
-      const payload: JwtPayload = {
-        userId: (user as any)._id.toString(),
-        email: user.email,
-        username: user.username || '',
-        role: user.role || 'user'
-      };
-
-      const token = jwt.sign(payload, JWT_SECRET, {
-        expiresIn: '7d'
-      });
+      // Generate tokens
+       const token = generateToken(user);
+       const refreshToken = jwt.sign(
+         { userId: user._id },
+         JWT_SECRET,
+         { expiresIn: '7d' }
+       );
+ 
+       // Update user with refresh token
+       user.refreshToken = refreshToken;
 
       res.status(201).json({
+        success: true,
         token,
+        refreshToken, // Make sure to generate this if not already
         user: {
           id: user._id,
           username: user.username,
@@ -181,6 +188,7 @@ router.post(
           isCreator: user.role === 'creator' || user.role === 'admin'
         }
       });
+  
     } catch (error) {
       logger.error('Error during user registration:', error);
       res.status(500).json({ errors: [{ msg: 'Server error' }] });
@@ -199,43 +207,68 @@ const loginValidation: ValidationChain[] = [
     .withMessage('Password is required')
 ];
 
-// Login route handler
-const loginHandler = async (req: Request, res: Response, next: NextFunction) => {
-  logger.info('Executing route: POST /api/login');
-  
-  const { usernameOrEmail, password } = req.body as LoginRequestBody;
+// Response types for auth routes
+interface SuccessResponse<T> {
+  success: true;
+  token: string;
+  refreshToken: string;
+  user: T;
+}
 
-  try {
-    // Find user by email or username
-    const user = await (User as IUserModel).findOne({
+interface ErrorResponse {
+  success: false;
+  message: string;
+  errors?: Array<{ msg: string }>;
+}
+
+type LoginResponse = SuccessResponse<{
+  id: string;
+  username: string;
+  email: string;
+  role: UserRole;
+  isCreator: boolean;
+}> | ErrorResponse;
+
+// Login route handler with proper typing
+router.post<{}, LoginResponse, LoginRequestBody>(
+  '/login',
+  validateRequest(loginValidation),
+  asyncHandler<{}, LoginResponse, LoginRequestBody, any>(async (req, res) => {
+    const { usernameOrEmail, password } = req.body;
+
+    // Find user by email or username (case-insensitive)
+    const user = await User.findOne({
       $or: [
         { email: { $regex: new RegExp(`^${usernameOrEmail}$`, 'i') } },
         { username: { $regex: new RegExp(`^${usernameOrEmail}$`, 'i') } }
       ]
-    }).select('+password +refreshToken').exec();
+    }).select('+password');
 
     if (!user) {
-      return res.status(401).json({
+      res.status(401).json({
         success: false,
         message: 'Invalid credentials',
         errors: [{ msg: 'Invalid email/username or password' }]
       });
+      return;
     }
 
     // Check password
-    if (!user.password || !(await user.comparePassword(password))) {
-      return res.status(401).json({
+    const isMatch = user.password ? await bcrypt.compare(password, user.password) : false;
+    if (!isMatch) {
+      res.status(401).json({
         success: false,
         message: 'Invalid credentials',
         errors: [{ msg: 'Invalid email/username or password' }]
       });
+      return;
     }
 
     // Generate tokens
     const token = generateToken(user);
     const refreshToken = jwt.sign(
       { userId: user._id },
-      JWT_SECRET,
+      JWT_SECRET!,
       { expiresIn: '7d' }
     );
 
@@ -245,7 +278,6 @@ const loginHandler = async (req: Request, res: Response, next: NextFunction) => 
 
     // Set cookies
     const isProduction = process.env['NODE_ENV'] === 'production';
-
     res.cookie('token', token, {
       httpOnly: true,
       secure: isProduction,
@@ -253,42 +285,22 @@ const loginHandler = async (req: Request, res: Response, next: NextFunction) => 
       maxAge: 24 * 60 * 60 * 1000 // 1 day
     });
 
-    res.cookie('refreshToken', refreshToken, {
-      httpOnly: true,
-      secure: isProduction,
-      sameSite: 'strict',
-      path: '/api/auth/refresh-token',
-      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
-    });
-
-    // Get public user data and send response
-    const responseData = {
+    // Prepare response
+    const response: LoginResponse = {
       success: true,
-      message: 'Login successful',
-      data: {
-        token,
-        user: {
-          id: user._id,
-          username: user.username,
-          email: user.email,
-          role: user.role,
-          isCreator: user.role === 'creator' || user.role === 'admin',
-          profilePicture: user.profilePicture || '',
-          displayName: user.displayName || user.username
-        }
+      token,
+      refreshToken,
+      user: {
+        id: user._id.toString(),
+        username: user.username,
+        email: user.email,
+        role: user.role,
+        isCreator: user.role === 'creator' || user.role === 'admin'
       }
     };
 
-    res.status(200).json(responseData);
-  } catch (error) {
-    logger.error('Error during login:', error);
-    next(error);
-  }
-};
-
-// Login route
-router.post('/login', validateRequest(loginValidation), (req: Request, res: Response, next: NextFunction) => {
-  loginHandler(req, res, next).catch(next);
-});
+    res.status(200).json(response);
+  })
+);
 
 export default router;
