@@ -1,9 +1,7 @@
 import { Document, Model, Types } from 'mongoose';
 import { UserRole } from './user.roles';
 
-/**
- * Core user interface representing the base user document in the database
- */
+/** Core user interface representing the base user document in the database */
 export interface IUser extends Document {
   _id: Types.ObjectId;
   email: string;
@@ -26,9 +24,7 @@ export interface IUser extends Document {
   generateRefreshToken(): string;
 }
 
-/**
- * User model static methods
- */
+/** User model static methods for database operations */
 export interface IUserModel extends Model<IUser> {
   /**
    * Find a user by email or username
@@ -56,9 +52,7 @@ export interface IUserModel extends Model<IUser> {
   isEmailAvailable(email: string): Promise<boolean>;
 }
 
-/**
- * Data required to create a new user
- */
+/** Data required to create a new user account */
 export interface CreateUserInput {
   username: string;
   email: string;
@@ -67,9 +61,7 @@ export interface CreateUserInput {
   emailVerified?: boolean;
 }
 
-/**
- * Data required to update a user
- */
+/** Data required to update an existing user account */
 export interface UpdateUserInput {
   username?: string;
   email?: string;
@@ -81,9 +73,7 @@ export interface UpdateUserInput {
   refreshToken?: string | null;
 }
 
-/**
- * Data returned when authenticating a user
- */
+/** Authentication response containing user data and tokens */
 export interface AuthUserResponse {
   id: string;
   username: string;

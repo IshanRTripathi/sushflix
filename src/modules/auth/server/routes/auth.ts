@@ -6,11 +6,19 @@ import { Types } from 'mongoose';
 import User, { IUser, IUserModel, UserRole } from '../../../profile/service/models/User';
 import logger from '../../../shared/config/logger'
 
-// Validate JWT_SECRET is set at startup
-const JWT_SECRET = process.env['JWT_SECRET'];
-if (!JWT_SECRET) {
-  throw new Error('JWT_SECRET environment variable is not set');
-}
+// Type-safe environment variable access
+const getEnvVar = (key: string): string => {
+  const value = process.env[key];
+  if (!value) {
+    throw new Error(`Missing required environment variable: ${key}`);
+  }
+  return value;
+};
+
+// Environment variables with type safety
+const JWT_SECRET = getEnvVar('JWT_SECRET');
+const NODE_ENV = process.env['NODE_ENV'] || 'development';
+const JWT_EXPIRES_IN = process.env['JWT_EXPIRES_IN'] || '1d';
 
 // Extend Express types
 declare global {
@@ -21,13 +29,27 @@ declare global {
   }
 }
 
-// JWT payload type
+// JWT payload type with type guard
 interface JwtPayload {
   userId: string;
   email: string;
   username: string;
   role: UserRole;
+  iat?: number;
+  exp?: number;
 }
+
+// Type guard for JWT payload
+const isJwtPayload = (payload: unknown): payload is JwtPayload => {
+  return (
+    typeof payload === 'object' &&
+    payload !== null &&
+    'userId' in payload &&
+    'email' in payload &&
+    'username' in payload &&
+    'role' in payload
+  );
+};
 
 const router = express.Router();
 
@@ -74,12 +96,8 @@ const validateRequest = (validations: ValidationChain[]) => {
   };
 };
 
-// Generate JWT token
+// Generate JWT token with proper typing
 const generateToken = (user: IUser): string => {
-  if (!JWT_SECRET) {
-    throw new Error('JWT_SECRET is not defined');
-  }
-
   const payload: JwtPayload = {
     userId: user._id.toString(),
     email: user.email,
@@ -87,9 +105,15 @@ const generateToken = (user: IUser): string => {
     role: user.role,
   };
 
-  const expiresIn = process.env['JWT_EXPIRES_IN'] || '1d';
+  // Convert expiresIn to seconds if it's a string with time unit
+  const expiresIn = JWT_EXPIRES_IN.endsWith('d') 
+    ? parseInt(JWT_EXPIRES_IN) * 24 * 60 * 60 // Convert days to seconds
+    : JWT_EXPIRES_IN.endsWith('h')
+    ? parseInt(JWT_EXPIRES_IN) * 60 * 60 // Convert hours to seconds
+    : parseInt(JWT_EXPIRES_IN); // Assume seconds if no unit
+
   const options: SignOptions = {
-    expiresIn: expiresIn as unknown as number // JWT accepts string or number for expiresIn
+    expiresIn: expiresIn // Now it's a number which is compatible with SignOptions
   };
 
   return jwt.sign(payload, JWT_SECRET, options);
@@ -253,8 +277,11 @@ router.post<{}, LoginResponse, LoginRequestBody>(
       return;
     }
 
-    // Check password
-    const isMatch = user.password ? await bcrypt.compare(password, user.password) : false;
+    // Type-safe password check
+    if (!user.password) {
+      throw new Error('User password not found');
+    }
+    const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       res.status(401).json({
         success: false,
@@ -276,13 +303,13 @@ router.post<{}, LoginResponse, LoginRequestBody>(
     user.refreshToken = refreshToken;
     await user.save();
 
-    // Set cookies
-    const isProduction = process.env['NODE_ENV'] === 'production';
+    // Set secure cookies based on environment
     res.cookie('token', token, {
       httpOnly: true,
-      secure: isProduction,
+      secure: NODE_ENV === 'production',
       sameSite: 'strict',
-      maxAge: 24 * 60 * 60 * 1000 // 1 day
+      maxAge: 24 * 60 * 60 * 1000, // 1 day
+      path: '/',
     });
 
     // Prepare response

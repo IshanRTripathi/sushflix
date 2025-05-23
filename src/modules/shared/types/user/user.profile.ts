@@ -1,9 +1,7 @@
-import { Document, Types } from 'mongoose';
+import { Document, Model, Types } from 'mongoose';
 import { IUser } from './user.core';
 
-/**
- * Social media links for a user profile
- */
+/** Social media links associated with a user profile */
 export interface ISocialLinks {
   website?: string;
   twitter?: string;
@@ -12,9 +10,7 @@ export interface ISocialLinks {
   [key: string]: string | undefined; // Allow for additional social platforms
 }
 
-/**
- * Base interface for user profile statistics
- */
+/** Statistical data related to user profile activity and engagement */
 export interface IUserProfileStats {
   postCount: number;
   followerCount: number;
@@ -23,9 +19,7 @@ export interface IUserProfileStats {
   [key: string]: number; // Allow for additional stats
 }
 
-/**
- * Base interface for user profile data
- */
+/** Core user profile information and metadata */
 export interface IUserProfileBase {
   userId: Types.ObjectId;
   displayName: string;
@@ -42,9 +36,7 @@ export interface IUserProfileBase {
   gender?: 'male' | 'female' | 'other' | 'prefer-not-to-say';
 }
 
-/**
- * Complete user profile document interface
- */
+/** Complete user profile document including MongoDB document properties */
 export interface IUserProfile extends IUserProfileBase, Document {
   _id: Types.ObjectId;
   createdAt: Date;
@@ -65,17 +57,23 @@ export interface IUserProfile extends IUserProfileBase, Document {
 }
 
 /**
- * User profile model static methods
+ * User profile model with static methods for database operations.
  */
-export interface IUserProfileModel extends Document<any, any, IUserProfile> {
+export interface IUserProfileModel extends Model<IUserProfile> {
   // Add any static methods here
 }
 
 /**
- * Data required to create a new user profile
+ * Data structure for creating a new user profile.
  */
 export interface CreateUserProfileInput {
+  /**
+   * Unique identifier for the user.
+   */
   userId: Types.ObjectId | string;
+  /**
+   * Display name chosen by the user.
+   */
   displayName: string;
   bio?: string;
   profilePicture?: string;
@@ -85,9 +83,7 @@ export interface CreateUserProfileInput {
   isVerified?: boolean;
 }
 
-/**
- * Data required to update a user profile
- */
+/** Data structure for updating an existing user profile */
 export interface UpdateUserProfileInput {
   displayName?: string;
   bio?: string;
@@ -102,9 +98,7 @@ export interface UpdateUserProfileInput {
   gender?: 'male' | 'female' | 'other' | 'prefer-not-to-say' | null;
 }
 
-/**
- * Public user profile data that can be exposed via API
- */
+/** User profile data that is safe to expose via public APIs */
 export interface PublicUserProfile {
   id: string;
   username: string;

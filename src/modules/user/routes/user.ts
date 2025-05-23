@@ -1,122 +1,112 @@
-import { Request, Response, Router, NextFunction, RequestHandler as ExpressRequestHandler } from 'express';
-import { User as SharedUser } from '../../shared/types';
-import multer from 'multer';
+import { Request, Response, Router, NextFunction } from 'express';
+import { Types } from 'mongoose';
+import multer, { FileFilterCallback } from 'multer';
 import path from 'path';
-
-// Import auth middleware
-import authMiddleware from '../../auth/server/middlewares/auth';
-
-// Import controllers
+import { IUser } from '../../shared/types/user/user.core';
 import * as userController from '../controllers/userController';
+import { verifyToken } from '../../auth/server/middlewares/verifyToken';
 
 // Types for user updates
 interface UserUpdates {
-  name?: string;
+  // Core user info
   email?: string;
-  bio?: string;
-  avatar?: string;
+  username?: string;
+  
+  // Profile info
   displayName?: string;
+  bio?: string;
+  location?: string;
+  website?: string;
+  
+  // Media
   profilePicture?: string;
   coverPhoto?: string;
+  
+  // Preferences
+  preferences?: {
+    theme?: 'light' | 'dark' | 'system';
+    notifications?: {
+      email?: boolean;
+      push?: boolean;
+    };
+  };
 }
 
 // Extend Express Request type to include our custom properties
 declare global {
   namespace Express {
     interface Request {
-      user?: SharedUser;
+      user?: IUser & { _id: Types.ObjectId };
       file?: Express.Multer.File;
       files?: { [fieldname: string]: Express.Multer.File[] } | Express.Multer.File[];
     }
   }
 }
 
-// Alias for better semantic meaning
-type AuthenticatedRequest = Request & {
-  user: SharedUser;
-  file?: Express.Multer.File;
-  files?: { [fieldname: string]: Express.Multer.File[] } | Express.Multer.File[];
-};
-
-// Set up multer config for memory upload
-const upload = multer({
-  storage: multer.memoryStorage(),
-  limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB max
-    fields: 1,
-    files: 1,
-  },
-  fileFilter: (_req, file, cb) => {
-    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
-    const ext = path.extname(file.originalname).toLowerCase();
-    const validExt = ['.jpg', '.jpeg', '.png', '.webp'];
-
-    if (allowedTypes.includes(file.mimetype) && validExt.includes(ext)) {
-      cb(null, true);
-    } else {
-      cb(new Error('Invalid file type. Only JPEG, JPG, PNG, and WebP images are allowed.'));
-    }
-  },
-});
-
+// Initialize router
 const router = Router();
 
-// Authentication middleware wrapper
-const authenticate: ExpressRequestHandler = (req, res, next) => {
-  const authHandler = authMiddleware.auth();
-  return authHandler(req, res, (err?: unknown) => {
-    if (err) {
-      const error = err as Error;
-      return res.status(401).json({ 
-        success: false,
-        message: 'Authentication failed',
-        error: error.message 
-      });
+// Set up multer for file uploads
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { 
+    fileSize: 5 * 1024 * 1024, // 5MB limit
+  },
+  fileFilter: (_request: Request, file: Express.Multer.File, callback: FileFilterCallback): void => {
+    const allowedTypes = /jpe?g|png|gif/;
+    const hasValidExtension = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+    const hasValidMimetype = allowedTypes.test(file.mimetype);
+    
+    if (hasValidExtension && hasValidMimetype) {
+      callback(null, true);
+    } else {
+      callback(new Error('Only image files are allowed (jpeg, jpg, png, gif)!'));
     }
-    next();
-  });
-};
-
-// Ownership check middleware
-const checkOwnership: ExpressRequestHandler = (req, res, next) => {
-  const { username } = req.params;
-  const authReq = req as AuthenticatedRequest;
-  
-  if (!authReq.user) {
-    return res.status(401).json({
-      success: false,
-      message: 'Authentication required',
-    });
   }
-
-  if (authReq.user.username !== username) {
-    return res.status(403).json({
-      success: false,
-      message: 'You do not have permission to perform this action',
-    });
-  }
-
-  next();
-  return undefined; // Explicit return for TypeScript
-};
-
-// Redirect to authenticated user's profile
-router.get('/me', authenticate, (req: Request, res: Response) => {
-  const authReq = req as AuthenticatedRequest;
-  if (!authReq.user) {
-    return res.status(401).json({
-      success: false,
-      message: 'User must be logged in to view profile',
-    });
-  }
-  
-  const username = authReq.user.username;
-  return res.redirect(`/api/users/${username}`);
 });
 
-// Public profile and stats
+// Authentication middleware - uses verifyToken to validate JWT
+const authenticate = verifyToken;
+
+// Ownership check middleware
+const checkOwnership = (req: Request, res: Response, next: NextFunction): void => {
+  const { username } = req.params;
+  
+  // req.user is now properly typed from verifyToken middleware
+  const user = req.user as IUser & { _id: Types.ObjectId };
+  
+  if (!user) {
+    res.status(401).json({ success: false, message: 'Authentication required' });
+    return;
+  }
+  
+  if (user.username !== username) {
+    res.status(403).json({ 
+      success: false, 
+      message: 'You do not have permission to perform this action' 
+    });
+    return;
+  }
+  
+  next();
+};
+
+// Public routes
 router.get('/:username', userController.getUserProfile);
 router.get('/:username/stats', userController.getUserStats);
+router.get('/:username/posts', userController.getUserPosts);
+
+// Protected routes (require authentication)
+router.get('/me', authenticate, (req: Request, res: Response) => {
+  if (!req.user) {
+    res.status(401).json({ 
+      success: false, 
+      message: 'User must be logged in to view profile' 
+    });
+    return;
+  }
+  res.redirect(`/api/users/${req.user.username}`);
+});
 
 // Protected routes (require authentication and ownership)
 router.put(
@@ -133,7 +123,7 @@ router.delete(
   userController.deleteUser
 );
 
-// Upload profile picture
+// Profile picture upload
 router.post(
   '/:username/picture',
   authenticate,
@@ -142,13 +132,13 @@ router.post(
   userController.uploadProfilePicture
 );
 
-// Upload cover photo
+// Cover photo upload
 router.post(
   '/:username/cover',
   authenticate,
   checkOwnership,
   upload.single('coverPhoto'),
-  userController.uploadCoverPhoto
+  userController.uploadProfilePicture
 );
 
 // Update profile info
@@ -175,19 +165,50 @@ router.patch(
       }
 
       // Validate update fields
-      const allowedUpdates = ['name', 'email', 'bio', 'avatar', 'displayName', 'profilePicture', 'coverPhoto'];
-      const isValidOperation = Object.keys(updates).every(update =>
-        allowedUpdates.includes(update)
-      );
+      const allowedUpdates = [
+        // Core user info
+        'email', 'username',
+        // Profile info
+        'displayName', 'bio', 'location', 'website',
+        // Media
+        'profilePicture', 'coverPhoto',
+        // Preferences
+        'preferences'
+      ];
 
-      if (!isValidOperation) {
-        console.warn('Invalid update fields', { username, updates });
-        res.status(400).json({ success: false, error: 'Invalid updates' });
+      const updateFields = Object.keys(updates);
+      const invalidUpdates = updateFields.filter(field => !allowedUpdates.includes(field));
+
+      if (invalidUpdates.length > 0) {
+        console.warn('Invalid update fields', { username, invalidUpdates });
+        res.status(400).json({ 
+          success: false, 
+          error: 'Invalid updates',
+          invalidFields: invalidUpdates
+        });
+        return;
+      }
+
+      // Validate email format if provided
+      if (updates.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(updates.email)) {
+        res.status(400).json({ 
+          success: false, 
+          error: 'Invalid email format' 
+        });
+        return;
+      }
+
+      // Validate website URL format if provided
+      if (updates.website && !/^https?:\/\//.test(updates.website)) {
+        res.status(400).json({ 
+          success: false, 
+          error: 'Website URL must start with http:// or https://' 
+        });
         return;
       }
 
       // Call the controller to handle the update
-      req.body = updates; // Replace body with just the updates
+      req.body = updates;
       await userController.updateUserProfile(req as Request, res);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -196,7 +217,7 @@ router.patch(
       res.status(500).json({
         success: false,
         error: 'Failed to update profile',
-        details: errorMessage,
+        details: errorMessage
       });
     }
   }

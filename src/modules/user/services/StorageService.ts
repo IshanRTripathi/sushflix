@@ -13,22 +13,22 @@ if (!fs.existsSync(uploadDir)) {
 
 // Configure storage
 const storage = multer.diskStorage({
-  destination: (_req: Request, _file: Express.Multer.File, cb) => {
-    cb(null, uploadDir);
+  destination: (_request: Request, _file: Express.Multer.File, callback: (error: Error | null, destination: string) => void): void => {
+    callback(null, uploadDir);
   },
-  filename: (_req: Request, file: Express.Multer.File, cb) => {
-    const ext = path.extname(file.originalname);
-    cb(null, `${uuidv4()}${ext}`);
+  filename: (_request: Request, file: Express.Multer.File, callback: (error: Error | null, filename: string) => void): void => {
+    const fileExtension = path.extname(file.originalname);
+    callback(null, `${uuidv4()}${fileExtension}`);
   }
 });
 
 // File filter
-const fileFilter = (_req: Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
-  const allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
-  if (allowedTypes.includes(file.mimetype)) {
-    cb(null, true);
+const fileFilter = (_request: Request, file: Express.Multer.File, callback: multer.FileFilterCallback): void => {
+  const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/gif'];
+  if (allowedMimeTypes.includes(file.mimetype)) {
+    callback(null, true);
   } else {
-    cb(new Error('Invalid file type. Only JPEG, PNG, and GIF are allowed.'));
+    callback(new Error('Invalid file type. Only JPEG, PNG, and GIF are allowed.'));
   }
 };
 

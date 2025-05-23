@@ -1,8 +1,4 @@
-/**
- * User roles and permissions
- * Defines the different user roles and their associated permissions
- */
-
+/** Available user roles in the application */
 export const USER_ROLES = {
   ADMIN: 'admin',
   USER: 'user',
@@ -10,23 +6,15 @@ export const USER_ROLES = {
   CREATOR: 'creator'
 } as const;
 
+/** Type representing a user role in the system */
 export type UserRole = typeof USER_ROLES[keyof typeof USER_ROLES];
 
-/**
- * Checks if a value is a valid user role
- * @param role The value to check
- * @returns boolean indicating if the value is a valid role
- */
+/** Checks if a value is a valid user role */
 export function isUserRole(role: unknown): role is UserRole {
   return typeof role === 'string' && Object.values(USER_ROLES).includes(role as UserRole);
 }
 
-/**
- * Type guard for user role
- * @param role The value to check
- * @returns The role if valid, otherwise throws an error
- * @throws {Error} If the role is invalid
- */
+/** Type guard that throws an error if the value is not a valid user role */
 export function assertUserRole(role: unknown): asserts role is UserRole {
   if (!isUserRole(role)) {
     throw new Error(`Invalid user role: ${role}`);

@@ -1,8 +1,6 @@
 import { Types } from 'mongoose';
 
-/**
- * Daily statistics for a user
- */
+/** Daily metrics for tracking user activity and engagement */
 export interface IDailyStat {
   date: Date;
   postViews: number;
@@ -10,12 +8,10 @@ export interface IDailyStat {
   newFollowers: number;
   newSubscribers: number;
   engagementRate: number;
-  [key: string]: number | Date; // Allow for additional metrics
+  [key: string]: number | Date;
 }
 
-/**
- * Weekly statistics for a user
- */
+/** Weekly aggregated metrics for user activity and engagement */
 export interface IWeeklyStat {
   week: number;
   year: number;
@@ -28,9 +24,7 @@ export interface IWeeklyStat {
   [key: string]: number | Date; // Allow for additional metrics
 }
 
-/**
- * Monthly statistics for a user
- */
+/** Monthly aggregated metrics for tracking user growth and engagement */
 export interface IMonthlyStat {
   month: number;
   year: number;
@@ -41,9 +35,7 @@ export interface IMonthlyStat {
   [key: string]: number; // Allow for additional metrics
 }
 
-/**
- * Yearly statistics for a user
- */
+/** Annual aggregated metrics for long-term user activity tracking */
 export interface IYearlyStat {
   year: number;
   totalViews: number;
@@ -53,9 +45,7 @@ export interface IYearlyStat {
   [key: string]: number; // Allow for additional metrics
 }
 
-/**
- * Complete user statistics
- */
+/** Comprehensive user statistics and engagement metrics */
 export interface IUserStats {
   _id: Types.ObjectId;
   userId: Types.ObjectId;
@@ -94,9 +84,7 @@ export interface IUserStats {
   id: string;
 }
 
-/**
- * User statistics summary for display
- */
+/** Aggregated statistics summary for user profile display */
 export interface IUserStatsSummary {
   totalPosts: number;
   totalFollowers: number;
@@ -120,12 +108,16 @@ export interface IUserStatsSummary {
 }
 
 /**
- * Time range for statistics queries
+ * Time range options for filtering statistics queries.
+ * 
+ * @description This type represents the available time range options for filtering statistics queries, including 24 hours, 7 days, 30 days, 90 days, 12 months, and custom.
  */
 export type StatsTimeRange = '24h' | '7d' | '30d' | '90d' | '12m' | 'all' | 'custom';
 
 /**
- * Statistics filter options
+ * Filtering and grouping options for statistics queries.
+ * 
+ * @description This interface represents the filtering and grouping options for statistics queries, including start date, end date, time range, group by, and metric.
  */
 export interface IStatsFilterOptions {
   startDate?: Date;
@@ -135,18 +127,14 @@ export interface IStatsFilterOptions {
   metric?: 'views' | 'engagement' | 'followers' | 'subscribers' | 'all';
 }
 
-/**
- * Statistics data point
- */
+/** Single data point for time-series statistics visualization */
 export interface IStatsDataPoint {
   date: Date;
   value: number;
   label: string;
 }
 
-/**
- * Statistics response
- */
+/** Complete statistics response including data points and summary */
 export interface IStatsResponse {
   summary: IUserStatsSummary;
   data: IStatsDataPoint[];

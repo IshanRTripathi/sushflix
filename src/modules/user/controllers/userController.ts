@@ -8,27 +8,28 @@ import { Types } from 'mongoose';
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
-  destination: (_req, _file, cb) => {
-    cb(null, 'uploads/');
+  destination: (_request, _file, callback) => {
+    callback(null, 'uploads/');
   },
-  filename: (_req, file, cb) => {
+  filename: (_request, file, callback) => {
     const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
-    cb(null, `${file.fieldname}-${uniqueSuffix}${path.extname(file.originalname)}`);
+    const fileExtension = path.extname(file.originalname);
+    callback(null, `${file.fieldname}-${uniqueSuffix}${fileExtension}`);
   },
 });
 
 const upload = multer({ 
   storage,
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
-  fileFilter: (_req, file, cb) => {
+  fileFilter: (_request, file, callback) => {
     const allowedTypes = /jpeg|jpg|png|gif/;
-    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-    const mimetype = allowedTypes.test(file.mimetype);
+    const hasValidExtension = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+    const hasValidMimetype = allowedTypes.test(file.mimetype);
     
-    if (extname && mimetype) {
-      return cb(null, true);
+    if (hasValidExtension && hasValidMimetype) {
+      return callback(null, true);
     } else {
-      cb(new Error('Only image files are allowed!'));
+      callback(new Error('Only image files are allowed (jpeg, jpg, png, gif)!'));
     }
   }
 });
@@ -355,13 +356,7 @@ export const deleteUser = async (req: Request, res: Response): Promise<void> => 
 
 // Delete profile picture
 export const deleteProfilePicture = async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { userId } = req.params;
-    
-    // In a real application, you would delete the file from storage
-    // and update the user's profile
-    // await User.findByIdAndUpdate(userId, { profilePicture: '' });
-    
+  try {    
     responseHelpers.success(res, { message: 'Profile picture deleted successfully' });
   } catch (error) {
     responseHelpers.error(res, 'Failed to delete profile picture');

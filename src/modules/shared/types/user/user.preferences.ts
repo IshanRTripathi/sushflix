@@ -1,6 +1,4 @@
-/**
- * User notification preferences
- */
+/** User notification preferences for different channels */
 export interface INotificationPreferences {
   // Email notifications
   email: {
@@ -32,9 +30,7 @@ export interface INotificationPreferences {
   };
 }
 
-/**
- * User display preferences
- */
+/** User interface display and accessibility preferences */
 export interface IDisplayPreferences {
   theme: 'light' | 'dark' | 'system';
   fontSize: 'small' | 'medium' | 'large';
@@ -44,9 +40,7 @@ export interface IDisplayPreferences {
   [key: string]: any; // Allow for additional display preferences
 }
 
-/**
- * User privacy preferences
- */
+/** User privacy and data sharing preferences */
 export interface IPrivacyPreferences {
   profileVisibility: 'public' | 'followers' | 'private';
   activityStatus: 'everyone' | 'followers' | 'nobody';
@@ -55,9 +49,7 @@ export interface IPrivacyPreferences {
   [key: string]: any; // Allow for additional privacy preferences
 }
 
-/**
- * Complete user preferences
- */
+/** Complete set of user preferences and settings */
 export interface IUserPreferences {
   notifications: INotificationPreferences;
   display: IDisplayPreferences;
@@ -68,9 +60,7 @@ export interface IUserPreferences {
   [key: string]: any; // Allow for additional preferences
 }
 
-/**
- * Default user preferences
- */
+/** Default values for new user preferences */
 export const DEFAULT_USER_PREFERENCES: IUserPreferences = {
   notifications: {
     email: {
@@ -112,12 +102,7 @@ export const DEFAULT_USER_PREFERENCES: IUserPreferences = {
   emailFrequency: 'daily',
 };
 
-/**
- * Updates user preferences with partial data
- * @param current Current preferences
- * @param updates Partial updates to apply
- * @returns New preferences object with updates applied
- */
+/** Updates user preferences with partial data */
 export function updateUserPreferences(
   current: IUserPreferences,
   updates: Partial<IUserPreferences>
