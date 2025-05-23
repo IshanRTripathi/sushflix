@@ -52,13 +52,15 @@ class FeaturedProfileService {
     try {
       logger.info('Fetching featured profiles from database...');
       
-      // Get all active featured profiles
+      // Get active featured profiles
       const featuredProfiles = await this.FeaturedProfile
         .find({ isActive: true })
         .sort({ displayOrder: 1, lastUpdated: -1 })
         .limit(3)
         .lean();
 
+      logger.info(`Found ${featuredProfiles?.length || 0} active featured profiles`);
+      
       if (!featuredProfiles || featuredProfiles.length === 0) {
         logger.warn('No active featured profiles found in database');
         return [];
@@ -91,8 +93,15 @@ class FeaturedProfileService {
 
       // Fetch user details for featured profiles
       const users: IUserLean[] = await this.User.find({ _id: { $in: userIds } })
-        .select('username displayName profilePicture bio postsCount followersCount subscribersCount')
+        .select('username displayName profilePicture bio')
         .lean();
+        
+      // Initialize default values since these fields aren't in the schema
+      users.forEach(user => {
+        (user as any).postsCount = 0;
+        (user as any).followersCount = 0;
+        (user as any).subscribersCount = 0;
+      });
 
       if (users.length === 0) {
         logger.error('No user records found for featured profiles');
@@ -138,12 +147,6 @@ class FeaturedProfileService {
         code: error.code,
         errors: error.errors
       });
-      
-      if (process.env['NODE_ENV'] === 'production') {
-        return [];
-      }
-      
-      // Only return test data in development
       return [];
     }
   }

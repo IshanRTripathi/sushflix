@@ -21,7 +21,8 @@
     "build:server": "tsc -p tsconfig.server.json",
     "test": "tsx node_modules/.bin/jest",
     "test:e2e": "tsx node_modules/.bin/cypress run",
-    "test:integration": "tsx node_modules/.bin/jest --config jest.integration.config.js"
+    "test:integration": "tsx node_modules/.bin/jest --config jest.integration.config.js",
+    "check:env": "tsx scripts/check-env.ts"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",

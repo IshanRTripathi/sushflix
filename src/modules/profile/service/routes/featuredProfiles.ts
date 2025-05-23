@@ -39,12 +39,18 @@ const errorHandler = (fn: (req: Request, res: Response, next: NextFunction) => P
 router.get('/', errorHandler(async (req: Request, res: Response) => {
   try {
     const featuredProfiles = await featuredProfileService.getFeaturedProfiles();
-    res.json(featuredProfiles);
+    res.json({ 
+      success: true,
+      data: { 
+        profiles: featuredProfiles 
+      } 
+    });
   } catch (error) {
-    console.error('Error in GET /featured-profiles:', error);
+    console.error('Error in GET /featured:', error);
     res.status(500).json({ 
+      success: false,
       message: 'Error fetching featured profiles',
-      error: process.env.NODE_ENV === 'development' ? error : undefined 
+      error: error instanceof Error ? error.message : 'Unknown error' 
     });
   }
 }));
@@ -66,7 +72,7 @@ router.post('/', errorHandler(async (req: IFeaturedProfileRequest, res: Response
     console.error('Error in POST /featured-profiles:', error);
     res.status(500).json({ 
       message: 'Error adding featured profile',
-      error: process.env.NODE_ENV === 'development' ? error : undefined
+      error: error
     });
   }
 }));
@@ -96,7 +102,7 @@ router.put('/:userId/order', errorHandler(async (req: IFeaturedProfileRequest, r
     console.error('Error in PUT /featured-profiles/:userId/order:', error);
     res.status(500).json({ 
       message: 'Error updating featured profile',
-      error: process.env.NODE_ENV === 'development' ? error : undefined
+      error: error
     });
   }
 }));
@@ -126,7 +132,7 @@ router.put('/:userId/status', errorHandler(async (req: IFeaturedProfileRequest, 
     console.error('Error in PUT /featured-profiles/:userId/status:', error);
     res.status(500).json({ 
       message: 'Error updating featured profile status',
-      error: process.env.NODE_ENV === 'development' ? error : undefined
+      error: error
     });
   }
 }));

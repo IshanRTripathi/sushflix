@@ -7,7 +7,7 @@ export const envSchema = z.object({
   PORT: z.string().default('3000'),
   
   // API Configuration - Required
-  VITE_API_URL: z.string().url().default('http://localhost:3000'),
+  VITE_API_URL: z.string().url().default('http://localhost:5173'),
   
   // Authentication - Required
   JWT_SECRET: z.string().default('dev-secret-key-change-in-production'),

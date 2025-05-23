@@ -1,9 +1,13 @@
-import 'dotenv/config';
-import express, { Request, Response, NextFunction, Application } from 'express';
+import * as dotenv from 'dotenv';
+import * as path from 'path';
+import express, { Request, Response, NextFunction, Application, RequestHandler } from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
-import path from 'path';
+import authMiddleware from '../src/modules/auth/server/middlewares/auth';
 import { createServer, Server } from 'http';
+
+// Load environment variables from .env file
+dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 import connectDB from '../src/modules/shared/config/db';
 import { logger } from '../src/modules/shared/utils/logger';
 
@@ -14,7 +18,7 @@ import userRoutes from '../src/modules/user/routes/user';
 import featuredProfilesRoutes from '../src/modules/profile/service/routes/featuredProfiles';
 
 // Constants
-const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3001;
+const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 8080;
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:3000';
 const UPLOAD_DIR = process.env.UPLOAD_DIR || 'uploads';
 
@@ -50,17 +54,73 @@ class AppServer {
   }
 
   /**
+   * Configure CORS middleware
+   */
+  private configureCors(): void {
+    // Define allowed origins
+    const allowedOrigins = [
+      CLIENT_URL,
+      'http://localhost:3000',
+      'http://127.0.0.1:3000',
+      ...(process.env.ALLOWED_ORIGINS?.split(',') || [])
+    ].filter(Boolean);
+
+    // CORS configuration
+    const corsOptions: cors.CorsOptions = {
+      origin: (origin, callback) => {
+        // Allow requests with no origin (like mobile apps or curl requests)
+        if (!origin) return callback(null, true);
+        
+        if (allowedOrigins.includes(origin) || !this.isProduction) {
+          callback(null, true);
+        } else {
+          callback(new Error('Not allowed by CORS'));
+        }
+      },
+      credentials: true,
+      allowedHeaders: [
+        'Content-Type',
+        'Authorization',
+        'X-Requested-With',
+        'Accept',
+        'Origin',
+        'Cache-Control'
+      ],
+      exposedHeaders: ['Content-Length', 'Content-Type'],
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+      maxAge: 86400, // 24 hours
+    };
+
+    // Enable CORS pre-flight
+    this.app.options('*', cors(corsOptions));
+    
+    // Apply CORS to all routes
+    this.app.use(cors(corsOptions));
+  }
+
+  /**
    * Configure application middlewares
    */
   private initializeMiddlewares(): void {
-    // Security headers
-    this.app.use(helmet());
-
-    // CORS configuration
-    this.app.use(cors({
-      origin: CLIENT_URL,
-      credentials: true,
+    // Security headers with contentSecurityPolicy configuration
+    this.app.use(helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: ["'self'"],
+          styleSrc: ["'self'"],
+          imgSrc: ["'self'", 'data:', 'blob:'],
+          connectSrc: ["'self'"],
+          fontSrc: ["'self'"],
+          objectSrc: ["'none'"],
+          mediaSrc: ["'self'"],
+          frameSrc: ["'none'"],
+        },
+      },
     }));
+
+    // Configure CORS
+    this.configureCors();
 
     // Request parsing
     this.app.use(express.json({ limit: '10kb' }));
@@ -94,7 +154,24 @@ class AppServer {
     this.app.use('/api/auth', authRoutes);
     this.app.use('/api/content', contentRoutes);
     this.app.use('/api/users', userRoutes);
-    this.app.use('/api/featured-profiles', featuredProfilesRoutes);
+    this.app.use('/api/featured', featuredProfilesRoutes);
+    
+    // Redirect /api/profile to the authenticated user's profile
+    this.app.get('/api/profile', authMiddleware.auth(), (req: Request, res: Response): void => {
+      const authReq = req as any; // Type assertion to access user property
+      const username = authReq.user?.username;
+      
+      if (!username) {
+        res.status(401).json({
+          success: false,
+          message: 'User not authenticated'
+        });
+        return;
+      }
+      
+      // Redirect to the user's profile
+      res.redirect(`/api/users/${username}`);
+    });
     
     // Health check endpoint
     this.app.get('/health', (_req: Request, res: Response) => {

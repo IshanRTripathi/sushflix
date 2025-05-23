@@ -1,30 +1,19 @@
-import { RequestHandler } from 'express';
+import { Request, Response, NextFunction, RequestHandler } from 'express';
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
 // @ts-ignore - We'll handle the logger type separately
 import logger from '../../../shared/config/logger.js';
 // @ts-ignore - We'll handle the User model type separately
 import User from '../../../profile/service/models/User.js';
+import { User as SharedUser } from '../../../../modules/shared/types';
 
 dotenv.config();
 
-// Extend Express Request type to include our custom properties
-declare global {
-  namespace Express {
-    interface Request {
-      user?: {
-        userId: string;
-        username?: string;
-        role?: string;
-        [key: string]: any;
-      };
-    }
-  }
-}
-
+// JWT payload should match the shape expected by our User type
 interface JwtPayload {
-  userId: string;
-  username?: string;
+  id: string;
+  username: string;
+  email: string;
   role?: string;
   [key: string]: any;
 }
@@ -35,91 +24,96 @@ if (!JWT_SECRET) {
   throw new Error('JWT_SECRET is not defined in environment variables');
 }
 
-/**
- * Authentication middleware that verifies JWT tokens and checks user roles
- * @param roles - Array of role strings that are allowed to access the route
- * @returns Express middleware function
- */
-// Import Response type from express
-import { Response } from 'express';
-
-// Helper function to send error response and stop execution
-const sendError = (res: Response, status: number, message: string): never => {
-  res.status(status).json({ message });
-  throw new Error('Response sent'); // This will be caught by the outer try-catch
+// Helper function to send error response
+const sendError = (res: Response, status: number, message: string): void => {
+  res.status(status).json({ success: false, message });
 };
 
-const auth = (roles: string[] = []): RequestHandler => {
-  return async (req, res, next) => {
-    logger.info('Auth middleware executed');
-
-    // Get token from Authorization header
-    const authHeader = req.headers?.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      logger.warn('Auth middleware: No token provided or invalid format');
-      return sendError(res, 401, 'No token, authorization denied');
-    }
-    
-    const token = authHeader.replace('Bearer ', '').trim();
-    if (!token) {
-      logger.warn('Auth middleware: Empty token');
-      return sendError(res, 401, 'No token, authorization denied');
-    }
-
+/**
+ * Middleware to authenticate requests using JWT token
+ * Attaches user to request if authenticated
+ */
+const auth = (): RequestHandler => {
+  return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      // Verify token with proper type assertion
-      const decoded = jwt.verify(token, JWT_SECRET) as unknown as JwtPayload;
+      // Get token from httpOnly cookie
+      const token = req.cookies?.token;
+      if (!token) {
+        logger.warn('Auth middleware: No token provided');
+        return sendError(res, 401, 'No authentication token, authorization denied');
+      }
+
+      // Verify token
+      const decoded = jwt.verify(token, JWT_SECRET) as JwtPayload;
       
-      if (!decoded || typeof decoded !== 'object' || !decoded.userId) {
-        throw new Error('Invalid token payload');
+      // Check if user still exists
+      const user = await User.findById(decoded.id).select('-password').lean();
+      
+      if (!user) {
+        logger.warn('Auth middleware: User not found');
+        return sendError(res, 401, 'User not found');
       }
       
-      // Add the username to the user object if it's not already present
-      if (decoded.userId && !decoded.username) {
-        try {
-          const user = await User.findById(decoded.userId).select('username');
-          if (user) {
-            decoded.username = user.username;
-          } else {
-            logger.warn('User not found in database', { userId: decoded.userId });
-            return sendError(res, 401, 'User not found');
-          }
-        } catch (error) {
-          const err = error as Error;
-          logger.error('Error looking up user', {
-            error: err.message,
-            userId: decoded.userId,
-            stack: err.stack
-          });
-          return sendError(res, 500, 'Error authenticating user');
-        }
-      }
+      // Type assertion for user properties since we're using lean()
+      const userData = user as any;
+      
+      // Create user object matching the shared User type
+      const userObj: SharedUser = {
+        id: user._id.toString(),
+        username: userData.username || '',
+        name: userData.displayName || userData.username || '',
+        email: userData.email || '',
+        bio: userData.bio || '',
+        avatarUrl: userData.profilePicture || '',
+        coverUrl: userData.coverPhoto || '',
+        isCreator: userData.role === 'creator' || userData.role === 'admin',
+        // Include role as an additional property if needed
+        ...(userData.role && { role: userData.role } as any)
+      };
       
       // Attach user to request object
-      req.user = decoded;
-
-      // Check roles if provided
-      if (roles.length > 0) {
-        if (!decoded.role) {
-          logger.warn('Auth middleware: No role in token');
-          return sendError(res, 403, 'Insufficient permissions');
-        }
-        
-        if (!roles.includes(decoded.role as string)) {
-          logger.warn('Auth middleware: Insufficient permissions');
-          return sendError(res, 403, 'Insufficient permissions');
-        }
-      }
+      req.user = userObj;
 
       next();
     } catch (err) {
-      const error = err as Error;
-      logger.error('Auth middleware: Token verification failed', error);
-      // Log the error but don't send a response here as it might have been sent already
-      logger.error('Auth middleware: Error processing request', error);
-      next(error);
+      logger.error('Auth middleware: Authentication failed', { error: err });
+      sendError(res, 401, 'Authentication failed');
     }
   };
 };
 
-export default auth;
+/**
+ * Middleware to authorize users based on roles
+ * Must be used after auth() middleware
+ */
+const authorize = (roles: string | string[] = []): RequestHandler => {
+  return (req: Request, res: Response, next: NextFunction) => {
+    if (!req.user) {
+      logger.warn('Authorize middleware: No user in request');
+      return sendError(res, 401, 'Authentication required');
+    }
+
+    const requiredRoles = Array.isArray(roles) ? roles : [roles];
+    
+    // Type assertion to access the role property which is not in the base User type
+    const userRole = (req.user as any).role;
+    
+    if (requiredRoles.length > 0 && (!userRole || !requiredRoles.includes(userRole))) {
+      logger.warn('Authorize middleware: Insufficient permissions', { 
+        userRole,
+        requiredRoles 
+      });
+      return sendError(res, 403, 'Insufficient permissions');
+    }
+    
+    next();
+  };
+};
+
+// Export both middlewares
+export { auth, authorize };
+
+export default {
+  auth,
+  authorize
+};

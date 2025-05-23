@@ -1,12 +1,10 @@
 import { Request } from 'express';
+import { User } from './index';
 
 declare global {
   namespace Express {
-    interface User {
-      id: string;
-      email: string;
-      role?: string;
-    }
+    // Re-export the main User interface
+    interface User extends User {}
 
     interface Request {
       user?: User;
@@ -15,9 +13,5 @@ declare global {
 }
 
 export interface IUserRequest extends Request {
-  user?: {
-    id: string;
-    email: string;
-    role?: string;
-  };
+  user?: User;
 }

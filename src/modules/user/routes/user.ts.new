@@ -1,4 +1,4 @@
-import { Request, Response, Router, NextFunction, RequestHandler as ExpressRequestHandler } from 'express';
+import { Request, Response, Router, NextFunction, RequestHandler } from 'express';
 import { User as SharedUser } from '../../shared/types';
 import multer from 'multer';
 import path from 'path';
@@ -26,7 +26,6 @@ declare global {
     interface Request {
       user?: SharedUser;
       file?: Express.Multer.File;
-      files?: { [fieldname: string]: Express.Multer.File[] } | Express.Multer.File[];
     }
   }
 }
@@ -34,8 +33,6 @@ declare global {
 // Alias for better semantic meaning
 type AuthenticatedRequest = Request & {
   user: SharedUser;
-  file?: Express.Multer.File;
-  files?: { [fieldname: string]: Express.Multer.File[] } | Express.Multer.File[];
 };
 
 // Set up multer config for memory upload
@@ -62,15 +59,14 @@ const upload = multer({
 const router = Router();
 
 // Authentication middleware wrapper
-const authenticate: ExpressRequestHandler = (req, res, next) => {
+const authenticate: RequestHandler = (req, res, next) => {
   const authHandler = authMiddleware.auth();
-  return authHandler(req, res, (err?: unknown) => {
+  return authHandler(req, res, (err?: any) => {
     if (err) {
-      const error = err as Error;
       return res.status(401).json({ 
         success: false,
         message: 'Authentication failed',
-        error: error.message 
+        error: err.message 
       });
     }
     next();
@@ -78,7 +74,7 @@ const authenticate: ExpressRequestHandler = (req, res, next) => {
 };
 
 // Ownership check middleware
-const checkOwnership: ExpressRequestHandler = (req, res, next) => {
+const checkOwnership: RequestHandler = (req: Request, res, next) => {
   const { username } = req.params;
   const authReq = req as AuthenticatedRequest;
   
@@ -97,7 +93,6 @@ const checkOwnership: ExpressRequestHandler = (req, res, next) => {
   }
 
   next();
-  return undefined; // Explicit return for TypeScript
 };
 
 // Redirect to authenticated user's profile
@@ -111,7 +106,7 @@ router.get('/me', authenticate, (req: Request, res: Response) => {
   }
   
   const username = authReq.user.username;
-  return res.redirect(`/api/users/${username}`);
+  res.redirect(`/api/users/${username}`);
 });
 
 // Public profile and stats
@@ -196,7 +191,7 @@ router.patch(
       res.status(500).json({
         success: false,
         error: 'Failed to update profile',
-        details: errorMessage,
+        details: process.env.NODE_ENV === 'development' ? errorMessage : undefined,
       });
     }
   }

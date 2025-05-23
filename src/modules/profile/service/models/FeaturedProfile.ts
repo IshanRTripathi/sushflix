@@ -39,7 +39,7 @@ const FeaturedProfileSchema = new Schema<IFeaturedProfile, IFeaturedProfileModel
   }
 }, {
   timestamps: true,
-  collection: 'featuredProfiles'
+  collection: 'featuredprofiles'
 });
 
 // Pre-save hook to update lastUpdated

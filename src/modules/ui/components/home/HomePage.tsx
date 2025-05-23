@@ -67,10 +67,26 @@ export const HomePage = () => {
   const fetchProfile = async () => {
     try {
       startLoading();
-      const response = await fetch(`${API_BASE_URL}/api/profile`);
+      const token = localStorage.getItem('token');
+      const headers: HeadersInit = {};
+      
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const response = await fetch(`${API_BASE_URL}/api/profile`, {
+        headers
+      });
+      
       if (!response.ok) {
+        // If unauthorized and we have a token, it might be expired
+        if (response.status === 401 && token) {
+          localStorage.removeItem('token');
+          // Optionally: Trigger a refresh token flow here if you have refresh tokens
+        }
         throw new Error('Failed to fetch profile');
       }
+      
       const userData = await response.json();
       setState(prev => ({
         ...prev,
@@ -94,7 +110,7 @@ export const HomePage = () => {
   const fetchProfiles = async () => {
     try {
       startLoading();
-      const response = await fetch(`${API_BASE_URL}/api/profiles/featured`, {
+      const response = await fetch(`${API_BASE_URL}/api/featured`, {
         headers: {
           'Cache-Control': 'no-cache'
         }
@@ -106,19 +122,22 @@ export const HomePage = () => {
       }
       
       if (!response.ok) {
-        throw new Error('Failed to fetch featured profiles');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to fetch featured profiles');
       }
       
       const data = await response.json();
-      // The API returns an object with a 'profiles' property containing the array
-      const profiles = data.profiles || [];
+      // The API now returns { success: true, data: { profiles: [...] } }
+      const profiles = data.data?.profiles || [];
+      
       setState(prev => ({ 
         ...prev, 
-        profiles: profiles, 
+        profiles,
         error: null,
         retryCount: 0
       }));
     } catch (err) {
+      console.error('Error fetching featured profiles:', err);
       setState(prev => ({ 
         ...prev, 
         error: err instanceof Error ? err.message : 'Failed to fetch featured profiles',
