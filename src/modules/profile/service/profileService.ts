@@ -1,6 +1,5 @@
 import { logger } from '@/modules/shared/utils/logger';
 import { 
-  getProfile as apiGetProfile,
   getProfileByUsername as apiGetProfileByUsername,
   updateUserProfile as apiUpdateUserProfile,
   updateUserSettings as apiUpdateUserSettings,
@@ -12,7 +11,7 @@ import {
   searchUsers as apiSearchUsers
 } from '@/modules/shared/api/profile/profile.api';
 import type { 
-  UserProfile, 
+  IUserProfile as UserProfile, 
   UserStats, 
   UserSettingsUpdate,
   FeaturedProfileConfig,
@@ -64,17 +63,6 @@ class ProfileService {
     }
   }
 
-  // Profile CRUD Operations
-  public async getProfile(userId: string): Promise<UserProfile | null> {
-    try {
-      const response = await apiGetProfile(userId);
-      return response.data;
-    } catch (error) {
-      logger.error(`Error getting profile: ${userId}`, { error });
-      throw error;
-    }
-  }
-
   public async getProfileByUsername(username: string): Promise<UserProfile | null> {
     try {
       const response = await apiGetProfileByUsername(username);
@@ -86,15 +74,15 @@ class ProfileService {
   }
 
   public async updateProfile(
-    userId: string, 
+    username: string, 
     updates: ProfileInput
   ): Promise<UserProfile> {
     try {
-      const response = await apiUpdateUserProfile(userId, updates);
-      logger.info(`Profile updated: ${userId}`);
+      const response = await apiUpdateUserProfile(username, updates);
+      logger.info(`Profile updated: ${username}`);
       return response.data;
     } catch (error) {
-      logger.error(`Error updating profile: ${userId}`, { error });
+      logger.error(`Error updating profile: ${username}`, { error });
       throw error;
     }
   }
@@ -129,28 +117,15 @@ class ProfileService {
     }
   }
 
-  public async getUserProfile(usernameOrId: string): Promise<ApiResponse<UserProfile>> {
+  public async getUserProfile(username: string): Promise<ApiResponse<UserProfile>> {
     try {
-      // First try to get by username
-      try {
-        const response = await apiGetProfileByUsername(usernameOrId);
-        return {
-          success: true,
-          data: response.data
-        };
-      } catch (error: any) {
-        // If not found by username, try by ID
-        if (error.response?.status === 404) {
-          const response = await apiGetProfile(usernameOrId);
-          return {
-            success: true,
-            data: response.data
-          };
-        }
-        throw error;
-      }
+      const response = await apiGetProfileByUsername(username);
+      return {
+        success: true,
+        data: response.data
+      };
     } catch (error: any) {
-      logger.error(`Failed to get user profile for ${usernameOrId}:`, error);
+      logger.error(`Failed to get user profile for ${username}:`, error);
       return {
         success: false,
         error: error.response?.data?.message || 'Failed to fetch user profile',
@@ -160,17 +135,17 @@ class ProfileService {
   }
 
   public async updateUserProfile(
-    userId: string, 
+    username: string, 
     profileData: ProfileInput
   ): Promise<ApiResponse<UserProfile>> {
     try {
-      const response = await apiUpdateUserProfile(userId, profileData);
+      const response = await apiUpdateUserProfile(username, profileData);
       return {
         success: true,
         data: response.data
       };
     } catch (error: any) {
-      logger.error(`Failed to update profile for user ${userId}:`, error);
+      logger.error(`Failed to update profile for user ${username}:`, error);
       return {
         success: false,
         error: error.response?.data?.message || 'Failed to update profile',
@@ -180,17 +155,17 @@ class ProfileService {
   }
 
   public async updateUserSettings(
-    userId: string, 
+    username: string, 
     settings: UserSettingsUpdate
   ): Promise<ApiResponse<UserProfile>> {
     try {
-      const response = await apiUpdateUserSettings(userId, settings);
+      const response = await apiUpdateUserSettings(username, settings);
       return {
         success: true,
         data: response.data
       };
     } catch (error: any) {
-      logger.error(`Failed to update settings for user ${userId}:`, error);
+      logger.error(`Failed to update settings for user ${username}:`, error);
       return {
         success: false,
         error: error.response?.data?.message || 'Failed to update settings',

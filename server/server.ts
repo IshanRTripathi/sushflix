@@ -60,8 +60,8 @@ class AppServer {
     // Define allowed origins
     const allowedOrigins = [
       CLIENT_URL,
-      'http://localhost:3000',
-      'http://127.0.0.1:3000',
+      'http://localhost:5173',
+      'http://127.0.0.1:5173',
       ...(process.env.ALLOWED_ORIGINS?.split(',') || [])
     ].filter(Boolean);
 
@@ -90,7 +90,7 @@ class AppServer {
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
       maxAge: 86400, // 24 hours
     };
-
+    
     // Enable CORS pre-flight
     this.app.options('*', cors(corsOptions));
     

@@ -101,7 +101,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
         }
       };
       
-      const response = await profileService.updateUserProfile(profile.userId, updates);
+      const response = await profileService.updateUserProfile(username, updates);
       if (response.success && response.data) {
         setProfile(prev => ({
           ...prev!,

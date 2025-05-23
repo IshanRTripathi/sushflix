@@ -3,7 +3,7 @@ import { z } from 'zod';
 // Define the shape of our environment variables
 const envSchema = {
   // Required
-  VITE_API_URL: z.string().url(),
+  VITE_API_URL: z.string().url().default('http://localhost:5173'),
   
   // Optional with defaults
   VITE_APP_NAME: z.string().default('SushFlix'),

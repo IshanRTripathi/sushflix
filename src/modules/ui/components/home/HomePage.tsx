@@ -73,21 +73,26 @@ export const HomePage = () => {
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
       }
-
+      
       const response = await fetch(`${API_BASE_URL}/api/profile`, {
         headers
       });
       
       if (!response.ok) {
-        // If unauthorized and we have a token, it might be expired
-        if (response.status === 401 && token) {
+        const errorText = await response.text().catch(() => 'No error details');
+        console.error('[HomePage] Profile fetch error:', { status: response.status, errorText });
+        
+        if (response.status === 401) {
+          console.log('[HomePage] Authentication required - no valid session');
+          // Clear any invalid token from localStorage if it exists
           localStorage.removeItem('token');
-          // Optionally: Trigger a refresh token flow here if you have refresh tokens
         }
         throw new Error('Failed to fetch profile');
       }
       
       const userData = await response.json();
+      console.log('[HomePage] Profile data received:', userData);
+      
       setState(prev => ({
         ...prev,
         profile: userData,
@@ -96,6 +101,7 @@ export const HomePage = () => {
         retryCount: 0
       }));
     } catch (error) {
+      console.error('[HomePage] Error in fetchProfile:', error);
       setState(prev => ({
         ...prev,
         isLoading: false,

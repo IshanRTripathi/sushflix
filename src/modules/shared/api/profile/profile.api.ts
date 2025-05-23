@@ -11,26 +11,21 @@ export interface ProfileData {
   };
 }
 
-export const getProfile = (userId: string) => {
-  return apiClient.get(`/api/users/${userId}`);
-};
-
 export const getProfileByUsername = (username: string) => {
   return apiClient.get(`/api/users/${username}`);
 };
 
-export const updateUserProfile = (userId: string, data: ProfileData) => {
-  return apiClient.put(`/api/users/${userId}`, data);
+export const updateUserProfile = (username: string, data: ProfileData) => {
+  return apiClient.put(`/api/users/${username}`, data);
 };
 
-export const updateUserSettings = (userId: string, settings: any) => {
-  return apiClient.put(`/api/users/${userId}/settings`, settings);
+export const updateUserSettings = (username: string, settings: any) => {
+  return apiClient.put(`/api/users/${username}/settings`, settings);
 };
 
 export const uploadProfilePicture = (username: string, file: File) => {
   const formData = new FormData();
-  formData.append('avatar', file);
-  
+  formData.append('file', file);
   return apiClient.post(`/api/users/${username}/upload-avatar`, formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
@@ -38,35 +33,34 @@ export const uploadProfilePicture = (username: string, file: File) => {
   });
 };
 
-export const uploadCoverPhoto = (userId: string, file: File) => {
+export const uploadCoverPhoto = (username: string, file: File) => {
   const formData = new FormData();
-  formData.append('cover', file);
-  
-  return apiClient.post(`/api/users/${userId}/upload-cover`, formData, {
+  formData.append('file', file);
+  return apiClient.post(`/api/users/${username}/upload-cover`, formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
     },
   });
 };
 
-export const followUser = (targetUserId: string) => {
-  return apiClient.post(`/api/users/${targetUserId}/follow`);
+export const followUser = (targetUsername: string) => {
+  return apiClient.post(`/api/users/${targetUsername}/follow`);
 };
 
-export const unfollowUser = (targetUserId: string) => {
-  return apiClient.delete(`/api/users/${targetUserId}/follow`);
+export const unfollowUser = (targetUsername: string) => {
+  return apiClient.post(`/api/users/${targetUsername}/unfollow`);
 };
 
-export const getUserStats = (userId: string) => {
-  return apiClient.get(`/api/users/${userId}/stats`);
+export const getUserStats = (username: string) => {
+  return apiClient.get(`/api/users/${username}/stats`);
 };
 
 export const searchUsers = (query: string, page = 1, limit = 20) => {
-  return apiClient.get('/api/users/search', {
-    params: { query, page, limit }
+  return apiClient.get(`/api/users/search`, {
+    params: { query, page, limit },
   });
 };
 
-export const requestVerification = (userId: string) => {
-  return apiClient.post(`/api/users/${userId}/verify`);
+export const requestVerification = (username: string) => {
+  return apiClient.post(`/api/users/${username}/verify`);
 };
