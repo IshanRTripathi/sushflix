@@ -10,7 +10,7 @@ export interface ProfileData {
   };
 }
 
-export const getProfileByUsername = (username: string) => {
+export const getUserProfile = (username: string) => {
   return apiClient.get(`/api/users/${username}`);
 };
 

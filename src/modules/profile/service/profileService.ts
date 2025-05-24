@@ -1,6 +1,6 @@
 import { logger } from '@/modules/shared/utils/logger';
 import { 
-  getProfileByUsername as apiGetProfileByUsername,
+  getUserProfile as apiGetProfileByUsername,
   updateUserProfile as apiUpdateUserProfile,
   updateUserSettings as apiUpdateUserSettings,
   uploadProfilePicture as apiUploadProfilePicture,
@@ -13,7 +13,6 @@ import type {
   IUserProfile as UserProfile, 
   UserStats, 
   UserSettingsUpdate,
-  FeaturedProfileConfig,
   ApiResponse,
   ProfileInput,
   SocialLinks
@@ -33,14 +32,9 @@ if (isServer) {
 
 class ProfileService {
   private static instance: ProfileService;
-  private readonly PROFILES_DIR = isServer ? 'public/profiles' : '';
-  private readonly CONFIG_FILE = isServer ? 'featured-profiles.json' : '';
 
   private constructor() {
     logger.info('ProfileService initialized');
-    this.ensureProfilesDirectory().catch(err => 
-      logger.error('Failed to create profiles directory', { error: err })
-    );
   }
 
   public static getInstance(): ProfileService {
@@ -48,42 +42,6 @@ class ProfileService {
       ProfileService.instance = new ProfileService();
     }
     return ProfileService.instance;
-  }
-
-  private async ensureProfilesDirectory(): Promise<void> {
-    if (!isServer || !fs) return;
-    
-    try {
-      await fs.mkdir(this.PROFILES_DIR, { recursive: true });
-      logger.debug('Profiles directory ensured');
-    } catch (error) {
-      logger.error('Failed to create profiles directory', { error });
-      throw error;
-    }
-  }
-
-  public async getProfileByUsername(username: string): Promise<UserProfile | null> {
-    try {
-      const response = await apiGetProfileByUsername(username);
-      return response.data;
-    } catch (error) {
-      logger.error(`Error getting profile by username: ${username}`, { error });
-      throw error;
-    }
-  }
-
-  public async updateProfile(
-    username: string, 
-    updates: ProfileInput
-  ): Promise<UserProfile> {
-    try {
-      const response = await apiUpdateUserProfile(username, updates);
-      logger.info(`Profile updated: ${username}`);
-      return response.data;
-    } catch (error) {
-      logger.error(`Error updating profile: ${username}`, { error });
-      throw error;
-    }
   }
 
   // Profile methods
@@ -311,41 +269,6 @@ class ProfileService {
         error: error.response?.data?.message || 'Search failed',
         status: error.response?.status,
         data: { users: [], total: 0 }
-      };
-    }
-  }
-
-  public async getFeaturedProfiles(): Promise<ApiResponse<{ users: UserProfile[] }>> {
-    try {
-      if (!isServer || !fs || !path) {
-        logger.warn('getFeaturedProfiles is only available on the server side');
-        return {
-          success: false,
-          error: 'This feature is only available on the server side',
-          data: { users: [] }
-        };
-      }
-
-      const configPath = path.join(process.cwd(), this.CONFIG_FILE);
-      const configData = await fs.readFile(configPath, 'utf-8');
-      const config = JSON.parse(configData);
-      
-      return {
-        success: true,
-        data: {
-          users: config.featuredProfiles
-            .filter((profile: FeaturedProfileConfig) => profile.isActive)
-            .sort((a: FeaturedProfileConfig, b: FeaturedProfileConfig) => 
-              a.displayOrder - b.displayOrder
-            )
-        }
-      };
-    } catch (error: any) {
-      logger.error('Error reading featured profiles config', { error });
-      return {
-        success: false,
-        error: error.message || 'Failed to load featured profiles',
-        data: { users: [] }
       };
     }
   }

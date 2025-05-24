@@ -6,9 +6,10 @@ import FeaturedProfileModel from './models/FeaturedProfile';
 import UserModel from './models/User';
 
 // Types
-interface IFeaturedProfile {
+interface IFeaturedProfileRequest {
   _id: Types.ObjectId;
   userId: Types.ObjectId;
+  bio: string;
   displayOrder: number;
   isActive: boolean;
   lastUpdated?: Date;
@@ -130,7 +131,7 @@ class FeaturedProfileService {
             profilePicture: user.profilePicture || '/default-avatar.png',
             username: user.username || 'Unknown User',
             displayName: user.displayName || user.username || 'Anonymous Creator',
-            bio: user.bio || 'No bio available',
+            bio: user.bio || '',
             posts: user.postsCount || 0,
             followers: user.followersCount || 0,
             subscribers: user.subscribersCount || 0
@@ -154,7 +155,7 @@ class FeaturedProfileService {
   /**
    * Add a new featured profile
    */
-  public async addFeaturedProfile(userId: string | Types.ObjectId, displayOrder: number): Promise<IFeaturedProfile> {
+  public async addFeaturedProfile(userId: string | Types.ObjectId, displayOrder: number): Promise<IFeaturedProfileResponse> {
     try {
       const featuredProfile = new this.FeaturedProfile({
         userId,
@@ -177,7 +178,7 @@ class FeaturedProfileService {
   public async updateFeaturedProfile(
     userId: string | Types.ObjectId,
     displayOrder: number
-  ): Promise<IFeaturedProfile | null> {
+  ): Promise<IFeaturedProfileResponse | null> {
     try {
       const featuredProfile = await this.FeaturedProfile.findOne({ userId });
       
@@ -202,7 +203,7 @@ class FeaturedProfileService {
   public async updateFeaturedProfileStatus(
     userId: string | Types.ObjectId,
     isActive: boolean
-  ): Promise<IFeaturedProfile | null> {
+  ): Promise<IFeaturedProfileResponse | null> {
     try {
       const featuredProfile = await this.FeaturedProfile.findOne({ userId });
       

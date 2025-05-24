@@ -1,16 +1,21 @@
 import React, { useCallback } from 'react';
 import { Check } from 'lucide-react';
-import type { SubscriptionLevel } from '../../../types';
-import { logger } from '../../../utils/logger';
+import { logger } from '@/modules/shared/utils/logger';
 
 /**
- * Interface for subscription level
- * @interface SubscriptionLevel
+ * Subscription level with all required properties
  */
-interface EnhancedSubscriptionLevel extends SubscriptionLevel {
-  features: string[];
-  name: string;
+interface EnhancedSubscriptionLevel {
+  /** Subscription tier level (0-3) */
+  level: 0 | 1 | 2 | 3;
+  /** Price in the smallest currency unit (e.g., cents) */
   price: number;
+  /** Display name of the subscription level */
+  name: string;
+  /** Description of the subscription level */
+  description: string;
+  /** List of features included in this level */
+  features: string[];
 }
 
 /**
@@ -30,103 +35,84 @@ interface CreatorSubscriptionCardProps {
  * @param {CreatorSubscriptionCardProps} props - Component props
  * @returns {ReactNode}
  */
-export function CreatorSubscriptionCard({ 
-  level, 
-  creatorName, 
-  currentLevel, 
+const CreatorSubscriptionCard: React.FC<CreatorSubscriptionCardProps> = ({
+  level,
+  creatorName,
+  currentLevel,
   onSubscribe,
   className = ''
-}: CreatorSubscriptionCardProps) {
-  const isCurrentPlan = currentLevel === level.level;
-  const canUpgrade = level.level > currentLevel;
-
-  // Handle subscription with error logging
+}) => {
   const handleSubscribe = useCallback(() => {
-    logger.info('Subscription attempt', { 
-      creator: creatorName, 
-      level: level.level,
-      currentLevel: currentLevel
-    });
-
-    if (isCurrentPlan) {
-      logger.warn('User tried to subscribe to current plan', { creator: creatorName });
-      return;
-    }
-
-    if (!canUpgrade) {
-      logger.warn('User tried to downgrade subscription', { creator: creatorName });
-      return;
-    }
-
+    logger.info('Subscribing to level:', { level: level.level });
     onSubscribe(level.level);
-  }, [creatorName, level.level, currentLevel, onSubscribe, isCurrentPlan, canUpgrade]);
+  }, [level.level, onSubscribe]);
 
-    return (
-        <div 
-          className={`rounded-lg shadow-lg divide-y divide-gray-200 ${
-            isCurrentPlan ? 'border-2 border-indigo-500' : 'border border-gray-200'
-          } ${className}`}
-          role="article"
-          aria-label={`Subscription level ${level.level} for ${creatorName}`}
-        >
-          {isCurrentPlan && (
-            <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/2">
-              <span 
-                className="inline-flex rounded-full bg-indigo-500 px-4 py-1 text-sm font-semibold text-white"
-                aria-label="Current plan indicator"
-              >
-                Current Plan
-              </span>
-            </div>
-          )}
+  const isCurrentLevel = currentLevel === level.level;
+  const isSubscribed = currentLevel >= level.level;
+  const isUpgrade = currentLevel < level.level;
+  const isDowngrade = currentLevel > level.level;
 
-          <div className="p-6">
-            <h3 
-              className="text-lg font-semibold text-gray-900"
-              aria-label={`Level ${level.level} - ${level.name}`}
-            >
-              Level {level.level} - {level.name}
-            </h3>
-            {level.level > 0 && (
-              <p className="mt-4">
-                <span className="text-3xl font-bold text-gray-900">${level.price}</span>
-                <span className="text-gray-500">/month</span>
-              </p>
-            )}
-            <button
-              onClick={handleSubscribe}
-              disabled={isCurrentPlan || !canUpgrade}
-              className={`mt-8 w-full rounded-md px-4 py-2 text-sm font-semibold ${
-                isCurrentPlan
-                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                  : canUpgrade
-                    ? 'bg-indigo-600 text-white hover:bg-indigo-700'
-                    : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-              }`}
-              aria-label={isCurrentPlan ? 'Current plan' : canUpgrade ? `Upgrade to Level ${level.level}` : 'Contact creator'}
-            >
-              {isCurrentPlan ? 'Current Plan' : canUpgrade ? `Upgrade to Level ${level.level}` : 'Contact Creator'}
-            </button>
+  return (
+    <div 
+      className={`rounded-lg border p-6 transition-all hover:shadow-md ${className} ${
+        isCurrentLevel ? 'border-primary-500 bg-primary-50' : 'border-gray-200 bg-white'
+      }`}
+    >
+      <div className="flex flex-col h-full">
+        <div className="flex-1">
+          <div className="flex items-center justify-between">
+            <h3 className="text-xl font-bold text-gray-900">{level.name}</h3>
+            <span className="rounded-full bg-primary-100 px-3 py-1 text-sm font-medium text-primary-800">
+              ${level.price / 100}/month
+            </span>
           </div>
-
-          <div className="px-6 pt-6 pb-8">
-            <h4 className="text-sm font-medium text-gray-900">Features</h4>
-            <ul className="mt-4 space-y-3">
-              {level.features.map((feature, index) => (
-                <li 
-                  key={index} 
-                  className="flex"
-                  role="listitem"
-                  aria-label={feature}
-                >
-                  <Check className="h-5 w-5 text-green-500 flex-shrink-0" />
-                  <span className="ml-3 text-sm text-gray-700">
-                    {feature}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </div>
+          
+          <p className="mt-2 text-gray-600">{level.description}</p>
+          
+          <ul className="mt-6 space-y-3">
+            {level.features.map((feature, index) => (
+              <li key={index} className="flex items-start">
+                <Check className="h-5 w-5 flex-shrink-0 text-green-500" />
+                <span className="ml-3 text-gray-700">{feature}</span>
+              </li>
+            ))}
+          </ul>
         </div>
-    );
-}
+
+        <div className="mt-8">
+          {isCurrentLevel ? (
+            <button
+              type="button"
+              className="w-full rounded-md bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50"
+              disabled
+            >
+              Current Plan
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={handleSubscribe}
+              className={`w-full rounded-md px-4 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 ${
+                isUpgrade 
+                  ? 'bg-green-600 text-white hover:bg-green-700 focus:ring-green-500' 
+                  : isDowngrade 
+                    ? 'bg-gray-200 text-gray-700 hover:bg-gray-300 focus:ring-gray-500'
+                    : 'bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-500'
+              }`}
+            >
+              {isUpgrade ? 'Upgrade' : isDowngrade ? 'Downgrade' : 'Subscribe'}
+            </button>
+          )}
+          
+          {isSubscribed && !isCurrentLevel && (
+            <p className="mt-2 text-center text-xs text-gray-500">
+              You're already subscribed to {creatorName}'s {currentLevel === 0 ? 'free' : ''} content
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default CreatorSubscriptionCard;

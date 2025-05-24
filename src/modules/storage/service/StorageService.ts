@@ -1,18 +1,37 @@
-const { Storage } = require('@google-cloud/storage');
-const path = require('path');
-const fs = require('fs');
-const { v4: uuidv4 } = require('uuid');
-const logger = require('../../shared/config/logger');
+import { Storage, Bucket, File } from '@google-cloud/storage';
+import * as path from 'path';
+import * as fs from 'fs';
+import { v4 as uuidv4 } from 'uuid';
+import { logger } from '../../shared/utils/logger';
+
+interface FileObject {
+  originalname: string;
+  mimetype: string;
+  size: number;
+  buffer: Buffer;
+  [key: string]: any;
+}
+
+interface UploadResult {
+  success: boolean;
+  fileName?: string;
+  fileUrl?: string;
+  originalName?: string;
+  size?: number;
+  mimetype?: string;
+  error?: string;
+  message?: string;
+}
 
 const ALLOWED_FILE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
-const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB
-const USE_GCS = process.env.USE_GCS === 'true';
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const USE_GCS = 'true';
 
-let storage, bucket;
+let storage: Storage | null = null;
+let bucket: Bucket | null = null;
 
 if (USE_GCS) {
   try {
-    // Initialize Google Cloud Storage client if GCS is enabled
     storage = new Storage({
       projectId: process.env.GCP_PROJECT_ID,
       keyFilename: process.env.GCP_KEY_FILE_PATH
@@ -21,11 +40,10 @@ if (USE_GCS) {
     bucket = storage.bucket(bucketName);
     logger.info('Google Cloud Storage initialized with bucket:', { bucket: bucketName });
   } catch (error) {
-    logger.error('Failed to initialize Google Cloud Storage:', error);
+    logger.error('Failed to initialize Google Cloud Storage:', { error });
     throw new Error('Failed to initialize Google Cloud Storage');
   }
 } else {
-  // Ensure uploads directory exists for local storage
   const uploadDir = path.join(process.cwd(), 'uploads');
   if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir, { recursive: true });
@@ -34,44 +52,35 @@ if (USE_GCS) {
 }
 
 class StorageService {
-  static instance = null;
+  private static instance: StorageService | null = null;
+  private bucket: Bucket | null = null;
+  private bucketName: string = '';
+  private uploadDir: string = '';
 
-  constructor() {
-    if (USE_GCS && !bucket) {
+  private constructor() {
+    if (!bucket) {
       throw new Error('Google Cloud Storage bucket is not initialized');
     }
-
-    // Initialize bucket for GCS or use local storage
-    if (USE_GCS) {
-      this.bucket = bucket;
-      this.bucketName = process.env.GCS_BUCKET_NAME || 'user-profile-pictures-sushflix';
-    } else {
-      // Use the configured upload directory or default to 'public/uploads'
-      this.uploadDir = path.resolve(process.env.LOCAL_UPLOAD_DIR || path.join(process.cwd(), 'public', 'uploads'));
-      // Ensure uploads directory exists
-      if (!fs.existsSync(this.uploadDir)) {
-        fs.mkdirSync(this.uploadDir, { recursive: true });
-        logger.info(`Created upload directory: ${this.uploadDir}`);
-      }
-    }
+    this.bucket = bucket;
+    this.bucketName = process.env.GCS_BUCKET_NAME || 'user-profile-pictures-sushflix';
   }
 
-  static getInstance() {
+  public static getInstance(): StorageService {
     if (!this.instance) {
       this.instance = new StorageService();
     }
     return this.instance;
   }
 
-  async uploadFile(username, file) {
-    let fileName = null;
-    let fileUrl = null;
+  public async uploadFile(username: string, file: FileObject): Promise<UploadResult> {
+    let fileName = '';
+    let fileUrl: string | null = null;
 
     try {
       if (!file || !file.originalname || !file.mimetype || !file.size || !file.buffer) {
         logger.error('Invalid file object received', {
           username,
-          fileProperties: Object.keys(file || {})
+          fileProperties: file ? Object.keys(file) : []
         });
         return { success: false, error: 'Invalid file object received' };
       }
@@ -83,7 +92,6 @@ class StorageService {
         size: file.size
       });
 
-      // Generate a unique filename
       fileName = `${username}-${uuidv4()}${path.extname(file.originalname)}`;
 
       if (!ALLOWED_FILE_TYPES.includes(file.mimetype)) {
@@ -92,7 +100,10 @@ class StorageService {
           fileName, 
           mimetype: file.mimetype 
         });
-        return { success: false, error: 'Invalid file type. Only JPEG, PNG, and WebP images are allowed.' };
+        return { 
+          success: false, 
+          error: 'Invalid file type. Only JPEG, PNG, and WebP images are allowed.' 
+        };
       }
 
       if (file.size > MAX_FILE_SIZE) {
@@ -102,11 +113,13 @@ class StorageService {
           size: file.size,
           maxSize: MAX_FILE_SIZE 
         });
-        return { success: false, error: 'File size exceeds the 2MB limit.' };
+        return { 
+          success: false, 
+          error: 'File size exceeds the 2MB limit.' 
+        };
       }
 
-      if (USE_GCS) {
-        // Upload to Google Cloud Storage
+      if (USE_GCS && this.bucket) {
         logger.info('Starting file upload to GCS', { username, fileName });
 
         const blob = this.bucket.file(fileName);
@@ -122,7 +135,7 @@ class StorageService {
           resumable: false
         });
 
-        await new Promise((resolve, reject) => {
+        await new Promise<void>((resolve, reject) => {
           blobStream.on('error', (error) => {
             logger.error('Stream error during file upload', { 
               error, 
@@ -135,7 +148,6 @@ class StorageService {
 
           blobStream.on('finish', async () => {
             try {
-              // Make the file public
               await blob.makePublic();
               logger.info('File upload completed successfully', { 
                 username, 
@@ -145,8 +157,7 @@ class StorageService {
               resolve();
             } catch (error) {
               logger.error('Failed to make file public', {
-                error: error.message,
-                stack: error.stack,
+                error: error instanceof Error ? error.message : 'Unknown error',
                 username,
                 fileName
               });
@@ -157,13 +168,9 @@ class StorageService {
           blobStream.end(file.buffer);
         });
 
-        // Get public URL for the uploaded file
         fileUrl = `https://storage.googleapis.com/${this.bucketName}/${fileName}`;
       } else {
-        // Local file storage
         const filePath = path.join(this.uploadDir, fileName);
-        
-        // Save file to local storage
         await fs.promises.writeFile(filePath, file.buffer);
         fileUrl = `/uploads/${fileName}`;
         
@@ -185,25 +192,24 @@ class StorageService {
       return { 
         success: true, 
         fileName,
-        fileUrl,
+        fileUrl: fileUrl || '',
         originalName: file.originalname,
         size: file.size,
         mimetype: file.mimetype
       };
 
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       logger.error('Upload failed', {
-        error: error.message,
-        stack: error.stack,
+        error: errorMessage,
         username,
         originalName: file?.originalname || 'unknown',
         fileName
       });
 
-      // Clean up any partial uploads if possible
       if (fileName) {
         try {
-          if (USE_GCS) {
+          if (USE_GCS && this.bucket) {
             await this.bucket.file(fileName).delete();
             logger.info('Partial file cleaned up from GCS', { fileName });
           } else {
@@ -215,38 +221,38 @@ class StorageService {
           }
         } catch (cleanupError) {
           logger.error('Failed to clean up partial file', {
-            error: cleanupError.message,
+            error: cleanupError instanceof Error ? cleanupError.message : 'Unknown error',
             username,
             fileName
           });
         }
       }
 
-      const errorType = error.name || 'UnknownError';
-      const errorMessage = {
+      const errorType = error instanceof Error ? error.name : 'UnknownError';
+      const errorMessageMap: Record<string, string> = {
         StorageError: 'Failed to store file in storage',
         ValidationError: 'Invalid file data',
         PermissionError: 'Insufficient permissions',
         NetworkError: 'Network error while uploading',
         TimeoutError: 'Upload operation timed out',
         UnknownError: 'Failed to upload file'
-      }[errorType] || 'Failed to upload file';
+      };
 
       return {
         success: false,
-        error: errorMessage
+        error: errorMessageMap[errorType] || 'Failed to upload file'
       };
     }
   }
 
-  async deleteFile(filename) {
+  public async deleteFile(filename: string): Promise<UploadResult> {
     try {
       if (!filename) {
         logger.error('No filename provided for deletion');
         return { success: false, error: 'Invalid filename provided' };
       }
 
-      if (USE_GCS) {
+      if (USE_GCS && this.bucket) {
         await this.bucket.file(filename).delete();
         logger.info('File deleted successfully from GCS', { filename });
       } else {
@@ -265,14 +271,13 @@ class StorageService {
     } catch (error) {
       const storageType = USE_GCS ? 'GCS' : 'local storage';
       logger.error(`Failed to delete file from ${storageType}`, {
-        error: error.message,
-        stack: error.stack,
+        error: error instanceof Error ? error.message : 'Unknown error',
         filename
       });
 
       return {
         success: false,
-        error: error.message || `Failed to delete file from ${storageType}`
+        error: `Failed to delete file from ${storageType}`
       };
     }
   }
@@ -281,7 +286,6 @@ class StorageService {
 // Singleton instance
 const storageService = StorageService.getInstance();
 
-module.exports = {
-  uploadFile: storageService.uploadFile.bind(storageService),
-  deleteFile: storageService.deleteFile.bind(storageService)
-};
+export const uploadFile = storageService.uploadFile.bind(storageService);
+export const deleteFile = storageService.deleteFile.bind(storageService);
+export default StorageService;

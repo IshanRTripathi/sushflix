@@ -18,7 +18,7 @@ const EditProfile: React.FC<EditProfileProps> = ({ user, onProfileUpdate, onClos
   const { showToast } = useToast();
   const [isModalOpen, setIsModalOpen] = React.useState(true);
   const { 
-    updateProfile, 
+    updateUserProfile, 
     isUpdating: isLoading,
     error: updateError
   } = useProfile(user.username);
@@ -34,7 +34,7 @@ const EditProfile: React.FC<EditProfileProps> = ({ user, onProfileUpdate, onClos
         isCreator: formData.isCreator
       };
       
-      await updateProfile(updateData);
+      await updateUserProfile(updateData);
       showToast('Profile updated successfully', 'success');
       // Close the modal after a short delay to show the success message
       setTimeout(() => {

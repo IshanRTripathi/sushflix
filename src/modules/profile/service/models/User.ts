@@ -1,5 +1,4 @@
 import mongoose, { Document, Model, Schema, Types, HydratedDocument } from 'mongoose';
-import bcrypt from 'bcryptjs';
 
 // User role types
 export type UserRole = 'user' | 'creator' | 'admin' | 'moderator';
@@ -66,18 +65,6 @@ const UserSchema = new Schema<IUser, IUserModel>(
       minlength: 8,
       select: false,
     },
-    googleId: {
-      type: String,
-      sparse: true,
-    },
-    githubId: {
-      type: String,
-      sparse: true,
-    },
-    facebookId: {
-      type: String,
-      sparse: true,
-    },
     emailVerified: {
       type: Boolean,
       default: false,
@@ -107,114 +94,6 @@ const UserSchema = new Schema<IUser, IUserModel>(
     timestamps: true,
   }
 );
-
-// Hash password before saving
-UserSchema.pre<IUser>('save', async function (next) {
-  if (!this.isModified('password') || !this.password) return next();
-  
-  try {
-    const salt = await bcrypt.genSalt(10);
-    this.password = await bcrypt.hash(this.password, salt);
-    next();
-  } catch (error) {
-    next(error as Error);
-  }
-});
-
-// Method to compare passwords
-UserSchema.methods.comparePassword = async function (
-  this: IUser,
-  candidatePassword: string
-): Promise<boolean> {
-  if (!this.password) return false;
-  return bcrypt.compare(candidatePassword, this.password);
-};
-
-// Method to get public profile (excludes sensitive data)
-UserSchema.methods.getPublicProfile = function (this: IUser) {
-  const user = this.toObject();
-  delete user.password;
-  delete user.refreshToken;
-  delete user.__v;
-  delete user.updatedAt;
-  return user as Omit<this, 'password' | 'refreshToken' | 'updatedAt'>;
-};
-
-// Static method to find or create user for OAuth
-UserSchema.statics.findOrCreate = async function (
-  this: IUserModel,
-  { provider, id, email, name, picture }: {
-    provider: 'google' | 'github' | 'facebook';
-    id: string;
-    email: string;
-    name: string;
-    picture: string;
-  }
-): Promise<HydratedDocument<IUser>> {
-  // First try to find by provider ID
-  let user = await this.findOne({ [`${provider}Id`]: id });
-
-  if (!user) {
-    // If not found, try to find by email
-    user = await this.findOne({ email });
-
-    if (user) {
-      // If user exists but doesn't have this provider ID, add it
-      user[`${provider}Id`] = id;
-      await user.save();
-    } else {
-      // Create new user
-      const username = await generateUniqueUsername(this, name);
-      
-      const userData: any = {
-        email,
-        username,
-        displayName: name,
-        profilePicture: picture,
-        emailVerified: true,
-        isCreator: false,
-      };
-      
-      // Set the provider ID dynamically
-      userData[`${provider}Id`] = id;
-      
-      user = await this.create(userData);
-    }
-  }
-
-  return user;
-};
-
-// Helper function to generate unique username
-async function generateUniqueUsername(
-  model: Model<IUser>,
-  baseName: string
-): Promise<string> {
-  // Convert to URL-friendly string
-  let username = baseName
-    .toLowerCase()
-    .replace(/[^a-z0-9]/g, '');
-
-  // Ensure username meets length requirements
-  if (username.length < 3) {
-    username = `user${Math.floor(Math.random() * 10000)}`;
-  } else if (username.length > 20) {
-    username = username.substring(0, 20);
-  }
-
-  // Check if username exists
-  let exists = await model.exists({ username });
-  let counter = 1;
-  let newUsername = username;
-
-  while (exists) {
-    newUsername = `${username}${counter}`;
-    exists = await model.exists({ username: newUsername });
-    counter++;
-  }
-
-  return newUsername;
-}
 
 // Create and export the model
 const User = mongoose.model<IUser, IUserModel>('User', UserSchema);

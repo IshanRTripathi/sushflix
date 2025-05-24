@@ -19,7 +19,7 @@ import { logger } from '../../shared/utils/logger';
  * @property {() => Promise<void>} refreshProfile - Function to refresh profile data
  * @property {() => Promise<void>} followUser - Function to follow the user
  * @property {() => Promise<void>} unfollowUser - Function to unfollow the user
- * @property {(updates: Partial<UserProfile>) => Promise<void>} updateProfile - Update profile information
+ * @property {(updates: Partial<UserProfile>) => Promise<void>} updateUserProfile - Update profile information
  * @property {(file: File) => Promise<string>} uploadProfilePicture - Upload a new profile picture
  */
 interface UseProfileReturn {
@@ -34,7 +34,7 @@ interface UseProfileReturn {
   refreshProfile: () => Promise<void>;
   followUser: () => Promise<void>;
   unfollowUser: () => Promise<void>;
-  updateProfile: (updates: Partial<UserProfile>) => Promise<UserProfile>;
+  updateUserProfile: (updates: Partial<UserProfile>) => Promise<UserProfile>;
   uploadProfilePicture: (file: File) => Promise<string>;
   isUpdating: boolean;
   isUploading: boolean;
@@ -109,7 +109,7 @@ export const useProfile = (username?: string): UseProfileReturn => {
         }
         profileData = response.data;
       } else {
-        const response = await profileService.getProfileByUsername(targetUsername);
+        const response = await profileService.getUserProfile(targetUsername);
         if (!response) {
           throw new Error('Failed to load profile');
         }
@@ -234,15 +234,15 @@ export const useProfile = (username?: string): UseProfileReturn => {
    * @returns {Promise<UserProfile>} The updated profile
    * @throws {Error} If the operation fails
    */
-  const updateProfile = useCallback(async (updates: Partial<UserProfile>): Promise<UserProfile> => {
+  const updateUserProfile = useCallback(async (updates: Partial<UserProfile>): Promise<UserProfile> => {
     if (!profile) {
       throw new Error('No profile loaded');
     }
 
     try {
       startUpdating();
-      // The updateProfile method returns the user object directly
-      const updatedProfile = await profileService.updateProfile(profile.username, updates);
+      // The updateUserProfile method returns the user object directly
+      const updatedProfile = await profileService.updateUserProfile(profile.username, updates);
       
       if (!updatedProfile) {
         throw new Error('Failed to update profile: No data returned');
@@ -327,7 +327,7 @@ export const useProfile = (username?: string): UseProfileReturn => {
     refreshProfile,
     followUser: followUserWrapper,
     unfollowUser: unfollowUserWrapper,
-    updateProfile,
+    updateUserProfile,
     uploadProfilePicture,
     isUpdating,
     isUploading,
