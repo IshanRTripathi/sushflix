@@ -22,7 +22,6 @@ export interface ProfileUpdateData {
   website?: string;
   socialLinks?: SocialLinks;
   profilePicture?: string;
-  coverPhoto?: string;
 }
 
 export interface ProfileStats {

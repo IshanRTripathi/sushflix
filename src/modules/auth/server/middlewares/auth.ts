@@ -1,10 +1,8 @@
 import { Request, Response, NextFunction, RequestHandler } from 'express';
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
-// @ts-ignore - We'll handle the logger type separately
-import logger from '../../../shared/config/logger.js';
-// @ts-ignore - We'll handle the User model type separately
-import User from '../../../profile/service/models/User.js';
+import { logger } from '../../../shared/utils/logger';
+import User from '../../../profile/service/models/User';
 import { User as SharedUser } from '../../../../modules/shared/types';
 
 dotenv.config();
@@ -64,16 +62,11 @@ const auth = (): RequestHandler => {
         name: userData.displayName || userData.username || '',
         email: userData.email || '',
         bio: userData.bio || '',
-        avatarUrl: userData.profilePicture || '',
-        coverUrl: userData.coverPhoto || '',
-        isCreator: userData.role === 'creator' || userData.role === 'admin',
-        // Include role as an additional property if needed
+        profilePicture: userData.profilePicture || '',
+        isCreator: userData.role === 'creator' || userData.role === 'user',
         ...(userData.role && { role: userData.role } as any)
       };
-      
-      // Attach user to request object
       req.user = userObj;
-
       next();
     } catch (err) {
       logger.error('Auth middleware: Authentication failed', { error: err });

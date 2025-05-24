@@ -95,7 +95,7 @@ export function Navigation() {
                   aria-expanded={isMobileMenuOpen}
                 >
                   <img
-                    src={user?.profilePicture || DEFAULT_IMAGES.avatar}
+                    src={user?.profilePicture || DEFAULT_IMAGES.profilePicture}
                     alt="Profile"
                     className="w-8 h-8 rounded-full border-2 border-transparent hover:border-indigo-500 transition-colors"
                   />

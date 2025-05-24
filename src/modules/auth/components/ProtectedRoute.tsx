@@ -3,16 +3,7 @@ import React from 'react';
 import { Navigate, useLocation, useMatch } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { logger } from '../../shared/utils/logger';
-
-// User roles
-export const USER_ROLES = {
-  ADMIN: 'admin',
-  USER: 'user',
-  MODERATOR: 'moderator'
-} as const;
-
-// Type for user roles
-export type UserRole = typeof USER_ROLES[keyof typeof USER_ROLES];
+import { UserRole } from '@/modules/shared/types/user';
 
 /**
  * Props interface for ProtectedRoute component
@@ -36,7 +27,7 @@ interface ProtectedRouteProps {
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ 
   children,
   requiredRole,
-  fallbackRoute = '/login',
+  fallbackRoute = '/',
   publicPath
 }) => {
   const { isAuthenticated, user } = useAuth();

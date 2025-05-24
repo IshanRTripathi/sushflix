@@ -127,7 +127,7 @@ const CommentsSection = styled('div')(({ theme }) => ({
 export const ContentCard: React.FC<ContentCardProps> = ({
   id,
   thumbnail,
-  creatorProfilePic,
+  profilePicture,
   creatorName,
   caption,
   isSubscribed,
@@ -211,7 +211,7 @@ export const ContentCard: React.FC<ContentCardProps> = ({
       <CardHeader>
         <UserInfo>
           <Avatar>
-            <img src={creatorProfilePic || '/default-avatar.png'} alt={creatorName} />
+            <img src={profilePicture || '/default-avatar.png'} alt={creatorName} />
           </Avatar>
           <Username>{creatorName}</Username>
         </UserInfo>

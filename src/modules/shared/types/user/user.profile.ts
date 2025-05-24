@@ -25,7 +25,6 @@ export interface IUserProfileBase {
   displayName: string;
   bio: string;
   profilePicture: string;
-  coverPhoto: string;
   socialLinks: ISocialLinks;
   stats: IUserProfileStats;
   isCreator: boolean;
@@ -77,7 +76,6 @@ export interface CreateUserProfileInput {
   displayName: string;
   bio?: string;
   profilePicture?: string;
-  coverPhoto?: string;
   socialLinks?: Partial<ISocialLinks>;
   isCreator?: boolean;
   isVerified?: boolean;
@@ -88,7 +86,6 @@ export interface UpdateUserProfileInput {
   displayName?: string;
   bio?: string;
   profilePicture?: string;
-  coverPhoto?: string;
   socialLinks?: Partial<ISocialLinks>;
   isCreator?: boolean;
   isVerified?: boolean;
@@ -105,7 +102,6 @@ export interface PublicUserProfile {
   displayName: string;
   bio: string;
   profilePicture: string;
-  coverPhoto: string;
   socialLinks: ISocialLinks;
   stats: IUserProfileStats;
   isCreator: boolean;

@@ -1,5 +1,5 @@
 import { Types } from 'mongoose';
-import logger from '../../shared/config/logger';
+import { logger } from '../../shared/utils/logger';
 
 // Import models using ES module imports
 import FeaturedProfileModel from './models/FeaturedProfile';
@@ -81,7 +81,7 @@ class FeaturedProfileService {
             new Types.ObjectId(userId);
             return true;
           } catch (error) {
-            logger.error(`Invalid userId format: ${userId}`, error);
+            logger.error(`Invalid userId format: ${userId}`, { error });
             return false;
           }
         });

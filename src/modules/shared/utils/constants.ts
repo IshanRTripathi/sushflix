@@ -3,9 +3,7 @@
  * Falls back to production backend URL if VITE_API_URL is not set in environment variables.
  * @constant {string}
  */
-export const API_BASE_URL: string = 
-  (import.meta.env.VITE_API_URL as string) || 
-  'https://sushflix-backend-796527544626.us-central1.run.app';
+export const API_BASE_URL = 'http://localhost:5173';
 
 /**
  * API endpoint paths for the application.

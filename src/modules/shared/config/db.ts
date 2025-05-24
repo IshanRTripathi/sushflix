@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import logger from '../../shared/config/logger';
+import { logger } from '../../shared/utils/logger';
 import dotenv from 'dotenv';
 
 dotenv.config({ path: '../../.env' });

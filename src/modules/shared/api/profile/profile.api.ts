@@ -2,8 +2,7 @@ import { apiClient } from '../apiClient';
 
 export interface ProfileData {
   bio?: string;
-  avatar?: string;
-  coverPhoto?: string;
+  profilePicture?: string;
   socialLinks?: {
     twitter?: string;
     instagram?: string;
@@ -26,17 +25,7 @@ export const updateUserSettings = (username: string, settings: any) => {
 export const uploadProfilePicture = (username: string, file: File) => {
   const formData = new FormData();
   formData.append('file', file);
-  return apiClient.post(`/api/users/${username}/upload-avatar`, formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data',
-    },
-  });
-};
-
-export const uploadCoverPhoto = (username: string, file: File) => {
-  const formData = new FormData();
-  formData.append('file', file);
-  return apiClient.post(`/api/users/${username}/upload-cover`, formData, {
+  return apiClient.post(`/api/users/${username}/profile-picture`, formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
     },

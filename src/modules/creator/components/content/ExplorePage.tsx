@@ -9,7 +9,7 @@ import { Comment } from './types';
 interface Post {
   id: string;
   thumbnail: string;
-  creatorProfilePic: string;
+  profilePicture: string;
   creatorName: string;
   timestamp: string;
   caption: string;
@@ -33,10 +33,6 @@ interface ExplorePageProps {
   onComment?: (postId: string, comment: string) => void;
 }
 
-// Constants for placeholder data
-const DEFAULT_AVATAR = 'https://mui.com/static/images/avatar/1.jpg';
-const DEFAULT_THUMBNAIL = 'https://mui.com/static/images/cards/contemplative-reptile.jpg';
-
 /**
  * Default post data for development
  * @constant DEFAULT_POSTS
@@ -45,7 +41,7 @@ const DEFAULT_POSTS: Post[] = [
   {
     id: '1',
     thumbnail: 'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=800',
-    creatorProfilePic: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=100',
+    profilePicture: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=100',
     creatorName: 'John Doe',
     timestamp: '2 hours ago',
     caption: 'Beautiful sunset at the beach',
@@ -75,7 +71,7 @@ const DEFAULT_POSTS: Post[] = [
   {
     id: '2',
     thumbnail: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=800',
-    creatorProfilePic: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=100',
+    profilePicture: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=100',
     creatorName: 'Jane Smith',
     timestamp: '3 hours ago',
     caption: 'City skyline at night',
@@ -98,7 +94,7 @@ const DEFAULT_POSTS: Post[] = [
   {
     id: '3',
     thumbnail: 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&w=800',
-    creatorProfilePic: 'https://images.unsplash.com/photo-1531427186611-ecfd6d936c79?auto=format&fit=crop&w=100',
+    profilePicture: 'https://images.unsplash.com/photo-1531427186611-ecfd6d936c79?auto=format&fit=crop&w=100',
     creatorName: 'Chris Johnson',
     timestamp: '1 day ago',
     caption: 'Mountain landscape',
@@ -136,7 +132,7 @@ export const ExplorePage: React.FC<ExplorePageProps> = ({
           key={post.id}
           id={post.id}
           thumbnail={post.thumbnail}
-          creatorProfilePic={post.creatorProfilePic}
+          profilePicture={post.profilePicture}
           creatorName={post.creatorName}
           timestamp={post.timestamp}
           caption={post.caption}

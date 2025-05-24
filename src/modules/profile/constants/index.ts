@@ -5,8 +5,7 @@ export const PROFILE_TABS = {
   TAGGED: 'tagged',
 } as const;
 
-export const DEFAULT_PROFILE_PICTURE = '/images/default-avatar.png';
-export const DEFAULT_COVER_PHOTO = '/images/default-cover.jpg';
+export const DEFAULT_PROFILE_PICTURE = '/images/profile.png';
 
 export const PROFILE_UPDATE_FIELDS = [
   'displayName',
@@ -15,7 +14,6 @@ export const PROFILE_UPDATE_FIELDS = [
   'website',
   'socialLinks',
   'profilePicture',
-  'coverPhoto',
 ] as const;
 
 export const MAX_BIO_LENGTH = 150;
@@ -26,7 +24,6 @@ export const API_ENDPOINTS = {
   GET_PROFILE: '/api/profile',
   UPDATE_PROFILE: '/api/profile',
   UPLOAD_PROFILE_PICTURE: '/api/upload/profile-picture',
-  UPLOAD_COVER_PHOTO: '/api/upload/cover-photo',
   FOLLOW_USER: (userId: string) => `/api/users/${userId}/follow`,
   UNFOLLOW_USER: (userId: string) => `/api/users/${userId}/unfollow`,
 } as const;

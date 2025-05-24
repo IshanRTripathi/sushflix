@@ -20,8 +20,7 @@ import { logger } from '../../shared/utils/logger';
  * @property {() => Promise<void>} followUser - Function to follow the user
  * @property {() => Promise<void>} unfollowUser - Function to unfollow the user
  * @property {(updates: Partial<UserProfile>) => Promise<void>} updateProfile - Update profile information
- * @property {(file: File) => Promise<string>} uploadAvatar - Upload a new profile picture
- * @property {(file: File) => Promise<string>} uploadCoverPhoto - Upload a new cover photo
+ * @property {(file: File) => Promise<string>} uploadProfilePicture - Upload a new profile picture
  */
 interface UseProfileReturn {
   profile: UserProfile | null;
@@ -36,8 +35,7 @@ interface UseProfileReturn {
   followUser: () => Promise<void>;
   unfollowUser: () => Promise<void>;
   updateProfile: (updates: Partial<UserProfile>) => Promise<UserProfile>;
-  uploadAvatar: (file: File) => Promise<string>;
-  uploadCoverPhoto: (file: File) => Promise<string>;
+  uploadProfilePicture: (file: File) => Promise<string>;
   isUpdating: boolean;
   isUploading: boolean;
 }
@@ -92,10 +90,6 @@ export const useProfile = (username?: string): UseProfileReturn => {
   });
   const [socialLinks, setSocialLinks] = useState<SocialLinks>({});
 
-  /**
-   * Fetches the user profile data
-   * @private
-   */
   /**
    * Fetches the user profile data
    * @private
@@ -158,10 +152,6 @@ export const useProfile = (username?: string): UseProfileReturn => {
    * Refreshes the profile data
    * @public
    */
-  /**
-   * Refreshes the profile data
-   * @public
-   */
   const refreshProfile = useCallback(async () => {
     try {
       await fetchProfile();
@@ -171,11 +161,6 @@ export const useProfile = (username?: string): UseProfileReturn => {
     }
   }, [fetchProfile]);
 
-  /**
-   * Follows the current profile's user
-   * @public
-   * @throws {Error} If the operation fails
-   */
   /**
    * Follows the current profile's user
    * @public
@@ -214,11 +199,6 @@ export const useProfile = (username?: string): UseProfileReturn => {
    * @public
    * @throws {Error} If the operation fails
    */
-  /**
-   * Unfollows the current profile's user
-   * @public
-   * @throws {Error} If the operation fails
-   */
   const unfollowUser = useCallback(async () => {
     if (!profile || !currentUser) {
       throw new Error('Profile or current user not available');
@@ -247,13 +227,6 @@ export const useProfile = (username?: string): UseProfileReturn => {
     }
   }, [profile, currentUser, startLoading, stopLoading, setLoadingError]);
 
-  /**
-   * Updates the user's profile with the provided updates
-   * @public
-   * @param {Partial<UserProfile>} updates - The updates to apply to the profile
-   * @returns {Promise<UserProfile>} The updated profile
-   * @throws {Error} If the operation fails
-   */
   /**
    * Updates the user's profile with the provided updates
    * @public
@@ -305,7 +278,7 @@ export const useProfile = (username?: string): UseProfileReturn => {
    * @returns {Promise<string>} The URL of the uploaded image
    * @throws {Error} If the operation fails
    */
-  const uploadAvatar = useCallback(async (file: File): Promise<string> => {
+  const uploadProfilePicture = useCallback(async (file: File): Promise<string> => {
     if (!profile) throw new Error('No profile loaded');
 
     try {
@@ -314,7 +287,7 @@ export const useProfile = (username?: string): UseProfileReturn => {
       const response = await profileService.uploadProfilePicture(profile.id, file);
       
       if (!response?.['success'] || !response?.['data']?.profilePicture) {
-        throw new Error(response?.['error'] || 'Failed to upload avatar');
+        throw new Error(response?.['error'] || 'Failed to upload profilePicture');
       }
       
       const profilePicture = response['data'].profilePicture;
@@ -324,43 +297,8 @@ export const useProfile = (username?: string): UseProfileReturn => {
       
       return profilePicture;
     } catch (err) {
-      const error = err instanceof Error ? err : new Error('Failed to upload avatar');
-      logger.error('Failed to upload avatar:', { error });
-      setLoadingError(error);
-      throw error;
-    } finally {
-      stopUploading();
-    }
-  }, [profile, startUploading, stopUploading, setLoadingError]);
-
-  /**
-   * Uploads a new cover photo
-   * @public
-   * @param {File} file - The image file to upload
-   * @returns {Promise<string>} The URL of the uploaded image
-   * @throws {Error} If the operation fails
-   */
-  const uploadCoverPhoto = useCallback(async (file: File): Promise<string> => {
-    if (!profile) throw new Error('No profile loaded');
-
-    try {
-      startUploading();
-      
-      const response = await profileService.uploadCoverPhoto(profile.id, file);
-      
-      if (!response?.['success'] || !response?.['data']?.coverPhoto) {
-        throw new Error(response?.['error'] || 'Failed to upload cover photo');
-      }
-      
-      const coverPhoto = response['data'].coverPhoto;
-      
-      // Update local state
-      setProfile(prev => prev ? { ...prev, coverPhoto } : null);
-      
-      return coverPhoto;
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error('Failed to upload cover photo');
-      logger.error('Failed to upload cover photo:', { error });
+      const error = err instanceof Error ? err : new Error('Failed to upload profilePicture');
+      logger.error('Failed to upload profilePicture:', { error });
       setLoadingError(error);
       throw error;
     } finally {
@@ -390,8 +328,7 @@ export const useProfile = (username?: string): UseProfileReturn => {
     followUser: followUserWrapper,
     unfollowUser: unfollowUserWrapper,
     updateProfile,
-    uploadAvatar,
-    uploadCoverPhoto,
+    uploadProfilePicture,
     isUpdating,
     isUploading,
   };

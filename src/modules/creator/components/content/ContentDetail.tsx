@@ -12,7 +12,7 @@ import { Skeleton } from '@mui/material';
  * @property {string} title - Title of the content
  * @property {string} description - Description of the content
  * @property {string} creatorName - Name of the content creator
- * @property {string} creatorAvatar - URL of the creator's avatar
+ * @property {string} profilePicture - URL of the creator's profilePicture
  * @property {string} mediaUrl - URL of the media content
  * @property {number} likes - Number of likes
  * @property {boolean} isExclusive - Whether the content is exclusive
@@ -23,7 +23,7 @@ export interface ContentData {
   title: string;
   description: string;
   creatorName: string;
-  creatorAvatar: string;
+  profilePicture: string;
   mediaUrl: string;
   likes: number;
   isExclusive: boolean;
@@ -267,7 +267,7 @@ export const ContentDetail: React.FC<ContentDetailProps> = ({ className = '' }) 
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center space-x-4">
               <img
-                src={content.creatorAvatar}
+                src={content.profilePicture}
                 alt={content.creatorName}
                 className="w-12 h-12 rounded-full"
                 loading="lazy"

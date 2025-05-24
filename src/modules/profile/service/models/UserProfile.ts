@@ -38,7 +38,7 @@ export interface IUserProfileBase {
   // Profile information
   bio: string;
   profilePicture: string;
-  coverPhoto: string;
+  role: string;
   
   // Social and stats
   socialLinks: ISocialLinks;
@@ -108,10 +108,6 @@ const UserProfileSchema = new Schema<IUserProfile, IUserProfileModel>({
     default: ''
   },
   profilePicture: {
-    type: String,
-    default: ''
-  },
-  coverPhoto: {
     type: String,
     default: ''
   },

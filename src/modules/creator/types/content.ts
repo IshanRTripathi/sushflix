@@ -9,7 +9,7 @@ export interface Comment {
 export interface ContentCardProps {
   id: string;
   thumbnail: string;
-  creatorProfilePic: string;
+  profilePicture: string;
   creatorName: string;
   timestamp: string;
   caption: string;

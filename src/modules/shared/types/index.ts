@@ -4,8 +4,7 @@ export interface User {
   name: string;
   email: string;
   bio?: string;
-  avatarUrl?: string;
-  coverUrl?: string;
+  profilePicture?: string;
   isCreator: boolean;
 }
 

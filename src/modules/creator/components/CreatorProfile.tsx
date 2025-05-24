@@ -9,8 +9,7 @@ interface Creator {
   name: string;
   email: string;
   bio: string;
-  avatarUrl: string;
-  coverUrl: string;
+  profilePicture: string;
   isCreator: boolean;
   subscriptionLevels: SubscriptionLevel[];
   contentCount: number;
@@ -192,7 +191,7 @@ export const CreatorProfile = () => {
               <div className="sm:flex sm:space-x-5">
                 <div className="flex-shrink-0">
                   <img
-                    src={creator?.avatarUrl || ''}
+                    src={creator?.profilePicture || ''}
                     alt={creator?.name || ''}
                     className="mx-auto h-20 w-20 rounded-full border-4 border-white"
                   />
@@ -249,7 +248,7 @@ export const CreatorProfile = () => {
                   key={index}
                   id={`${index}`}
                   thumbnail={`https://picsum.photos/id/${index}/200/300`}
-                  creatorProfilePic={creator?.avatarUrl || ''}
+                  profilePicture={creator?.profilePicture || ''}
                   creatorName={creator?.name || ''}
                   timestamp={new Date().toLocaleDateString()}
                   caption={`Sample Content ${index}`}

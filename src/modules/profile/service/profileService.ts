@@ -4,7 +4,6 @@ import {
   updateUserProfile as apiUpdateUserProfile,
   updateUserSettings as apiUpdateUserSettings,
   uploadProfilePicture as apiUploadProfilePicture,
-  uploadCoverPhoto as apiUploadCoverPhoto,
   followUser as apiFollowUser,
   unfollowUser as apiUnfollowUser,
   getUserStats as apiGetUserStats,
@@ -213,26 +212,6 @@ class ProfileService {
       return {
         success: false,
         error: error.response?.data?.message || error.message || 'Failed to upload profile picture',
-        status: error.response?.status
-      };
-    }
-  }
-
-  public async uploadCoverPhoto(
-    userId: string, 
-    file: File
-  ): Promise<ApiResponse<{ coverPhoto: string }>> {
-    try {
-      const response = await apiUploadCoverPhoto(userId, file);
-      return {
-        success: true,
-        data: response.data
-      };
-    } catch (error: any) {
-      logger.error(`Failed to upload cover photo for user ${userId}:`, error);
-      return {
-        success: false,
-        error: error.response?.data?.message || 'Failed to upload cover photo',
         status: error.response?.status
       };
     }

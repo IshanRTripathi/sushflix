@@ -22,6 +22,7 @@ import {
 import { UserProfile } from '@/modules/shared/types/user';
 import useLoading from '@/modules/ui/contexts/LoadingContext';
 import { ProfilePictureUpload } from './ProfilePictureUpload';
+import { profileService } from '../../service';
 
 interface ProfileHeaderProps {
   user: UserProfile;
@@ -43,7 +44,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   
   const [isFollowing, setIsFollowing] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const [isHoveringAvatar, setIsHoveringAvatar] = useState(false);
+  const [isHoveringProfilePicture, setIsHoveringProfilePicture] = useState(false);
   const [isHoveringCover, setIsHoveringCover] = useState(false);
 
   // Use the provided user prop
@@ -67,45 +68,23 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     }
   }, [isFollowing, onFollow, onUnfollow, startLoading, stopLoading]);
 
-  const handleAvatarUpload = useCallback(
+  const handleProfilePictureUpload = useCallback(
     async (file: File) => {
       try {
         setIsUploading(true);
-        // TODO: Implement actual avatar upload
-        // const response = await profileService.uploadProfilePicture(displayProfile.userId, file);
-        // const url = response.data?.profilePicture;
+        const response = await profileService.uploadProfilePicture(displayProfile.userId, file);
+        const url = response.data?.profilePicture;
         
         if (onProfileUpdate && displayProfile) {
           await onProfileUpdate({
             ...displayProfile,
-            profilePicture: URL.createObjectURL(file), // Temporary URL for preview
+            profilePicture: URL.createObjectURL(file),
           });
         }
         return { success: true, imageUrl: URL.createObjectURL(file) };
       } catch (error) {
-        console.error('Error uploading avatar:', error);
-        return { success: false, error: 'Failed to upload avatar' };
-      } finally {
-        setIsUploading(false);
-      }
-    },
-    [displayProfile, onProfileUpdate]
-  );
-
-  const handleCoverPhotoUpload = useCallback(
-    async (file: File) => {
-      try {
-        setIsUploading(true);
-        if (onProfileUpdate && displayProfile) {
-          await onProfileUpdate({
-            ...displayProfile,
-            coverPhoto: URL.createObjectURL(file), // Temporary URL for preview
-          });
-        }
-        return { success: true, imageUrl: URL.createObjectURL(file) };
-      } catch (error) {
-        console.error('Error uploading cover photo:', error);
-        return { success: false, error: 'Failed to upload cover photo' };
+        console.error('Error uploading profilePicture:', error);
+        return { success: false, error: 'Failed to upload profilePicture' };
       } finally {
         setIsUploading(false);
       }
@@ -134,7 +113,6 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     username: profileUsername,
     bio,
     profilePicture,
-    coverPhoto,
     isVerified,
   } = displayProfile;
 
@@ -223,32 +201,6 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         mb: 3,
       }}
     >
-      {/* Cover Photo */}
-      <Box
-        sx={{
-          position: 'relative',
-          height: { xs: 160, sm: 200, md: 240 },
-          bgcolor: 'grey.200',
-          backgroundImage: coverPhoto ? `url(${coverPhoto})` : 'none',
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          '&:hover': {
-            '& .cover-overlay': {
-              opacity: 1,
-            },
-          },
-        }}
-        onMouseEnter={() => setIsHoveringCover(true)}
-        onMouseLeave={() => setIsHoveringCover(false)}
-      >
-        {isOwner && (
-          <ProfilePictureUpload
-            isVisible={isHoveringCover}
-            onUpload={handleCoverPhotoUpload}
-            isUploading={isUploading}
-          />
-        )}
-      </Box>
 
       {/* Profile Info */}
       <Box sx={{ position: 'relative', px: { xs: 2, sm: 4 }, pb: 3 }}>
@@ -271,8 +223,8 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
               },
             },
           }}
-          onMouseEnter={() => setIsHoveringAvatar(true)}
-          onMouseLeave={() => setIsHoveringAvatar(false)}
+          onMouseEnter={() => setIsHoveringProfilePicture(true)}
+          onMouseLeave={() => setIsHoveringProfilePicture(false)}
         >
           <Box
             sx={{
@@ -287,7 +239,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
               justifyContent: 'center',
               color: 'white',
               fontSize: '3rem',
-              border: '2px solid blue', // Add border to see the container
+              border: '2px solid blue',
             }}
           >
             {profilePicture ? (
@@ -327,8 +279,8 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
 
           {isOwner && (
             <ProfilePictureUpload
-              isVisible={isHoveringAvatar}
-              onUpload={handleAvatarUpload}
+              isVisible={isHoveringProfilePicture}
+              onUpload={handleProfilePictureUpload}
               isUploading={isUploading}
             />
           )}

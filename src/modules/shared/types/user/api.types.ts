@@ -88,7 +88,6 @@ export interface IUpdateProfileRequest {
   displayName?: string;
   bio?: string;
   profilePicture?: string;
-  coverPhoto?: string;
   location?: string;
   website?: string;
   socialLinks?: {

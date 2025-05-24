@@ -55,7 +55,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [authModalType, setAuthModalType] = useState<AuthModalType>('login');
 
   useEffect(() => {
-    logger.debug('Checking for stored user session');
     const storedUser = localStorage.getItem('user');
     if (storedUser) {
       try {

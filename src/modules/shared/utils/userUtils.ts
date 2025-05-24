@@ -15,7 +15,6 @@ export const toUserProfile = (user: IUser): UserProfile => {
     displayName: user.displayName || user.username,
     bio: (user as any).bio || '',
     profilePicture: user.profilePicture || '',
-    coverPhoto: (user as any).coverPhoto || '',
     socialLinks: (user as any).socialLinks || {},
     stats: {
       postCount: (user as any).postCount || 0,
@@ -46,7 +45,6 @@ export const toUserUpdate = (profile: Partial<UserProfile>): any => {
   // Map any field name differences if needed
   if (update.displayName) update.displayName = update.displayName;
   if (update.profilePicture) update.profilePicture = update.profilePicture;
-  if (update.coverPhoto) update.coverPhoto = update.coverPhoto;
   if (update.bio) update.bio = update.bio;
   if (update.socialLinks) update.socialLinks = update.socialLinks;
   

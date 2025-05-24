@@ -12,14 +12,14 @@ import connectDB from '../src/modules/shared/config/db';
 import { logger } from '../src/modules/shared/utils/logger';
 
 // Route imports
-import authRoutes from '../src/modules/auth/server/routes/auth';
+import authRoutes from '../src/modules/auth/server/routes/authRoutes';
 import contentRoutes from '../src/modules/creator/server/routes/content';
-import userRoutes from '../src/modules/user/routes/user';
+import userRoutes from '../src/modules/user/routes/userRoutes';
 import featuredProfilesRoutes from '../src/modules/profile/service/routes/featuredProfiles';
 
 // Constants
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 8080;
-const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:3000';
+const CLIENT_URL = process.env.VITE_API_URL || 'http://localhost:5173';
 const UPLOAD_DIR = process.env.UPLOAD_DIR || 'uploads';
 
 /**

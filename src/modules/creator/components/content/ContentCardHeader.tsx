@@ -3,7 +3,7 @@ import { Avatar, Skeleton } from '@mui/material';
 
 interface ContentCardHeaderProps {
   creatorName: string;
-  creatorProfilePic: string;
+  profilePicture: string;
   timestamp: string;
   isSubscribed?: boolean;
   onSubscribe?: () => void;
@@ -11,7 +11,7 @@ interface ContentCardHeaderProps {
 
 export const ContentCardHeader: React.FC<ContentCardHeaderProps> = ({
   creatorName,
-  creatorProfilePic,
+  profilePicture,
   timestamp,
   isSubscribed,
   onSubscribe,

@@ -81,17 +81,8 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onClose, openSignupModal }
         return;
       }
 
-      // Mask sensitive information for logging
-      const maskedIdentifier = tab === 'phone' 
-        ? `${countryCode}${phone.substring(0, 3)}***` 
-        : credentials.includes('@') 
-          ? credentials.substring(0, 3) + '***@***' 
-          : credentials;
-
-      logger.info('Attempting login', { identifier: maskedIdentifier });
-
       await login(loginIdentifier, password);
-      logger.info('Login successful', { identifier: maskedIdentifier });
+      logger.info('Login successful', { identifier: loginIdentifier });
       navigate('/explore');
       onClose();
     } catch (error: unknown) {

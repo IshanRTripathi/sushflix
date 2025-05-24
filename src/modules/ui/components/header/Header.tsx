@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { useAuth } from '../../modules/auth/context/AuthContext';
-import { logger } from '../../utils/logger';
-import { DEFAULT_IMAGES } from '../../config/images';
+import { useAuth } from '../../../auth/context/AuthContext';
+import { logger } from '../../../shared/utils/logger';
+import { DEFAULT_IMAGES } from '../../../shared/config/images';
 
 const HEADER_HEIGHT = 'h-16' as const;
 const HEADER_CLASSES = 'bg-black border-b border-gray-800 flex items-center px-4' as const;
-const DEFAULT_AVATAR = DEFAULT_IMAGES.avatar;
+const DEFAULT_PROFILE_PICTURE = DEFAULT_IMAGES.profilePicture;
 
 interface HeaderMenuItem {
   label: string;
@@ -107,13 +107,13 @@ export function Header({
               >
                 <span className="text-gray-300">{user?.displayName}</span>
                 <img
-                  src={profilePicture || DEFAULT_AVATAR}
+                  src={profilePicture || DEFAULT_PROFILE_PICTURE}
                   alt="Profile"
                   className="w-8 h-8 rounded-full object-cover border-2 border-transparent hover:border-red-500 transition-colors"
                   onError={(e) => {
                     const img = e.target as HTMLImageElement;
-                    if (img.src !== DEFAULT_AVATAR) {
-                      img.src = DEFAULT_AVATAR;
+                    if (img.src !== DEFAULT_PROFILE_PICTURE) {
+                      img.src = DEFAULT_PROFILE_PICTURE;
                       logger.warn('Failed to load profile picture, using default', {
                         attemptedUrl: profilePicture
                       });

@@ -1,4 +1,4 @@
-import { User } from '../../../shared/types/user';
+import { User } from '../../shared/types';
 
 export interface ProfileResponse {
   success: boolean;
@@ -18,7 +18,6 @@ export interface UpdateProfileRequest {
     website?: string;
   };
   profilePicture?: string;
-  coverPhoto?: string;
 }
 
 export interface FollowUserResponse {

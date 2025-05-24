@@ -415,7 +415,7 @@ export default function ProfilePage(): React.ReactElement {
               <Box sx={{ width: '100%', height: '100%' }}>
                 <Box
                   component="img"
-                  src={profilePictureUrl || '/default-avatar.png'}
+                  src={profilePictureUrl || '/profile.png'}
                   alt={profile.displayName || 'Profile'}
                   sx={{
                     width: '100%',
@@ -424,7 +424,7 @@ export default function ProfilePage(): React.ReactElement {
                   }}
                   onError={(e) => {
                     const target = e.target as HTMLImageElement;
-                    target.src = '/default-avatar.png';
+                    target.src = '/profile.png';
                   }}
                 />
               </Box>

@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { IUser, IUserProfile } from '../../shared/types/user';
 import User from '../../profile/service/models/User';
-import logger from '../../shared/config/logger';
+import { logger } from '../../shared/utils/logger';
 
 // Extend Express Request type with our custom user type
 declare module 'express-serve-static-core' {

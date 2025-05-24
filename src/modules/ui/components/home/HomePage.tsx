@@ -5,9 +5,10 @@ import { API_BASE_URL } from '@/modules/shared/config';
 import { useTheme } from '@/modules/settings/hooks/useTheme';
 import ErrorBoundary from '@/modules/ui/components/ErrorBoundary';
 import { useLoadingContext } from '@/modules/ui/contexts/LoadingContext';
-import { USER_ROLES, UserProfile, FeaturedProfile } from '@/modules/shared/types/user';
+import { IUserProfile as UserProfile, IUserProfile as FeaturedProfile } from '@/modules/shared/types/user';
 import Loading from '@/modules/ui/components/Loading';
 import FeaturedProfilesSection from './FeaturedProfilesSection';
+import { USER_ROLES } from '@/modules/shared/types/user/user.roles';
 
 interface HomePageState {
   profile: UserProfile | null;
@@ -38,7 +39,6 @@ export const HomePage = () => {
     role: USER_ROLES.CREATOR,
     emailVerified: true,
     profilePicture: profile.profilePicture,
-    coverPhoto: '', // Default empty cover photo
     bio: profile.bio || '',
     socialLinks: profile.socialLinks || {},
     isCreator: true,
@@ -65,14 +65,25 @@ export const HomePage = () => {
   const { startLoading, stopLoading } = useLoadingContext();
 
   const fetchProfile = async () => {
+    const token = localStorage.getItem('token');
+    
+    // If no token exists, don't attempt to fetch profile
+    if (!token) {
+      console.log('[HomePage] No authentication token found, skipping profile fetch');
+      setState(prev => ({
+        ...prev,
+        isLoading: false,
+        error: null,
+        retryCount: 0
+      }));
+      return;
+    }
+
     try {
       startLoading();
-      const token = localStorage.getItem('token');
-      const headers: HeadersInit = {};
-      
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
+      const headers: HeadersInit = {
+        'Authorization': `Bearer ${token}`
+      };
       
       const response = await fetch(`${API_BASE_URL}/api/profile`, {
         headers
@@ -86,6 +97,7 @@ export const HomePage = () => {
           console.log('[HomePage] Authentication required - no valid session');
           // Clear any invalid token from localStorage if it exists
           localStorage.removeItem('token');
+          // Optionally redirect to login page or show login prompt
         }
         throw new Error('Failed to fetch profile');
       }
@@ -133,7 +145,6 @@ export const HomePage = () => {
       }
       
       const data = await response.json();
-      // The API now returns { success: true, data: { profiles: [...] } }
       const profiles = data.data?.profiles || [];
       
       setState(prev => ({ 

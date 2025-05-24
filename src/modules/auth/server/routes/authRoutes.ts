@@ -4,7 +4,7 @@ import bcrypt from 'bcryptjs';
 import jwt, { SignOptions } from 'jsonwebtoken';
 import { Types } from 'mongoose';
 import User, { IUser, IUserModel, UserRole } from '../../../profile/service/models/User';
-import logger from '../../../shared/config/logger'
+import { logger } from '../../../shared/utils/logger'
 
 // Type-safe environment variable access
 const getEnvVar = (key: string): string => {
@@ -38,18 +38,6 @@ interface JwtPayload {
   iat?: number;
   exp?: number;
 }
-
-// Type guard for JWT payload
-const isJwtPayload = (payload: unknown): payload is JwtPayload => {
-  return (
-    typeof payload === 'object' &&
-    payload !== null &&
-    'userId' in payload &&
-    'email' in payload &&
-    'username' in payload &&
-    'role' in payload
-  );
-};
 
 const router = express.Router();
 
@@ -214,7 +202,7 @@ router.post(
       });
   
     } catch (error) {
-      logger.error('Error during user registration:', error);
+      logger.error('Error during user registration:', { error });
       res.status(500).json({ errors: [{ msg: 'Server error' }] });
     }
   })
@@ -304,13 +292,13 @@ router.post<{}, LoginResponse, LoginRequestBody>(
     await user.save();
 
     // Set secure cookies based on environment
-    res.cookie('token', token, {
-      httpOnly: true,
-      secure: NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 24 * 60 * 60 * 1000, // 1 day
-      path: '/',
-    });
+    // res.cookie('token', token, {
+    //   httpOnly: true,
+    //   secure: NODE_ENV === 'production',
+    //   sameSite: 'strict',
+    //   maxAge: 24 * 60 * 60 * 1000, // 1 day
+    //   path: '/',
+    // });
 
     // Prepare response
     const response: LoginResponse = {

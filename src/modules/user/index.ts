@@ -9,7 +9,7 @@ export { isOwner as isResourceOwner } from './middleware/ownership';
 export { validateFileUpload, validateUploadProfilePicture } from './middleware/user.validator';
 
 // Routes
-export * from './routes/user';
+export * from './routes/userRoutes';
 
 // Services
 export * from './services/StorageService';
