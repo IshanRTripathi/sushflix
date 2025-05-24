@@ -35,9 +35,20 @@ class AppServer {
     this.server = createServer(this.app);
     this.isProduction = process.env.NODE_ENV === 'production';
     
+    // Configure logger
+    logger.setLogLevel(this.isProduction ? 'INFO' : 'DEBUG');
+    logger.info('Server starting...', { 
+      nodeEnv: process.env.NODE_ENV || 'development',
+      logLevel: logger.getLogLevel()
+    });
+    
     this.initializeMiddlewares();
     this.initializeRoutes();
     this.initializeErrorHandling();
+    
+    // Test logger
+    logger.debug('Debug test message - should be visible in development');
+    logger.info('Info test message - should be visible in all environments');
   }
 
   /**
@@ -139,10 +150,36 @@ class AppServer {
    */
   private requestLogger(req: Request, res: Response, next: NextFunction): void {
     const start = Date.now();
+    
+    // Skip logging for health checks and favicon
+    if (req.path === '/health' || req.path === '/favicon.ico') {
+      return next();
+    }
+    
+    // Log request details
+    logger.debug('Incoming request', {
+      method: req.method,
+      path: req.path,
+      query: req.query,
+      ip: req.ip,
+      userAgent: req.headers['user-agent']
+    });
+    
     res.on('finish', () => {
       const duration = Date.now() - start;
       logger.info(`${req.method} ${req.originalUrl} - ${res.statusCode} [${duration}ms]`);
+      
+      // Log response details for non-200 status codes
+      if (res.statusCode >= 400) {
+        logger.warn('Request error', {
+          status: res.statusCode,
+          statusMessage: res.statusMessage,
+          duration: `${duration}ms`,
+          path: req.path
+        });
+      }
     });
+    
     next();
   }
 

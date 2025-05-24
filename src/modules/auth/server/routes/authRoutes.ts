@@ -233,13 +233,15 @@ interface ErrorResponse {
   errors?: Array<{ msg: string }>;
 }
 
-type LoginResponse = SuccessResponse<{
+interface LoginUserData {
   id: string;
   username: string;
   email: string;
   role: UserRole;
   isCreator: boolean;
-}> | ErrorResponse;
+}
+
+type LoginResponse = (SuccessResponse<LoginUserData> & LoginUserData) | ErrorResponse;
 
 // Login route handler with proper typing
 router.post<{}, LoginResponse, LoginRequestBody>(
@@ -247,7 +249,7 @@ router.post<{}, LoginResponse, LoginRequestBody>(
   validateRequest(loginValidation),
   asyncHandler<{}, LoginResponse, LoginRequestBody, any>(async (req, res) => {
     const { usernameOrEmail, password } = req.body;
-
+    
     // Find user by email or username (case-insensitive)
     const user = await User.findOne({
       $or: [
@@ -255,8 +257,16 @@ router.post<{}, LoginResponse, LoginRequestBody>(
         { username: { $regex: new RegExp(`^${usernameOrEmail}$`, 'i') } }
       ]
     }).select('+password');
+    
+    logger.debug('User lookup result', { 
+      userFound: !!user,
+      userId: user?._id,
+      username: user?.username 
+    });
 
     if (!user) {
+      const errorMessage = 'User not found with provided credentials';
+      logger.warn('Login failed: User not found', { usernameOrEmail });
       res.status(401).json({
         success: false,
         message: 'Invalid credentials',
@@ -267,10 +277,19 @@ router.post<{}, LoginResponse, LoginRequestBody>(
 
     // Type-safe password check
     if (!user.password) {
-      throw new Error('User password not found');
+      const errorMessage = 'User password not found in database';
+      logger.error(errorMessage, { userId: user._id });
+      throw new Error(errorMessage);
     }
+    
+    logger.debug('Comparing provided password with stored hash');
     const isMatch = await bcrypt.compare(password, user.password);
+    
     if (!isMatch) {
+      logger.warn('Login failed: Invalid password', { 
+        userId: user._id,
+        username: user.username 
+      });
       res.status(401).json({
         success: false,
         message: 'Invalid credentials',
@@ -280,7 +299,9 @@ router.post<{}, LoginResponse, LoginRequestBody>(
     }
 
     // Generate tokens
+    logger.debug('Generating access token');
     const token = generateToken(user);
+    logger.debug('Generating refresh token');
     const refreshToken = jwt.sign(
       { userId: user._id },
       JWT_SECRET!,
@@ -288,32 +309,59 @@ router.post<{}, LoginResponse, LoginRequestBody>(
     );
 
     // Update user with refresh token
+    logger.debug('Updating user with refresh token');
     user.refreshToken = refreshToken;
-    await user.save();
+    try {
+      await user.save();
+      logger.debug('User document updated with refresh token');
+    } catch (error) {
+      logger.error('Failed to save refresh token to user document', { 
+        error: error instanceof Error ? error.message : 'Unknown error',
+        userId: user._id
+      });
+      throw new Error('Failed to complete login process');
+    }
 
-    // Set secure cookies based on environment
-    // res.cookie('token', token, {
-    //   httpOnly: true,
-    //   secure: NODE_ENV === 'production',
-    //   sameSite: 'strict',
-    //   maxAge: 24 * 60 * 60 * 1000, // 1 day
-    //   path: '/',
-    // });
+    // Create user data object
+    const userData = {
+      id: user._id.toString(),
+      username: user.username,
+      email: user.email,
+      role: user.role,
+      isCreator: user.role === 'creator' || user.role === 'admin'
+    };
 
-    // Prepare response
-    const response: LoginResponse = {
+    // Create a clean user response object with only the fields we want to expose
+    const { password: _, refreshToken: __, ...safeUserData } = userData as any;
+    const userResponse = {
+      id: safeUserData.id || safeUserData._id?.toString(),
+      username: safeUserData.username,
+      email: safeUserData.email,
+      role: safeUserData.role,
+      isCreator: safeUserData.isCreator || safeUserData.role === 'creator' || safeUserData.role === 'admin',
+      // Explicitly include any other safe fields needed by the frontend
+      ...(safeUserData.avatar && { avatar: safeUserData.avatar }),
+      ...(safeUserData.createdAt && { createdAt: safeUserData.createdAt }),
+      ...(safeUserData.updatedAt && { updatedAt: safeUserData.updatedAt })
+    };
+
+    // Create response object with proper typing
+    const response: SuccessResponse<LoginUserData> = {
       success: true,
       token,
       refreshToken,
-      user: {
-        id: user._id.toString(),
-        username: user.username,
-        email: user.email,
-        role: user.role,
-        isCreator: user.role === 'creator' || user.role === 'admin'
-      }
+      user: userResponse
     };
 
+    // Log the login response without sensitive data
+    logger.info('Login successful', { 
+      userId: userData.id,
+      username: userData.username,
+      role: userData.role,
+      hasToken: !!token,
+      hasRefreshToken: !!refreshToken
+    });
+    
     res.status(200).json(response);
   })
 );

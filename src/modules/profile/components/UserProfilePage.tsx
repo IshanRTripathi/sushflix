@@ -228,7 +228,7 @@ const UserProfilePage: React.FC<UserProfilePageProps> = ({
                     }
                     
                     const response = await fetch(
-                      `/api/users/${profile.username}/picture`,
+                      `/api/users/${profile.username}/profile-picture`,
                       {
                         method: 'POST',
                         body: formData,
