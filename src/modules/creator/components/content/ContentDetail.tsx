@@ -1,8 +1,8 @@
 // Content detail page component with enhanced error handling and loading states
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
-import { Play, Heart, Share2, BookmarkPlus } from 'lucide-react';
-import { API_BASE_URL } from '@/modules/shared/config';
+import { Heart, Share2, BookmarkPlus } from 'lucide-react';
+import { apiClient } from '@/modules/shared/api/apiClient';
 import { logger } from '@/modules/shared/utils/logger';
 import { Skeleton } from '@mui/material';
 /**
@@ -62,26 +62,9 @@ export const ContentDetail: React.FC<ContentDetailProps> = ({ className = '' }) 
       setError(null);
 
       logger.info('Fetching content details', { contentId: id });
-      const token = localStorage.getItem('token');
-      if (!token) {
-        throw new Error('Authentication token not found');
-      }
-
-      const response = await fetch(`${API_BASE_URL}/api/content/${id}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        }
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || 'Content not available');
-      }
-
-      const data = await response.json();
-      setContent(data);
+      
+      const response = await apiClient.get(`/api/content/${id}`);
+      setContent(response.data);
       logger.info('Content details fetched successfully', { contentId: id });
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to load content';
@@ -100,25 +83,8 @@ export const ContentDetail: React.FC<ContentDetailProps> = ({ className = '' }) 
     if (!content) return;
 
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        throw new Error('Authentication token not found');
-      }
-
-      const response = await fetch(`${API_BASE_URL}/api/content/${content.id}/like`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to toggle like');
-      }
-
-      const updatedContent = await response.json();
-      setContent(updatedContent);
+      const response = await apiClient.post(`/api/content/${content.id}/like`, {});
+      setContent(response.data);
       setIsLiked(prev => !prev);
       logger.info('Like status updated', { 
         contentId: content.id,
@@ -137,29 +103,11 @@ export const ContentDetail: React.FC<ContentDetailProps> = ({ className = '' }) 
     if (!content) return;
 
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        throw new Error('Authentication token not found');
-      }
-
-      const response = await fetch(`${API_BASE_URL}/api/content/${content.id}/bookmark`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to toggle bookmark');
-      }
-
-      const updatedContent = await response.json();
-      setContent(updatedContent);
-      setIsBookmarked(prev => !prev);
+      const response = await apiClient.post(`/api/content/${content.id}/bookmark`, {});
+      setIsBookmarked(response.data.isBookmarked);
       logger.info('Bookmark status updated', { 
         contentId: content.id,
-        bookmarked: !isBookmarked
+        bookmarked: response.data.isBookmarked
       });
     } catch (err) {
       logger.error('Failed to toggle bookmark', { 

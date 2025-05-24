@@ -193,21 +193,24 @@ class AppServer {
     this.app.use('/api/users', userRoutes);
     this.app.use('/api/featured', featuredProfilesRoutes);
     
-    // Redirect /api/profile to the authenticated user's profile
+    // Return the authenticated user's profile data
     this.app.get('/api/profile', authMiddleware.auth(), (req: Request, res: Response): void => {
       const authReq = req as any; // Type assertion to access user property
-      const username = authReq.user?.username;
+      const user = authReq.user;
       
-      if (!username) {
+      if (!user) {
         res.status(401).json({
           success: false,
-          message: 'User not authenticated'
+          error: 'User not authenticated'
         });
         return;
       }
       
-      // Redirect to the user's profile
-      res.redirect(`/api/users/${username}`);
+      // Return the user data directly
+      res.json({
+        success: true,
+        data: user
+      });
     });
     
     // Health check endpoint

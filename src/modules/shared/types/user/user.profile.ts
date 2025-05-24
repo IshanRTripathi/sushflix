@@ -23,6 +23,7 @@ export interface IUserProfileStats {
 export interface IUserProfileBase {
   userId: Types.ObjectId;
   displayName: string;
+  username: string;
   bio: string;
   profilePicture: string;
   socialLinks: ISocialLinks;
@@ -102,6 +103,7 @@ export interface PublicUserProfile {
   displayName: string;
   bio: string;
   profilePicture: string;
+  coverPhoto: string;
   socialLinks: ISocialLinks;
   stats: IUserProfileStats;
   isCreator: boolean;

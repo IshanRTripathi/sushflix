@@ -9,26 +9,18 @@ import {
   getUserStats as apiGetUserStats,
   searchUsers as apiSearchUsers
 } from '@/modules/shared/api/profile/profile.api';
-import type { 
-  IUserProfile as UserProfile, 
-  UserStats, 
-  UserSettingsUpdate,
-  ApiResponse,
-  ProfileInput,
-  SocialLinks
-} from '@/modules/shared/types/user';
+import { apiClient } from '@/modules/shared/api/apiClient';
+import { IUserProfile } from '@/modules/shared/types/user/user.profile';
+import {
+  IApiResponse,
+  IUserStatsResponse,
+  IUpdateProfileRequest,
+  IUpdateUserSettingsRequest
+} from '@/modules/shared/types/user/api.types';
 
 // Re-export the ProfileData type from the API for consistency
 export type { ProfileData } from '@/modules/shared/api/profile/profile.api';
-// File system operations are only available on the server side
-const isServer = typeof window === 'undefined';
-let fs: any, path: any;
-
-// Use dynamic imports for server-side only modules
-if (isServer) {
-  import('fs/promises').then(module => { fs = module; });
-  import('path').then(module => { path = module; });
-}
+// Server-side operations are handled by API routes
 
 class ProfileService {
   private static instance: ProfileService;
@@ -45,36 +37,30 @@ class ProfileService {
   }
 
   // Profile methods
-  public async getCurrentUser(): Promise<ApiResponse<UserProfile>> {
+  public async getCurrentUser(): Promise<IApiResponse<IUserProfile>> {
     try {
-      // Get user data from localStorage
-      const storedUser = localStorage.getItem('user');
+      // Get user data from the API
+      const response = await apiClient.get('/api/users/me');
       
-      if (!storedUser) {
-        throw new Error('No user session found');
-      }
-      
-      const userData = JSON.parse(storedUser) as UserProfile;
-      
-      if (!userData || !userData.id) {
-        throw new Error('Invalid user data in storage');
+      if (!response.data?.data) {
+        throw new Error('No user data in response');
       }
       
       return {
         success: true,
-        data: userData
+        data: response.data.data
       };
     } catch (error: any) {
-      logger.error('Failed to get current user from session:', error);
+      logger.error('Failed to get current user from API:', error);
       return {
         success: false,
-        error: error.message || 'Failed to fetch current user from session',
-        status: 401 // Unauthorized
+        error: error.response?.data?.message || 'Failed to fetch current user',
+        status: error.response?.status || 401 // Unauthorized
       };
     }
   }
 
-  public async getUserProfile(username: string): Promise<ApiResponse<UserProfile>> {
+  public async getUserProfile(username: string): Promise<IApiResponse<IUserProfile>> {
     try {
       const response = await apiGetProfileByUsername(username);
       return {
@@ -93,8 +79,8 @@ class ProfileService {
 
   public async updateUserProfile(
     username: string, 
-    profileData: ProfileInput
-  ): Promise<ApiResponse<UserProfile>> {
+    profileData: IUpdateProfileRequest
+  ): Promise<IApiResponse<IUserProfile>> {
     try {
       const response = await apiUpdateUserProfile(username, profileData);
       return {
@@ -113,8 +99,8 @@ class ProfileService {
 
   public async updateUserSettings(
     username: string, 
-    settings: UserSettingsUpdate
-  ): Promise<ApiResponse<UserProfile>> {
+    settings: IUpdateUserSettingsRequest
+  ): Promise<IApiResponse<IUserProfile>> {
     try {
       const response = await apiUpdateUserSettings(username, settings);
       return {
@@ -134,7 +120,7 @@ class ProfileService {
   public async uploadProfilePicture(
     username: string, 
     file: File
-  ): Promise<ApiResponse<{ profilePicture: string; url?: string }>> {
+  ): Promise<IApiResponse<{ profilePicture: string; url?: string }>> {
     try {
       logger.info(`Uploading profile picture for user: ${username}`, {
         filename: file.name,
@@ -176,7 +162,7 @@ class ProfileService {
   }
 
   // Social features
-  public async followUser(_userId: string, targetUserId: string): Promise<ApiResponse<{ success: boolean }>> {
+  public async followUser(_userId: string, targetUserId: string): Promise<IApiResponse<{ success: boolean }>> {
     try {
       const response = await apiFollowUser(targetUserId);
       return {
@@ -193,7 +179,7 @@ class ProfileService {
     }
   }
 
-  public async unfollowUser(_userId: string, targetUserId: string): Promise<ApiResponse<{ success: boolean }>> {
+  public async unfollowUser(_userId: string, targetUserId: string): Promise<IApiResponse<{ success: boolean }>> {
     try {
       const response = await apiUnfollowUser(targetUserId);
       return {
@@ -210,7 +196,7 @@ class ProfileService {
     }
   }
 
-  public async requestVerification(userId: string): Promise<ApiResponse<{ success: boolean }>> {
+  public async requestVerification(userId: string): Promise<IApiResponse<{ success: boolean }>> {
     try {
       logger.warn(`Verification request not implemented for user: ${userId}`);
       return {
@@ -230,7 +216,7 @@ class ProfileService {
   }
 
   // Stats
-  public async getUserStats(userId: string): Promise<ApiResponse<UserStats>> {
+  public async getUserStats(userId: string): Promise<IApiResponse<IUserStatsResponse>> {
     try {
       const response = await apiGetUserStats(userId);
       return {
@@ -252,7 +238,7 @@ class ProfileService {
     query: string, 
     page = 1, 
     limit = 20
-  ): Promise<ApiResponse<{ users: UserProfile[]; total: number }>> {
+  ): Promise<IApiResponse<{ users: IUserProfile[]; total: number }>> {
     try {
       const response = await apiSearchUsers(query, page, limit);
       return {

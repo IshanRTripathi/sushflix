@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/modules/auth/context/AuthContext';
-import { API_BASE_URL } from '@/modules/shared/config';
+import { apiClient } from '@/modules/shared/api/apiClient';
 import { useTheme } from '@/modules/settings/hooks/useTheme';
 import ErrorBoundary from '@/modules/ui/components/ErrorBoundary';
 import { useLoadingContext } from '@/modules/ui/contexts/LoadingContext';
@@ -9,6 +9,7 @@ import { IUserProfile as UserProfile, IUserProfile as FeaturedProfile } from '@/
 import Loading from '@/modules/ui/components/Loading';
 import FeaturedProfilesSection from './FeaturedProfilesSection';
 import { USER_ROLES } from '@/modules/shared/types/user/user.roles';
+import { API_BASE_URL } from '@/modules/shared/config';
 
 interface HomePageState {
   profile: UserProfile | null;
@@ -65,44 +66,13 @@ export const HomePage = () => {
   const { startLoading, stopLoading } = useLoadingContext();
 
   const fetchProfile = async () => {
-    const token = localStorage.getItem('token');
-    
-    // If no token exists, don't attempt to fetch profile
-    if (!token) {
-      console.log('[HomePage] No authentication token found, skipping profile fetch');
-      setState(prev => ({
-        ...prev,
-        isLoading: false,
-        error: null,
-        retryCount: 0
-      }));
-      return;
-    }
-
     try {
       startLoading();
-      const headers: HeadersInit = {
-        'Authorization': `Bearer ${token}`
-      };
       
-      const response = await fetch(`${API_BASE_URL}/api/profile`, {
-        headers
-      });
+      // The API client will automatically include the token from localStorage
+      const response = await apiClient.get('/api/profile');
       
-      if (!response.ok) {
-        const errorText = await response.text().catch(() => 'No error details');
-        console.error('[HomePage] Profile fetch error:', { status: response.status, errorText });
-        
-        if (response.status === 401) {
-          console.log('[HomePage] Authentication required - no valid session');
-          // Clear any invalid token from localStorage if it exists
-          localStorage.removeItem('token');
-          // Optionally redirect to login page or show login prompt
-        }
-        throw new Error('Failed to fetch profile');
-      }
-      
-      const userData = await response.json();
+      const userData = response.data;
       console.log('[HomePage] Profile data received:', userData);
       
       setState(prev => ({

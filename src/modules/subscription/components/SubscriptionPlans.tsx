@@ -1,7 +1,6 @@
-import { useState, useEffect } from 'react';
 import { Check } from 'lucide-react';
 import { useAuth } from '../../auth/context/AuthContext';
-import { API_BASE_URL } from '../../shared/config/index';
+import { apiClient } from '@/modules/shared/api/apiClient';
 
 interface Plan {
   id: string;
@@ -66,18 +65,8 @@ export function SubscriptionPlans() {
     }
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/subscriptions/create`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({ planId })
-      });
-
-      if (!response.ok) throw new Error('Failed to create subscription');
-
-      const { sessionUrl } = await response.json();
+      const response = await apiClient.post('/api/subscriptions/create', { planId });
+      const { sessionUrl } = response.data;
       window.location.href = sessionUrl;
     } catch (error) {
       console.error('Subscription error:', error);

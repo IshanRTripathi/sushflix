@@ -33,23 +33,81 @@ const sendError = (res: Response, status: number, message: string): void => {
  */
 const auth = (): RequestHandler => {
   return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    try {
-      // Get token from httpOnly cookie
-      const token = req.cookies?.token;
-      if (!token) {
-        logger.warn('Auth middleware: No token provided');
+    try {      
+      logger.debug('Auth middleware processing request', {
+        path: req.path,
+        method: req.method,
+        headers: {
+          authorization: req.headers.authorization ? 'present' : 'missing'
+        }
+      });
+
+      // Get token from Authorization header
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        const error = new Error('No Bearer token in Authorization header');
+        logger.warn('Auth middleware: No token provided in Authorization header', { 
+          path: req.path,
+          headers: Object.keys(req.headers)
+        });
         return sendError(res, 401, 'No authentication token, authorization denied');
+      }
+      
+      const token = authHeader.split(' ')[1];
+      if (!token) {
+        logger.warn('Auth middleware: Invalid token format', {
+          authorizationHeader: authHeader
+        });
+        return sendError(res, 401, 'Invalid token format');
       }
 
       // Verify token
-      const decoded = jwt.verify(token, JWT_SECRET) as JwtPayload;
-      
-      // Check if user still exists
-      const user = await User.findById(decoded.id).select('-password').lean();
-      
-      if (!user) {
-        logger.warn('Auth middleware: User not found');
-        return sendError(res, 401, 'User not found');
+      let decoded;
+      try {
+        decoded = jwt.verify(token, JWT_SECRET) as JwtPayload;
+        logger.debug('JWT token verified successfully', {
+          userId: decoded.id,
+          username: decoded.username,
+          decodedPayload: decoded // Log full decoded payload for debugging
+        });
+      } catch (jwtError) {
+        logger.error('JWT verification failed', {
+          error: jwtError,
+          token: token.substring(0, 10) + '...' // Log first 10 chars for debugging
+        });
+        return sendError(res, 401, 'Invalid or expired token');
+      }
+
+      // Check if we have enough data to look up the user
+      if (!decoded.id && !decoded.username) {
+        logger.error('JWT payload missing required fields', { decoded });
+        return sendError(res, 401, 'Invalid token payload');
+      }
+
+      // Try to find user by ID or username
+      let user;
+      try {
+        const query = decoded.id 
+          ? { _id: decoded.id }
+          : { username: decoded.username };
+          
+        logger.debug('Looking up user in database', { query });
+        
+        user = await User.findOne(query).select('-password').lean();
+        
+        if (!user) {
+          logger.warn('User not found in database', { 
+            query,
+            decodedPayload: decoded
+          });
+          return sendError(res, 401, 'User not found');
+        }
+      } catch (dbError) {
+        logger.error('Database error during user lookup', { 
+          error: dbError,
+          decoded
+        });
+        return sendError(res, 500, 'Error looking up user');
       }
       
       // Type assertion for user properties since we're using lean()
@@ -69,7 +127,14 @@ const auth = (): RequestHandler => {
       req.user = userObj;
       next();
     } catch (err) {
-      logger.error('Auth middleware: Authentication failed', { error: err });
+      logger.error('Auth middleware: Authentication failed', { 
+        error: err,
+        path: req.path,
+        method: req.method,
+        headers: {
+          authorization: req.headers.authorization ? 'present' : 'missing'
+        }
+      });
       sendError(res, 401, 'Authentication failed');
     }
   };
