@@ -66,10 +66,18 @@ export const HomePage = () => {
   const { startLoading, stopLoading } = useLoadingContext();
 
   const fetchProfile = async () => {
+    if (!isAuthenticated) {
+      console.log('[HomePage] Not fetching profile - user is not authenticated');
+      return;
+    }
+
     try {
       startLoading();
       
-      // The API client will automatically include the token from localStorage
+      console.log('[HomePage] Fetching profile data...');
+      const token = localStorage.getItem('token');
+      console.log('[HomePage] Current token:', token ? 'Token exists' : 'No token found');
+      
       const response = await apiClient.get('/api/profile');
       
       const userData = response.data;
@@ -82,14 +90,36 @@ export const HomePage = () => {
         error: null,
         retryCount: 0
       }));
-    } catch (error) {
-      console.error('[HomePage] Error in fetchProfile:', error);
-      setState(prev => ({
-        ...prev,
-        isLoading: false,
-        error: error instanceof Error ? error.message : 'An error occurred',
-        retryCount: prev.retryCount + 1
-      }));
+    } catch (err: unknown) {
+      console.error('[HomePage] Error in fetchProfile:', err);
+      
+      // Handle different types of errors
+      if (err && typeof err === 'object' && 'response' in err) {
+        const axiosError = err as { response?: { status?: number } };
+        const errorMessage = err instanceof Error ? err.message : 'An error occurred';
+        
+        setState(prev => ({
+          ...prev,
+          isLoading: false,
+          error: errorMessage,
+          retryCount: prev.retryCount + 1
+        }));
+        
+        // If unauthorized, clear the token and redirect to login
+        if (axiosError.response?.status === 401) {
+          console.warn('[HomePage] Unauthorized - redirecting to login');
+          localStorage.removeItem('token');
+          navigate('/login', { replace: true });
+        }
+      } else {
+        const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred';
+        setState(prev => ({
+          ...prev,
+          isLoading: false,
+          error: errorMessage,
+          retryCount: prev.retryCount + 1
+        }));
+      }
     } finally {
       stopLoading();
     }
@@ -141,9 +171,22 @@ export const HomePage = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetchProfile();
+    // Only fetch profile if user is authenticated
+    if (isAuthenticated) {
+      console.log('[HomePage] User is authenticated, fetching profile...');
+      fetchProfile();
+    } else {
+      console.log('[HomePage] User is not authenticated, skipping profile fetch');
+      setState(prev => ({
+        ...prev,
+        isLoading: false,
+        error: null
+      }));
+    }
+    
+    // Fetch public profiles regardless of auth state
     fetchProfiles();
-  }, []);
+  }, [isAuthenticated]);
 
   useEffect(() => {
     const interval = setInterval(rotateProfiles, 5000);

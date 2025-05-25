@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
   Box,
@@ -16,10 +16,22 @@ import Settings from '@mui/icons-material/Edit';
 import VerifiedIcon from '@mui/icons-material/Verified';
 import { useAuth } from '@/modules/auth/context/AuthContext';
 import profileService from '../service/profileService';
-import { useQuery, useQueryClient, UseQueryOptions } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Types } from 'mongoose';
+import { IUserProfile } from '@/modules/shared/types/user/user.profile';
 import { logger } from '@/modules/shared/utils/logger';
 import { useLoadingContext } from '@/modules/ui/contexts/LoadingContext';
-import type { ApiResponse, UserProfile } from '@/modules/shared/types/user';
+import type { UserProfileResponse } from '@/modules/shared/api/profile/profile.api';
+
+// Define the expected user profile type
+type UserProfile = UserProfileResponse['data']['user'] & {
+  stats: {
+    posts: number;
+    followers: number;
+    following: number;
+  };
+};
+
 import EditProfile from './profile/EditProfile';
 import ProfilePictureUpload from './profile/ProfilePictureUpload';
 
@@ -44,60 +56,73 @@ const ProfileInfo = styled('div')(({ theme }) => ({
   },
 }));
 
-// Username component removed as it's not being used
-
 const Bio = styled(Typography)(({ theme }) => ({
   color: theme.palette.text.secondary,
   marginBottom: theme.spacing(2),
-}));
-
-const ActionButton = styled(Button)(({ theme }) => ({
-  marginRight: theme.spacing(1),
-  marginBottom: theme.spacing(1),
-}));
-
-const ProfileStats = styled('div')(({ theme }) => ({
-  display: 'flex',
-  justifyContent: 'space-around',
-  margin: `${theme.spacing(3)} 0`,
-  padding: theme.spacing(2, 0),
-  borderTop: `1px solid ${theme.palette.divider}`,
-  borderBottom: `1px solid ${theme.palette.divider}`,
-}));
-
-const StatItem = styled('div')(({ theme }) => ({
-  display: 'flex',
-  flexDirection: 'column',
-  alignItems: 'center',
-  flex: 1,
-  '& > span:first-of-type': {
-    fontWeight: 700,
-    fontSize: '1.25rem',
-    color: theme.palette.text.primary,
-  },
-  '& > span:last-child': {
-    color:
-      theme.palette.mode === 'dark'
-        ? theme.palette.grey[400]
-        : theme.palette.grey[600],
-    fontSize: '0.875rem',
-    marginTop: '4px',
-    letterSpacing: '0.5px',
-  },
-}));
-
-
-const ActionButtons = styled('div')(({ theme }) => ({
-  display: 'flex',
-  justifyContent: 'center',
-  margin: `${theme.spacing(2)} 0`,
+  whiteSpace: 'pre-line',
+  maxWidth: '100%',
+  wordBreak: 'break-word',
   [theme.breakpoints.up('sm')]: {
-    justifyContent: 'flex-start',
+    maxWidth: '600px',
   },
 }));
 
 interface ProfilePageParams {
   username: string;
+}
+
+// Helper function to adapt our UserProfile to IUserProfile
+function createUserProfileAdapter(user: UserProfile): IUserProfile {
+  const baseProfile = {
+    _id: new Types.ObjectId(user.id) as any,
+    userId: new Types.ObjectId(user.id) as any,
+    displayName: user.displayName || user.username,
+    username: user.username,
+    bio: user.bio || '',
+    profilePicture: user.profilePicture || '',
+    socialLinks: user.socialLinks || {},
+    stats: {
+      postCount: user.stats?.posts || 0,
+      followerCount: user.stats?.followers || 0,
+      followingCount: user.stats?.following || 0,
+      subscriberCount: 0
+    },
+    isCreator: false,
+    isVerified: user.isVerified || false,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    id: user.id,
+    // MongoDB document methods
+    save: async () => ({} as any),
+    // Required methods
+    incrementPostCount: async () => {},
+    decrementPostCount: async () => {},
+    incrementFollowerCount: async () => {},
+    decrementFollowerCount: async () => {},
+    incrementFollowingCount: async () => {},
+    decrementFollowingCount: async () => {},
+    incrementSubscriberCount: async () => {},
+    decrementSubscriberCount: async () => {}
+  };
+
+  // Add MongoDB document methods
+  const adaptedProfile: IUserProfile = {
+    ...baseProfile,
+    toObject: () => ({
+      ...baseProfile,
+      _id: new Types.ObjectId(user.id),
+      userId: new Types.ObjectId(user.id)
+    }),
+    toJSON: () => ({
+      ...baseProfile,
+      _id: user.id,
+      userId: user.id,
+      createdAt: baseProfile.createdAt.toISOString(),
+      updatedAt: baseProfile.updatedAt.toISOString()
+    })
+  } as unknown as IUserProfile; // Type assertion as a last resort
+
+  return adaptedProfile;
 }
 
 export default function ProfilePage(): React.ReactElement {
@@ -121,26 +146,97 @@ export default function ProfilePage(): React.ReactElement {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploadSuccess, setUploadSuccess] = useState(false);
+  const [isLoadingFollow] = useState(false);
   
-  // Fetch user profile data
-  const queryOptions: UseQueryOptions<ApiResponse<UserProfile>, Error> = {
-    queryKey: ['userProfile', username],
-    queryFn: () => profileService.getUserProfile(username),
-    enabled: !!username,
-  };
+  // Check if viewing own profile
+  const isCurrentUserProfile = currentUser?.username === username;
 
+  // Fetch user profile data
   const { 
     data: userProfile, 
     isLoading: isLoadingProfile, 
-    error: profileError 
-  } = useQuery<ApiResponse<UserProfile>, Error>(queryOptions);
+    error: profileError,
+    refetch: refetchProfile
+  } = useQuery({
+    queryKey: ['userProfile', username],
+    queryFn: async () => {
+      logger.debug('Fetching profile for user:', username);
+      try {
+        const response = await profileService.getUserProfile(username!);
+        logger.debug('Profile API response:', response);
+        return response as unknown as UserProfileResponse; // Type assertion to match the expected response format
+      } catch (error) {
+        logger.error('Error in profile queryFn:', error);
+        throw error;
+      }
+    },
+    enabled: !!username,
+    retry: 2,
+    refetchOnWindowFocus: false
+  });
+
+  // Extract user data for easier access, with fallback to current user data
+  const user = useMemo(() => {
+    // If we have user data from the profile API, use that
+    if (userProfile?.data?.user) {
+      return userProfile.data.user as UserProfile;
+    }
+    
+    // If we have current user data but no profile data, create a basic profile
+    if (currentUser) {
+      return {
+        id: currentUser.id,
+        username: currentUser.username,
+        displayName: currentUser.name || currentUser.username,
+        email: currentUser.email,
+        bio: '',
+        profilePicture: currentUser.profilePicture || '',
+        socialLinks: {},
+        stats: {
+          posts: 0,
+          followers: 0,
+          following: 0
+        },
+        isVerified: false,
+        isFollowing: false,
+        isCreator: currentUser.isCreator || false,
+        role: currentUser.role || 'user',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      } as UserProfile;
+    }
+    
+    return undefined;
+  }, [userProfile, currentUser]);
+
+  // Debug log when profile data changes
+  useEffect(() => {
+    logger.debug('Profile data changed:', { 
+      hasUserData: !!userProfile?.data?.user,
+      isLoadingProfile, 
+      profileError,
+      hasUser: !!user,
+      currentUsername: currentUser?.username,
+      isCurrentUserProfile: currentUser?.username === username,
+      userData: {
+        id: user?.id,
+        username: user?.username,
+        hasProfilePicture: !!user?.profilePicture
+      }
+    });
+  }, [userProfile, isLoadingProfile, profileError, user, currentUser, username]);
 
   // Handle query results
   useEffect(() => {
-    if (userProfile?.data) {
-      setIsFollowing(userProfile.data.isFollowing ?? false);
+    if (user) {
+      setIsFollowing(user.isFollowing ?? false);
+      
+      // Update the current user's profile picture if it's their own profile
+      if (isCurrentUserProfile && user.profilePicture) {
+        updateUser({ ...currentUser, profilePicture: user.profilePicture });
+      }
     }
-  }, [userProfile]);
+  }, [user, isCurrentUserProfile, currentUser, updateUser]);
 
   // Handle query errors
   useEffect(() => {
@@ -148,9 +244,6 @@ export default function ProfilePage(): React.ReactElement {
       logger.error('Error fetching user profile:', { error: profileError });
     }
   }, [profileError]);
-  
-  // Check if viewing own profile
-  const isCurrentUserProfile = currentUser?.username === username;
   
   // Handlers
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
@@ -325,28 +418,35 @@ export default function ProfilePage(): React.ReactElement {
   };
   
 
+  // Ensure we have a valid profile picture URL or default to empty string
+  const profilePictureUrl = user?.profilePicture || '';
   
-  // Show error state if there's an error or no user profile data
+  // Show loading state
   if (isLoadingProfile) {
+    logger.debug('Showing loading state');
     return (
-      <Container maxWidth="md" sx={{ py: 4 }}>
-        <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
-          <CircularProgress />
-        </Box>
-      </Container>
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
+        <CircularProgress />
+      </Box>
     );
   }
 
-  if (profileError || !userProfile?.data) {
+  // Show error if no user data is available after loading is complete
+  if (!user) {
+    logger.error('No user data available after loading completed', { 
+      userProfile, 
+      profileError,
+      currentUser 
+    });
     return (
       <Container maxWidth="md" sx={{ py: 4, textAlign: 'center' }}>
-        <Typography variant="h6" color="error">
-          {profileError?.message || 'Error loading profile. Please try again.'}
+        <Typography variant="h6" color="error" gutterBottom>
+          Failed to load profile data
         </Typography>
         <Button 
           variant="contained" 
           color="primary" 
-          onClick={() => window.location.reload()}
+          onClick={() => refetchProfile()}
           sx={{ mt: 2 }}
         >
           Retry
@@ -355,167 +455,185 @@ export default function ProfilePage(): React.ReactElement {
     );
   }
 
-  const profile = userProfile.data;
-
-  // Ensure we have a valid profile picture URL or default to empty string
-  const profilePictureUrl = profile.profilePicture || '';
+  // Show error state
+  if (profileError) {
+    return (
+      <Container maxWidth="md" sx={{ py: 4, textAlign: 'center' }}>
+        <Typography variant="h6" color="error" gutterBottom>
+          {profileError.message || 'Error loading profile'}
+        </Typography>
+        <Button 
+          variant="contained" 
+          color="primary" 
+          onClick={() => refetchProfile()}
+          sx={{ mt: 2 }}
+        >
+          Retry
+        </Button>
+      </Container>
+    );
+  }
   
   return (
     <Container maxWidth="md">
       <ProfileHeader>
-        <Box sx={{ position: 'relative', mb: 2 }}>
-          {isCurrentUserProfile ? (
-            <>
-              <ProfilePictureUpload
-                currentImageUrl={profilePictureUrl}
-                onUpload={handleProfilePictureUpload}
-                isUploading={isUploading}
-                showEditOnHover={true}
-                className={uploadSuccess ? 'upload-success' : ''}
-              />
-              {/* Upload Status Feedback */}
-              <Box sx={{ 
-                mt: 1,
-                minHeight: 24,
-                textAlign: 'center'
-              }}>
-                {isUploading && (
-                  <Box display="flex" alignItems="center" justifyContent="center" gap={1}>
-                    <CircularProgress size={16} />
-                    <Typography variant="caption" color="textSecondary">
-                      Uploading...
-                    </Typography>
-                  </Box>
-                )}
-                
-                {uploadError && (
-                  <Typography variant="caption" color="error">
-                    {uploadError}
-                  </Typography>
-                )}
-                
-                {uploadSuccess && (
-                  <Typography variant="caption" color="success.main">
-                    Profile picture updated successfully!
-                  </Typography>
-                )}
-              </Box>
-            </>
-          ) : (
-            <Box 
+        <Box sx={{ position: 'relative' }}>
+          <ProfilePictureUpload
+            currentImageUrl={profilePictureUrl}
+            onUpload={handleProfilePictureUpload}
+            isUploading={isUploading}
+            showEditOnHover={isCurrentUserProfile}
+          />
+          {uploadSuccess && (
+            <Box
               sx={{
-                width: 120,
-                height: 120,
-                borderRadius: '50%',
-                overflow: 'hidden',
-                border: '2px solid',
-                borderColor: 'divider',
+                position: 'absolute',
+                top: 8,
+                right: 8,
+                backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                color: 'white',
+                borderRadius: 1,
+                px: 1,
+                fontSize: '0.75rem',
+                zIndex: 1,
               }}
             >
-              <Box sx={{ width: '100%', height: '100%' }}>
-                <Box
-                  component="img"
-                  src={profilePictureUrl || '/profile.png'}
-                  alt={profile.displayName || 'Profile'}
-                  sx={{
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'cover',
-                  }}
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement;
-                    target.src = '/profile.png';
-                  }}
-                />
-              </Box>
+              Updated!
+            </Box>
+          )}
+          {uploadError && (
+            <Box
+              sx={{
+                position: 'absolute',
+                top: 8,
+                right: 8,
+                backgroundColor: 'error.main',
+                color: 'white',
+                borderRadius: 1,
+                px: 1,
+                fontSize: '0.75rem',
+                zIndex: 1,
+              }}
+            >
+              Error
             </Box>
           )}
         </Box>
-        
+
         <ProfileInfo>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-            <Typography variant="h5" component="h1">
-              {profile.displayName}
+          <Box display="flex" alignItems="center" mb={1}>
+            <Typography variant="h5" component="h1" sx={{ mr: 1, fontWeight: 500 }}>
+              {user.username}
             </Typography>
-            {!profile.isVerified && (
+            {user.isVerified && (
               <VerifiedIcon color="primary" fontSize="small" />
             )}
-          
-          <ActionButtons>
-            {isCurrentUserProfile ? (
-              <ActionButton 
-                size="small"
-                onClick={handleEditProfile}
-                startIcon={<Settings />}
-              >
-              </ActionButton>
-            ) : (
-              <ActionButton 
-                variant={isFollowing ? 'outlined' : 'contained'}
-                color="primary"
-                size="small"
-                onClick={handleFollow}
-                disabled={!currentUser}
-              >
-                {isFollowing ? 'Following' : 'Follow'}
-              </ActionButton>
-            )}
-          </ActionButtons>
           </Box>
-          <Box>
-            <Typography variant="subtitle2" fontWeight={400}>
-              {"@" + profile.username}
+
+          <Box display="flex" gap={3} mb={2}>
+            <Typography variant="body1">
+              <strong>{user.stats?.posts || 0}</strong> posts
             </Typography>
-            {profile.bio && (
-              <Bio variant="body2">
-                {profile.bio}
-              </Bio>
+            <Typography variant="body1">
+              <strong>{user.stats?.followers || 0}</strong> followers
+            </Typography>
+            <Typography variant="body1">
+              <strong>{user.stats?.following || 0}</strong> following
+            </Typography>
+          </Box>
+
+          <Bio variant="body1" sx={{ mb: 2 }}>
+            {user.bio || 'No bio yet.'}
+          </Bio>
+
+          <Box display="flex" gap={1} flexWrap="wrap" mb={2}>
+            {user.socialLinks?.website && (
+              <a href={user.socialLinks.website} target="_blank" rel="noopener noreferrer">
+                <Button variant="outlined" size="small">
+                  Website
+                </Button>
+              </a>
+            )}
+            {user.socialLinks?.twitter && (
+              <a href={`https://twitter.com/${user.socialLinks.twitter}`} target="_blank" rel="noopener noreferrer">
+                <Button variant="outlined" size="small">
+                  Twitter
+                </Button>
+              </a>
+            )}
+            {user.socialLinks?.instagram && (
+              <a href={`https://instagram.com/${user.socialLinks.instagram}`} target="_blank" rel="noopener noreferrer">
+                <Button variant="outlined" size="small">
+                  Instagram
+                </Button>
+              </a>
+            )}
+            {user.socialLinks?.youtube && (
+              <a href={`https://youtube.com/${user.socialLinks.youtube}`} target="_blank" rel="noopener noreferrer">
+                <Button variant="outlined" size="small">
+                  YouTube
+                </Button>
+              </a>
             )}
           </Box>
-          
-          <ProfileStats>
-            <StatItem>
-              <span>{profile.stats?.postCount || 0}</span>
-              <span>Posts</span>
-            </StatItem>
-            <StatItem>
-              <span>{profile.stats?.followerCount || 0}</span>
-              <span>Followers</span>
-            </StatItem>
-            <StatItem>
-              <span>{profile.stats?.followingCount || 0}</span>
-              <span>Following</span>
-            </StatItem>
-          </ProfileStats>
+
+          {isCurrentUserProfile ? (
+            <Button
+              variant="contained"
+              color="primary"
+              size="small"
+              onClick={handleEditProfile}
+              startIcon={<Settings />}
+              sx={{ mt: 1 }}
+            >
+              Edit Profile
+            </Button>
+          ) : (
+            <Button
+              variant={isFollowing ? 'outlined' : 'contained'}
+              color="primary"
+              size="small"
+              onClick={handleFollow}
+              disabled={isLoadingFollow}
+              sx={{ mt: 1 }}
+            >
+              {isFollowing ? 'Following' : 'Follow'}
+            </Button>
+          )}
         </ProfileInfo>
       </ProfileHeader>
-      
-      <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-        <Tabs 
-          value={activeTab} 
-          onChange={handleTabChange} 
+
+      <Box mt={4}>
+        <Tabs
+          value={activeTab}
+          onChange={handleTabChange}
           variant="fullWidth"
-          aria-label="profile tabs"
+          indicatorColor="primary"
+          textColor="primary"
+          sx={{ borderBottom: 1, borderColor: 'divider' }}
         >
           <Tab 
             icon={<GridOnIcon />} 
             label="POSTS" 
-            iconPosition="start" 
+            iconPosition="start"
             sx={{ textTransform: 'none', minHeight: 48 }}
           />
           <Tab 
             icon={<BookmarkBorderIcon />} 
             label="SAVED" 
             iconPosition="start"
-            sx={{ textTransform: 'none', minHeight: 48 }}
-            disabled={!isCurrentUserProfile}
+            sx={{ 
+              textTransform: 'none', 
+              minHeight: 48,
+              display: isCurrentUserProfile ? 'flex' : 'none' 
+            }}
           />
         </Tabs>
       </Box>
       
       <Box sx={{ py: 3 }}>
         {activeTab === 0 ? (
-          (profile.stats?.posts || 0) > 0 ? (
+          (user?.stats?.posts || 0) > 0 ? (
             <Box>
               {/* Posts grid will go here */}
               <Typography>User's posts will appear here</Typography>
@@ -548,9 +666,9 @@ export default function ProfilePage(): React.ReactElement {
         )}
       </Box>
       
-      {isEditModalOpen && (
+      {isEditModalOpen && user && (
         <EditProfile
-          user={profile}
+          user={createUserProfileAdapter(user)}
           onClose={handleCloseEditModal}
           onProfileUpdate={handleProfileUpdate}
         />

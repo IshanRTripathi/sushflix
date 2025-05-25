@@ -10,8 +10,68 @@ export interface ProfileData {
   };
 }
 
-export const getUserProfile = (username: string) => {
-  return apiClient.get(`/api/users/${username}`);
+export interface UserProfileResponse {
+  success: boolean;
+  data: {
+    user: {
+      id: string;
+      username: string;
+      displayName: string;
+      email: string;
+      profilePicture?: string;
+      bio?: string;
+      socialLinks?: {
+        twitter?: string;
+        instagram?: string;
+        youtube?: string;
+        website?: string;
+      };
+      isVerified: boolean;
+      isFollowing?: boolean;
+      stats: {
+        posts: number;
+        followers: number;
+        following: number;
+      };
+      createdAt: string;
+      updatedAt: string;
+    };
+  };
+  message?: string;
+}
+
+export const getUserProfile = async (username: string): Promise<UserProfileResponse> => {
+  try {
+    const response = await apiClient.get(`/api/users/${username}`);
+    return {
+      success: true,
+      data: {
+        user: response.data.user
+      }
+    };
+  } catch (error) {
+    console.error('Error fetching user profile:', error);
+    return {
+      success: false,
+      data: {
+        user: {
+          id: '',
+          username: '',
+          displayName: '',
+          email: '',
+          isVerified: false,
+          stats: {
+            posts: 0,
+            followers: 0,
+            following: 0
+          },
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        }
+      },
+      message: error instanceof Error ? error.message : 'Failed to fetch user profile'
+    };
+  }
 };
 
 export const updateUserProfile = (username: string, data: ProfileData) => {
