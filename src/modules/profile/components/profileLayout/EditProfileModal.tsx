@@ -1,7 +1,7 @@
 import React from 'react';
 import { Modal } from '@/modules/ui/components/feedback/Modal';
 import { ProfilePictureUpload } from './ProfilePictureUpload';
-import { ProfileFormUI } from './form/ProfileFormUI';
+import { ProfileFormUI } from './ProfileFormUI';
 import { ProfileFormData, ProfileErrors } from './types';
 import { IUserProfile } from '@/modules/shared/types/user';
 import { Box } from '@mui/material';

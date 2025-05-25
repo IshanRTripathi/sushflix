@@ -5,14 +5,13 @@ import { ThemeProvider } from './modules/settings/components/ThemeProvider';
 import { LoadingProvider } from './modules/ui/contexts/LoadingContext';
 import { UIProvider } from './modules/ui/contexts/UIContext';
 import { ProtectedRoute } from './modules/auth/components/ProtectedRoute';
-import ProfileLayout from './modules/profile/components/profile/ProfileLayout';
 import { Footer } from './modules/ui/components/footer/Footer';
 import Toast from './modules/ui/components/Toast';
 import HomePage from './modules/ui/components/home/HomePage';
 import { ExplorePage } from './modules/creator/components/content/ExplorePage';
 import { ContentDetail } from './modules/creator/components/content/ContentDetail';
 import SettingsPage from './modules/settings/components/SettingsPage';
-import ProfilePage from './modules/profile/components/ProfilePage';
+import ProfileLayout from './modules/profile/components/profileLayout/ProfileLayout';
 import { AuthModal } from './modules/auth/components/AuthModal';
 import { Navigation } from './modules/ui/components/header/Navigation';
 
@@ -46,7 +45,7 @@ function App() {
                     } />
                     <Route path="/profile/:username" element={
                       <ProtectedRoute publicPath="/profile/:username">
-                        <ProfilePage />
+                        <ProfileLayout />
                       </ProtectedRoute>
                     } />
                     <Route path="/settings" element={
@@ -55,7 +54,7 @@ function App() {
                       </ProtectedRoute>
                     } />
                     <Route path="/login" element={<Navigate to="/" />} />
-                    <Route path="/creator/:username" element={
+                    <Route path="/profile/:username" element={
                       <ProtectedRoute>
                         <ProfileLayout />
                       </ProtectedRoute>

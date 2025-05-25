@@ -1,5 +1,5 @@
 // Export all public API for the profile module
-export * from './components/profile';
+export * from './components/profileLayout';
 export * from './hooks';
 export * from './types';
 export * from './service';

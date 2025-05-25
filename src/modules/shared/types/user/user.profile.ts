@@ -37,13 +37,20 @@ export interface IUserProfileBase {
 }
 
 /** Complete user profile document including MongoDB document properties */
-export interface IUserProfile extends IUserProfileBase, Document {
-  _id: Types.ObjectId;
-  createdAt: Date;
-  updatedAt: Date;
-  
-  // Virtuals
-  id: string;
+export interface IUserProfile extends Document {
+  userId: Types.ObjectId;
+  displayName: string;
+  username: string;
+  bio: string;
+  profilePicture: string;
+  socialLinks: ISocialLinks;
+  stats: IUserProfileStats;
+  isCreator: boolean;
+  isVerified: boolean;
+  location?: string;
+  website?: string;
+  birthDate?: Date;
+  gender?: 'male' | 'female' | 'other' | 'prefer-not-to-say';
   
   // Methods
   incrementPostCount(): Promise<void>;
@@ -80,6 +87,15 @@ export interface CreateUserProfileInput {
   socialLinks?: Partial<ISocialLinks>;
   isCreator?: boolean;
   isVerified?: boolean;
+}
+
+export interface PartialProfileUpdate {
+  displayName?: string;
+  email?: string;
+  profilePicture?: string;
+  bio?: string;
+  socialLinks?: ISocialLinks;
+  isCreator?: boolean;
 }
 
 /** Data structure for updating an existing user profile */

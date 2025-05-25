@@ -1,7 +1,7 @@
 import React from 'react';
 import { Box, TextField, Typography, Card, CardContent, styled, FormControl, InputLabel, Select, MenuItem } from '@mui/material';
 import { LoadingButton } from '@mui/lab';
-import { ProfileFormData, ProfileErrors } from '../types';
+import { ProfileFormData, ProfileErrors } from './types';
 
 interface ProfileFormUIProps {
   formData: ProfileFormData;
@@ -84,7 +84,7 @@ export const ProfileFormUI: React.FC<ProfileFormUIProps> = ({
                 <InputLabel>Creator Status</InputLabel>
                 <Select
                   value={formData.isCreator ? 'creator' : 'user'}
-                  onChange={onCreatorToggle}
+                  // onChange={onCreatorToggle}
                   label="Creator Status"
                 >
                   <MenuItem value="user">Regular User</MenuItem>

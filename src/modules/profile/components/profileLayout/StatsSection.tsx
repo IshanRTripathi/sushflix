@@ -23,42 +23,36 @@ const StatsSection: React.FC<StatsSectionProps> = ({ user }) => {
         Stats
       </Typography>
       <Grid container spacing={2}>
-        <MuiGrid xs={12} sm={4}>
+        <Grid item xs={12} sm={4}>
           <StyledCard>
             <CardContent>
               <Typography variant="h5" component="div">
                 {user.followers}
               </Typography>
-              <Typography color="text.secondary">
-                Followers
-              </Typography>
+              <Typography color="text.secondary">Followers</Typography>
             </CardContent>
           </StyledCard>
-        </MuiGrid>
-        <MuiGrid xs={12} sm={4}>
+        </Grid>
+        <Grid item xs={12} sm={4}>
           <StyledCard>
             <CardContent>
               <Typography variant="h5" component="div">
                 {user.following}
               </Typography>
-              <Typography color="text.secondary">
-                Following
-              </Typography>
+              <Typography color="text.secondary">Following</Typography>
             </CardContent>
           </StyledCard>
-        </MuiGrid>
-        <MuiGrid xs={12} sm={4}>
+        </Grid>
+        <Grid item xs={12} sm={4}>
           <StyledCard>
             <CardContent>
               <Typography variant="h5" component="div">
                 {user.posts}
               </Typography>
-              <Typography color="text.secondary">
-                Posts
-              </Typography>
+              <Typography color="text.secondary">Posts</Typography>
             </CardContent>
           </StyledCard>
-        </MuiGrid>
+        </Grid>
       </Grid>
     </Box>
   );
