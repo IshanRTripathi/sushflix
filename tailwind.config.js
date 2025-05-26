@@ -2,8 +2,8 @@
 import defaultTheme from 'tailwindcss/defaultTheme';
 
 // Import your theme colors
-const lightPalette = require('./src/theme/themes/light').lightPalette;
-const darkPalette = require('./src/theme/themes/dark').darkPalette;
+const lightPalette = require('./src/modules/settings/themes/light').lightPalette;
+const darkPalette = require('./src/modules/settings/themes/dark').darkPalette;
 
 // Helper function to convert hex to RGB
 const hexToRgb = (hex) => {

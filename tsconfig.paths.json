@@ -2,7 +2,16 @@
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["src/*"],
+      "@modules/*": ["src/modules/*"],
+      "@auth/*": ["src/modules/auth/*"],
+      "@user/*": ["src/modules/user/*"],
+      "@profile/*": ["src/modules/profile/*"],
+      "@creator/*": ["src/modules/creator/*"],
+      "@settings/*": ["src/modules/settings/*"],
+      "@subscription/*": ["src/modules/subscription/*"],
+      "@ui/*": ["src/modules/ui/*"],
+      "@shared/*": ["src/modules/shared/*"]
     }
   }
-} 
+}

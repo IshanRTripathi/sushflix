@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite';
+import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
 
@@ -34,20 +34,42 @@ export default defineConfig(({ command, mode }) => ({
       overlay: true,
     },
     proxy: {
-      '/api': {
-        target: 'https://sushflix-backend-796527544626.us-central1.run.app',
+      '^/api': {
+        target: process.env.VITE_API_URL || 'http://localhost:8080',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, ''),
         secure: false,
+        ws: true,
+        configure: (proxy, _options) => {
+          proxy.on('error', (err, _req, _res) => {
+            console.log('proxy error', err);
+          });
+          proxy.on('proxyReq', (proxyReq, req, _res) => {
+            console.log('Sending Request to the Target:', req.method, req.url);
+          });
+          proxy.on('proxyRes', (proxyRes, req, _res) => {
+            console.log('Received Response from the Target:', proxyRes.statusCode, req.url);
+          });
+        },
       },
     },
   },
   
   // Resolve configuration
   resolve: {
-    alias: {
-      '@': path.resolve(__dirname, 'src'),
-    },
+    alias: [
+      // Main src alias
+      { find: '@', replacement: path.resolve(__dirname, 'src') },
+      // Module aliases
+      { find: '@modules', replacement: path.resolve(__dirname, 'src/modules') },
+      { find: '@auth', replacement: path.resolve(__dirname, 'src/modules/auth') },
+      { find: '@user', replacement: path.resolve(__dirname, 'src/modules/user') },
+      { find: '@profile', replacement: path.resolve(__dirname, 'src/modules/profile') },
+      { find: '@creator', replacement: path.resolve(__dirname, 'src/modules/creator') },
+      { find: '@settings', replacement: path.resolve(__dirname, 'src/modules/settings') },
+      { find: '@subscription', replacement: path.resolve(__dirname, 'src/modules/subscription') },
+      { find: '@ui', replacement: path.resolve(__dirname, 'src/modules/ui') },
+      { find: '@shared', replacement: path.resolve(__dirname, 'src/modules/shared') },
+    ],
     // Reduce file system calls
     dedupe: ['react', 'react-dom'],
   },

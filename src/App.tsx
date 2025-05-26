@@ -1,20 +1,19 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { AuthProvider } from './components/auth/AuthContext';
-import { ThemeProvider } from './theme/components/ThemeProvider';
-import { LoadingProvider } from './contexts/LoadingContext';
-import { UIProvider } from './contexts/UIContext';
-import { ProtectedRoute } from './components/auth/ProtectedRoute';
-import ProfileLayout from './components/layout/ProfileLayout';
-import { Footer } from './components/layout/Footer';
-import Toast from './components/Toast';
-import HomePage from './components/pages/HomePage';
-import { ExplorePage } from './components/content/ExplorePage';
-import { ContentDetail } from './components/content/components/ContentDetail';
-import SettingsPage from './components/pages/SettingsPage';
-import ProfilePage from './components/pages/ProfilePage';
-import { AuthModal } from './components/auth/AuthModal';
-import { Navigation } from './components/layout/Navigation';
+import { AuthProvider } from './modules/auth/context/AuthContext';
+import { ThemeProvider } from './modules/settings/components/ThemeProvider';
+import { LoadingProvider } from './modules/ui/contexts/LoadingContext';
+import { UIProvider } from './modules/ui/contexts/UIContext';
+import { ProtectedRoute } from './modules/auth/components/ProtectedRoute';
+import { Footer } from './modules/ui/components/footer/Footer';
+import Toast from './modules/ui/components/Toast';
+import HomePage from './modules/ui/components/home/HomePage';
+import { ExplorePage } from './modules/creator/components/content/ExplorePage';
+import { ContentDetail } from './modules/creator/components/content/ContentDetail';
+import SettingsPage from './modules/settings/components/SettingsPage';
+import ProfileLayout from './modules/profile/components/profileLayout/ProfileLayout';
+import { AuthModal } from './modules/auth/components/AuthModal';
+import { Navigation } from './modules/ui/components/header/Navigation';
 
 function App() {
   const queryClient = new QueryClient({
@@ -46,7 +45,7 @@ function App() {
                     } />
                     <Route path="/profile/:username" element={
                       <ProtectedRoute publicPath="/profile/:username">
-                        <ProfilePage />
+                        <ProfileLayout />
                       </ProtectedRoute>
                     } />
                     <Route path="/settings" element={
@@ -55,7 +54,7 @@ function App() {
                       </ProtectedRoute>
                     } />
                     <Route path="/login" element={<Navigate to="/" />} />
-                    <Route path="/creator/:username" element={
+                    <Route path="/profile/:username" element={
                       <ProtectedRoute>
                         <ProfileLayout />
                       </ProtectedRoute>

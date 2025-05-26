@@ -14,7 +14,7 @@ model User {
   password      String
   name          String?
   bio           String?
-  avatarUrl     String?
+  profilePicture     String?
   coverUrl      String?
   isCreator     Boolean   @default(false)
   createdAt     DateTime  @default(now())
